@@ -1,0 +1,23 @@
+[EventType]
+type = "string"
+enum = ["MESSAGE_CREATED", "MESSAGE_UPDATED"]
+
+[MessageCreated]
+type = "object"
+required = ["type", "message", "channel", "author", "created_at"]
+
+[MessageCreated.properties]
+message = { ref = "Message" }
+channel = { ref = "Channel" }
+author = { ref = "Author" }
+
+[MessageUpdated]
+type = "object"
+required = ["message"]
+
+[MessageUpdated.properties]
+message = { ref = "Message" }
+
+[Union.Event]
+types = ["MessageCreated", "MessageUpdated"]
+discriminator = { field = "t", enum = "EventType", data_field = "d" }

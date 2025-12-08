@@ -1,0 +1,13 @@
+[project]
+name = "embeddings"
+version = "0.1.0"
+description = "embed things"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "ebind",
+    "sanic>=25.3.0",
+]
+
+[tool.uv.sources]
+ebind = { git = "https://github.com/encord-team/ebind" }

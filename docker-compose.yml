@@ -1,0 +1,119 @@
+services:
+  traefik:
+    image: traefik:v3.0
+    command:
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entrypoints.web.address=:80"
+    ports:
+      - "80:80"
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+    networks:
+      - chat-network
+
+  portfolio:
+    build:
+      context: ./portfolio
+      dockerfile: Dockerfile
+    networks:
+      - chat-network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.portfolio.rule=Host(`localhost`) && PathPrefix(`/`)"
+      - "traefik.http.services.portfolio.loadbalancer.server.port=3000"
+
+  chat-web:
+    build:
+      context: ./chat-web
+      dockerfile: Dockerfile
+    environment:
+      - API_URL=http://chat-api:3002
+    depends_on:
+      - chat-api
+    networks:
+      - chat-network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.chat-web.rule=Host(`localhost`) && PathPrefix(`/chat`)"
+      - "traefik.http.services.chat-web.loadbalancer.server.port=3001"
+
+  chat-api:
+    build:
+      context: ./chat-api
+      dockerfile: Dockerfile
+    environment:
+      - DATABASE_URL=mongodb://chat-db:27017/chat
+      - EMBEDDINGS_URL=http://embeddings:8000
+      - REDIS_URL=redis://chat-redis:6379
+    depends_on:
+      - chat-db
+      - chat-redis
+      - embeddings
+    networks:
+      - chat-network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.chat-api.rule=Host(`localhost`) && PathPrefix(`/api`)"
+      - "traefik.http.services.chat-api.loadbalancer.server.port=3002"
+
+  chat-gateway:
+    build:
+      context: ./chat-gateway
+      dockerfile: Dockerfile
+    environment:
+      - DATABASE_URL=mongodb://chat-db:27017/chat
+      - REDIS_URL=redis://chat-redis:6379
+    depends_on:
+      - chat-db
+      - chat-redis
+    networks:
+      - chat-network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.chat-gateway.rule=Host(`localhost`) && PathPrefix(`/gateway`)"
+      - "traefik.http.services.chat-gateway.loadbalancer.server.port=3003"
+
+  embeddings:
+    build:
+      context: ./embeddings
+      dockerfile: Dockerfile
+    environment:
+      - MODEL_ID=encord-team/ebind-full
+      - HOST=0.0.0.0
+      - PORT=8000
+      - MAX_INFLIGHT=2
+    networks:
+      - chat-network
+    ports:
+      - "8000:8000"
+
+  chat-db:
+    image: mongo:latest
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=admin
+      - MONGO_INITDB_ROOT_PASSWORD=admin
+    networks:
+      - chat-network
+    volumes:
+      - chat-db-data:/data/db
+
+  chat-redis:
+    image: redis:latest
+    networks:
+      - chat-network
+    volumes:
+      - chat-redis-data:/data
+    environment:
+      - REDIS_PASSWORD=password
+    command: redis-server --requirepass password
+
+networks:
+  chat-network:
+    driver: bridge
+
+volumes:
+  chat-db-data:
+    driver: local
+  chat-redis-data:
+    driver: local

@@ -1,0 +1,4 @@
+export enum EventType {
+    MESSAGE_CREATED = "MESSAGE_CREATED",
+    MESSAGE_UPDATED = "MESSAGE_UPDATED",
+}

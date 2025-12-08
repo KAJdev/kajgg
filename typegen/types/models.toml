@@ -1,0 +1,76 @@
+[Status]
+type = "string"
+enum = ["online", "offline", "away", "do_not_disturb"]
+
+[Author]
+type = "object"
+required = [
+  "id",
+  "username",
+  "avatar_url",
+  "bio",
+  "created_at",
+  "updated_at",
+  "status",
+]
+
+[Author.properties]
+id = { type = "string", doc = "Unique identifier for the author" }
+username = { type = "string", doc = "Display name of the author" }
+avatar_url = { type = "string", doc = "URL to the author's avatar image" }
+bio = { type = "string", doc = "Biography or description of the author" }
+created_at = { type = "string", format = "date-time", doc = "When the author was created" }
+updated_at = { type = "string", format = "date-time", doc = "When the author was last updated" }
+status = { ref = "Status", doc = "Current online status of the author" }
+
+[User]
+type = "object"
+required = ["email"]
+allOf = [{ ref = "Author" }]
+
+[User.properties]
+email = { type = "string", doc = "Email address of the user" }
+
+[File]
+type = "object"
+required = ["id", "name", "mime_type", "size", "url"]
+
+[File.properties]
+id = { type = "string", doc = "Unique identifier for the file" }
+name = { type = "string", doc = "Original filename" }
+mime_type = { type = "string", doc = "MIME type of the file" }
+size = { type = "integer", doc = "File size in bytes" }
+url = { type = "string", doc = "URL to access the file" }
+
+[Channel]
+type = "object"
+required = ["id", "name", "topic", "created_at", "updated_at", "author_id"]
+
+[Channel.properties]
+id = { type = "string", doc = "Unique identifier for the channel" }
+name = { type = "string", doc = "Display name of the channel" }
+topic = { type = "string", doc = "Channel topic or description" }
+created_at = { type = "string", format = "date-time", doc = "When the channel was created" }
+updated_at = { type = "string", format = "date-time", doc = "When the channel was last updated" }
+author_id = { type = "string", doc = "ID of the user who created the channel" }
+
+[Message]
+type = "object"
+required = [
+  "id",
+  "content",
+  "files",
+  "created_at",
+  "updated_at",
+  "author_id",
+  "channel_id",
+]
+
+[Message.properties]
+id = { type = "string", doc = "Unique identifier for the message" }
+content = { type = "string", doc = "Text content of the message" }
+files = { type = "array", items = { ref = "File" }, doc = "List of files attached to the message" }
+created_at = { type = "string", format = "date-time", doc = "When the message was created" }
+updated_at = { type = "string", format = "date-time", doc = "When the message was last updated" }
+author_id = { type = "string", doc = "ID of the user who sent the message" }
+channel_id = { type = "string", doc = "ID of the channel this message belongs to" }
