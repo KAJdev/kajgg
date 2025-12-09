@@ -4,15 +4,7 @@ enum = ["online", "offline", "away", "do_not_disturb"]
 
 [Author]
 type = "object"
-required = [
-  "id",
-  "username",
-  "avatar_url",
-  "bio",
-  "created_at",
-  "updated_at",
-  "status",
-]
+required = ["id", "username", "created_at", "updated_at", "status"]
 
 [Author.properties]
 id = { type = "string", doc = "Unique identifier for the author" }
@@ -30,6 +22,8 @@ allOf = [{ ref = "Author" }]
 
 [User.properties]
 email = { type = "string", doc = "Email address of the user" }
+token = { type = "string", doc = "Token for the user" }
+verified = { type = "boolean", doc = "Whether the user is verified" }
 
 [File]
 type = "object"

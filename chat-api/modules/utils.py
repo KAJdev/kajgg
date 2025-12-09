@@ -1,7 +1,4 @@
-# dont think about this too much
-og_print = print
-
-import inspect
+from enum import Enum
 from os import getenv
 from typing import Any, Type, TypeVar
 import aiohttp
@@ -9,10 +6,11 @@ from attr import asdict
 from sanic import Request
 import base64
 from datetime import UTC, datetime
-import os
-import tqdm
 from cuid2 import Cuid
 from dataclasses import fields, is_dataclass
+import logging
+from pydantic import BaseModel
+from beanie import Document
 
 CUID_GENERATOR: Cuid = Cuid(length=10)
 
@@ -23,6 +21,36 @@ def generate_id():
     return CUID_GENERATOR.generate()
 
 
+def convert_dates_to_iso(d):
+    for k, v in d.items():
+        if isinstance(v, datetime):
+            d[k] = v.isoformat() + "Z"
+        elif isinstance(v, dict):
+            d[k] = convert_dates_to_iso(v)
+        elif isinstance(v, list):
+            d[k] = [convert_dates_to_iso(item) for item in v]
+    return d
+
+
+def convert_enums_to_strings(d):
+    for k, v in d.items():
+        if isinstance(v, Enum):
+            d[k] = v.value
+        elif isinstance(v, dict):
+            d[k] = convert_enums_to_strings(v)
+        elif isinstance(v, list):
+            d[k] = [convert_enums_to_strings(item) for item in v]
+    return d
+
+
+def is_pydantic_model(cls) -> bool:
+    try:
+        return issubclass(cls, (BaseModel, Document))
+    except TypeError:
+        # cls is not a class (e.g., instance), issubclass would fail
+        return False
+
+
 def dtoa(cls: Type[T], data: dict | Any) -> T:
     """
     Converts a dictionary or dataclass to a dictionary using the fields of the given class.
@@ -31,18 +59,15 @@ def dtoa(cls: Type[T], data: dict | Any) -> T:
     field_names = {f.name for f in fields(cls)}
     if is_dataclass(data):
         data = asdict(data)
-    return {k: v for k, v in data.items() if k in field_names}
+    if "model_dump" in dir(data):
+        data = data.model_dump()
+    data = {k: v for k, v in data.items() if k in field_names}
 
-
-def print(*args, important=False, **kwargs):
-    stack = inspect.stack()
-    caller_frame = stack[1]
-    frame_info = inspect.getframeinfo(caller_frame[0])
-    mod = frame_info.filename.split(".")[0].split("/")[-1].split("\\")[-1]
-    s = " ".join(
-        [f"--->" if important else "    ", f"[{mod}]", *[str(a) for a in args]]
-    )
-    tqdm.tqdm.write(s)
+    # make sure any datetime objects are converted to ISO strings
+    # and any enums are converted to strings
+    data = convert_dates_to_iso(data)
+    data = convert_enums_to_strings(data)
+    return data
 
 
 def internal_auth(request: Request) -> bool:
@@ -100,7 +125,7 @@ async def gpt(
                 completion = data["choices"][0]["message"]["content"]
                 return completion
             except Exception as e:
-                print(f"Failed to generate completion: {e}", important=True)
+                logging.error(f"Failed to generate completion: {e}")
                 return None
 
 
@@ -112,10 +137,73 @@ def retry(times: int = 3):
                 try:
                     return await func(*args, **kwargs)
                 except Exception as e:
-                    print(f"Failed to execute function: {e}", important=True)
-                    print("Retrying...", important=True)
+                    logging.error(f"Failed to execute function: {e}")
+                    logging.info("Retrying...")
             return None
 
         return wrapper
 
     return decorator
+
+
+def dataclass_from_dict(klass, data):
+    """
+    Recursively convert a dict (or list of dicts) into a dataclass instance.
+    Handles nested dataclasses, optional fields, lists, and basic types.
+    """
+    from typing import get_origin, get_args, Union, List
+
+    def is_dataclass_type(cls):
+        try:
+            return hasattr(cls, "__dataclass_fields__")
+        except Exception:
+            return False
+
+    def _convert(klass, data):
+        # Handle None for Optional/Union fields
+        if data is None:
+            return None
+
+        origin = get_origin(klass)
+        args = get_args(klass)
+
+        # Handle lists
+        if origin == list or origin == List:
+            if not isinstance(data, list):
+                raise TypeError(f"Expected list for {klass}, got {type(data)}")
+            return [_convert(args[0], item) for item in data]
+
+        # Handle Optionals and Unions (Optional is Union[..., NoneType])
+        if origin == Union:
+            non_none_args = [arg for arg in args if arg is not type(None)]
+            # Try to build with the non-None type(s)
+            for typ in non_none_args:
+                try:
+                    return _convert(typ, data)
+                except Exception:
+                    continue
+            return data  # fallback for unknown Union
+
+        # Handle dictionaries as data for dataclasses
+        if is_dataclass_type(klass) and isinstance(data, dict):
+            fld_types = {f.name: f.type for f in fields(klass)}
+            converted = {}
+            for key, val in data.items():
+                if key in fld_types:
+                    converted[key] = _convert(fld_types[key], val)
+                else:
+                    converted[key] = val  # unknown/extra field, just pass through
+            return klass(**converted)
+
+        # For enums: autocast from string if needed
+        import enum
+
+        if isinstance(klass, type) and issubclass(klass, enum.Enum):
+            if isinstance(data, klass):
+                return data
+            return klass(data)
+
+        # Fallback: just return as-is
+        return data
+
+    return _convert(klass, data)

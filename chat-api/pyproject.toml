@@ -6,10 +6,12 @@ readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
   "aiohttp>=3.13.2",
-  "aioredis>=2.0.1",
+  "bcrypt>=5.0.0",
   "beanie>=2.0.1",
   "cuid2>=2.0.1",
+  "motor>=3.7.1",
   "python-dotenv>=1.2.1",
+  "redis[hiredis]>=7.1.0",
   "sanic>=25.3.0",
   "sanic-ext>=24.12.0",
   "sanic-routing>=23.12.0",

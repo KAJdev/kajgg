@@ -1,6 +1,6 @@
 [EventType]
 type = "string"
-enum = ["MESSAGE_CREATED", "MESSAGE_UPDATED"]
+enum = ["MESSAGE_CREATED", "MESSAGE_UPDATED", "CHANNEL_CREATED", "HEARTBEAT"]
 
 [MessageCreated]
 type = "object"
@@ -18,6 +18,13 @@ required = ["message"]
 [MessageUpdated.properties]
 message = { ref = "Message" }
 
+[ChannelCreated]
+type = "object"
+required = ["channel"]
+
+[ChannelCreated.properties]
+channel = { ref = "Channel" }
+
 [Union.Event]
-types = ["MessageCreated", "MessageUpdated"]
+types = ["MessageCreated", "MessageUpdated", "ChannelCreated"]
 discriminator = { field = "t", enum = "EventType", data_field = "d" }

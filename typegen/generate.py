@@ -93,6 +93,31 @@ def generate_python_enum(name: str, enum_values: List[str]) -> str:
     return "\n".join(lines) + "\n"
 
 
+def update_python_package_root(base_dir: str):
+    os.makedirs(base_dir, exist_ok=True)
+    init_path = os.path.join(base_dir, "__init__.py")
+
+    packages = []
+    for entry in sorted(os.listdir(base_dir)):
+        entry_path = os.path.join(base_dir, entry)
+        package_init = os.path.join(entry_path, "__init__.py")
+        if (
+            os.path.isdir(entry_path)
+            and os.path.exists(package_init)
+            and not entry.startswith("_")
+        ):
+            packages.append(entry)
+
+    lines = ["__all__ = ["]
+    for package in packages:
+        lines.append(f'    "{package}",')
+    lines.append("]")
+    lines.append("")
+
+    with open(init_path, "w", encoding="utf-8") as f:
+        f.write("\n".join(lines))
+
+
 def collect_imports(
     schema: Dict[str, Any],
     all_types: Dict[str, Dict[str, Any]],
@@ -641,17 +666,20 @@ def generate_types(
         # No subfolder, use root
         subfolder = None
 
+    base_output_dir = output_dir
+    target_output_dir = base_output_dir
+
     # Create output directory with subfolder if needed
     if subfolder:
-        output_dir = os.path.join(output_dir, subfolder)
+        target_output_dir = os.path.join(base_output_dir, subfolder)
 
-    os.makedirs(output_dir, exist_ok=True)
+    os.makedirs(target_output_dir, exist_ok=True)
 
     # Clear existing files in this subfolder only
-    if os.path.exists(output_dir):
-        for file in os.listdir(output_dir):
+    if os.path.exists(target_output_dir):
+        for file in os.listdir(target_output_dir):
             if file.endswith((".py", ".pyi", ".ts")):
-                os.remove(os.path.join(output_dir, file))
+                os.remove(os.path.join(target_output_dir, file))
 
     # Determine order: enums first, then base types, then derived types
     enums = {}
@@ -680,7 +708,7 @@ def generate_types(
             file_base = name.lower()
             ts_exports.append((file_base, name))
 
-        output_path = os.path.join(output_dir, file_base + ext)
+        output_path = os.path.join(target_output_dir, file_base + ext)
         with open(output_path, "w", encoding="utf-8") as f:
             f.write(content)
 
@@ -695,7 +723,7 @@ def generate_types(
             content = generate_python_type(
                 name, defn, global_definitions, all_types, subfolder, type_locations
             )
-            ext = ".pyi"
+            ext = ".py"
             file_base = camel_to_snake(name)
             py_exports.append((file_base, name))
         else:
@@ -706,7 +734,7 @@ def generate_types(
             file_base = name.lower()
             ts_exports.append((file_base, name))
 
-        output_path = os.path.join(output_dir, file_base + ext)
+        output_path = os.path.join(target_output_dir, file_base + ext)
         with open(output_path, "w", encoding="utf-8") as f:
             f.write(content)
 
@@ -760,7 +788,7 @@ def generate_types(
                     union_name,
                     subfolder,
                 )
-                ext = ".pyi"
+                ext = ".py"
                 union_file = camel_to_snake(union_name)
                 py_exports.append((union_file, union_name))
             else:
@@ -781,7 +809,7 @@ def generate_types(
             if language == "python":
                 content = generate_python_union(union_types, subfolder)
                 content = content.replace("Union =", f"{union_name} =")
-                ext = ".pyi"
+                ext = ".py"
                 union_file = camel_to_snake(union_name)
                 py_exports.append((union_file, union_name))
             else:
@@ -792,7 +820,7 @@ def generate_types(
                 ext = ".ts"
                 union_file = union_name.lower()
                 ts_exports.append((union_file, union_name))
-        output_path = os.path.join(output_dir, union_file + ext)
+        output_path = os.path.join(target_output_dir, union_file + ext)
         with open(output_path, "w", encoding="utf-8") as f:
             f.write(content)
 
@@ -801,7 +829,7 @@ def generate_types(
         init_lines = []
         for mod, name in sorted(set(py_exports), key=lambda x: x[1]):
             init_lines.append(f"from .{mod} import {name}")
-        init_path = os.path.join(output_dir, "__init__.py")
+        init_path = os.path.join(target_output_dir, "__init__.py")
         with open(init_path, "w", encoding="utf-8") as f:
             f.write("\n".join(init_lines) + ("\n" if init_lines else ""))
     else:
@@ -813,6 +841,9 @@ def generate_types(
             f.write("\n".join(index_lines) + ("\n" if index_lines else ""))
 
     print(f"Generated {len(enums) + len(types) + len(unions)} types for {language}")
+
+    if language == "python":
+        update_python_package_root(base_output_dir)
 
 
 def main():

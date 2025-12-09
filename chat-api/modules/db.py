@@ -1,9 +1,11 @@
+import asyncio
 from datetime import datetime, UTC
-from types.models import Status
+from chat_types.models import Status
 from dotenv import load_dotenv
 from os import getenv
-from modules.utils import print, generate_id
+from modules.utils import generate_id
 from modules.resend import send_verification_email
+import logging
 
 load_dotenv()
 
@@ -13,6 +15,7 @@ from motor.motor_asyncio import AsyncIOMotorClient
 from pydantic import BaseModel, Field
 
 from beanie import Document, init_beanie
+from beanie.operators import In, Or
 
 client = None
 
@@ -39,9 +42,12 @@ class User(Document):
     username: str
     password: str
     token: str
-    status: Status
-    email: Optional[str]
+    status: Status = Field(default=Status.OFFLINE)
+    email: str
+    avatar_url: Optional[str] = Field(default=None)
+    bio: Optional[str] = Field(default=None)
     created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
     flags: UserFlags = Field(default_factory=UserFlags)
     verified: bool = Field(default=False)
     verification_code: Optional[str] = Field(default=None)
@@ -74,11 +80,20 @@ class User(Document):
         use_state_management = True
 
 
+class File(BaseModel):
+    id: str = Field(default_factory=generate_id)
+    name: str = Field(default="")
+    mime_type: str = Field(default="application/octet-stream")
+    size: int = Field(default=0)
+    url: str = Field(default="")
+
+
 class Message(Document):
     id: str = Field(default_factory=generate_id)
     author_id: str
     channel_id: str
     content: str
+    files: list[File] = Field(default_factory=list)
     created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
     updated_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
     deleted_at: Optional[datetime] = None
@@ -95,11 +110,37 @@ class Channel(Document):
     id: str = Field(default_factory=generate_id)
     name: str
     topic: str
+
     author_id: str
     created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
     updated_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
     deleted_at: Optional[datetime] = None
     private: bool = False
+
+    @classmethod
+    async def get_user_channels(cls, user_id: str):
+        public_channels = cls.find(Or(cls.private == False, cls.author_id == user_id))
+
+        memberships = ChannelMember.find(ChannelMember.user_id == user_id)
+
+        public_channels, memberships = await asyncio.gather(
+            public_channels.to_list(),
+            memberships.to_list(),
+        )
+
+        member_channel_ids = {cm.channel_id for cm in memberships}
+
+        private_channels = []
+        if member_channel_ids:
+            private_channels = await cls.find(
+                In(cls.id, list(member_channel_ids)), cls.private == True
+            ).to_list()
+
+        channels = {channel.id: channel for channel in public_channels}
+        for channel in private_channels:
+            channels[channel.id] = channel
+
+        return list(channels.values())
 
     class Settings:
         name = "channels"
@@ -132,4 +173,4 @@ async def init():
             ChannelMember,
         ],
     )
-    print("Connected to MongoDB", important=True)
+    logging.info("Connected to MongoDB")
