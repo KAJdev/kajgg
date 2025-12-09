@@ -10,9 +10,9 @@ class Author:
     # Display name of the author
     username: str
     # URL to the author's avatar image
-    avatar_url: str
+    avatar_url: str | None
     # Biography or description of the author
-    bio: str
+    bio: str | None
     # When the author was created
     created_at: datetime
     # When the author was last updated

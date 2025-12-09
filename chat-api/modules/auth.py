@@ -4,7 +4,11 @@ from functools import wraps
 
 
 async def authenticate(request: Request, override_token: str = None) -> User | None:
-    tok = override_token or request.headers.get("Authorization")
+    tok = (
+        override_token
+        or request.headers.get("Authorization")
+        or request.args.get("token")
+    )
 
     if not tok:
         return None

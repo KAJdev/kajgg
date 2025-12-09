@@ -1,5 +1,7 @@
 from dataclasses import dataclass
 from datetime import datetime
+from .author import Author
+from .channel import Channel
 from .file import File
 
 
@@ -19,3 +21,5 @@ class Message:
     author_id: str
     # ID of the channel this message belongs to
     channel_id: str
+    author: Author | None
+    channel: Channel | None

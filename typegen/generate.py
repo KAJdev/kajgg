@@ -297,7 +297,7 @@ def generate_typescript_union(
     # Import all the union member types
     for type_name in sorted(type_names):
         type_file = type_name.lower()
-        lines.append(f'import {{ {type_name} }} from "./{type_file}";')
+        lines.append(f'import type {{ {type_name} }} from "./{type_file}";')
 
     lines.append("")
 
@@ -368,11 +368,13 @@ def generate_typescript_type(
         imp_location = type_locations.get(imp) if type_locations else None
         if imp_location and imp_location != current_subfolder:
             # Cross-file import
-            lines.append(f'import {{ {imp} }} from "../{imp_location}/{imp.lower()}";')
+            lines.append(
+                f'import type {{ {imp} }} from "../{imp_location}/{imp.lower()}";'
+            )
         else:
             # Same file import
             imp_file = imp.lower()
-            lines.append(f'import {{ {imp} }} from "./{imp_file}";')
+            lines.append(f'import type {{ {imp} }} from "./{imp_file}";')
 
     if imports_needed:
         lines.append("")

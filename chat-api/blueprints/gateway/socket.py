@@ -34,9 +34,10 @@ async def gateway(request: Request):
     logging.info(f"Client connected {request.ctx.user.id}")
     events.add_writer(request.ctx.user.id, response)
 
-    logging.info(f" ---> catching up {request.ctx.user.id} from {last_event_ts}...")
-    await events.replay_events(request.ctx.user.id, response, last_event_ts)
-    logging.info(f" ---> caught up {request.ctx.user.id}")
+    if last_event_ts is not None:
+        logging.info(f" ---> catching up {request.ctx.user.id} from {last_event_ts}...")
+        await events.replay_events(request.ctx.user.id, response, last_event_ts)
+        logging.info(f" ---> caught up {request.ctx.user.id}")
 
     try:
         while True:

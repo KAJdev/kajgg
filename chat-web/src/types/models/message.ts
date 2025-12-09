@@ -1,4 +1,6 @@
-import { File } from "./file";
+import type { Author } from "./author";
+import type { Channel } from "./channel";
+import type { File } from "./file";
 
 export type Message = {
     /** Unique identifier for the message */
@@ -15,4 +17,6 @@ export type Message = {
     author_id: string;
     /** ID of the channel this message belongs to */
     channel_id: string;
+    author?: Author;
+    channel?: Channel;
 }

@@ -1,3 +1,5 @@
+import type { Author } from "./author";
+
 export type Channel = {
     /** Unique identifier for the channel */
     id: string;
@@ -11,4 +13,5 @@ export type Channel = {
     updated_at: Date;
     /** ID of the user who created the channel */
     author_id: string;
+    author?: Author;
 }

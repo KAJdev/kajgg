@@ -47,6 +47,7 @@ topic = { type = "string", doc = "Channel topic or description" }
 created_at = { type = "string", format = "date-time", doc = "When the channel was created" }
 updated_at = { type = "string", format = "date-time", doc = "When the channel was last updated" }
 author_id = { type = "string", doc = "ID of the user who created the channel" }
+author = { ref = "Author" }
 
 [Message]
 type = "object"
@@ -68,3 +69,5 @@ created_at = { type = "string", format = "date-time", doc = "When the message wa
 updated_at = { type = "string", format = "date-time", doc = "When the message was last updated" }
 author_id = { type = "string", doc = "ID of the user who sent the message" }
 channel_id = { type = "string", doc = "ID of the channel this message belongs to" }
+author = { ref = "Author" }
+channel = { ref = "Channel" }

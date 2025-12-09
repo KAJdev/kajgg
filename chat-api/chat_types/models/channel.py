@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from datetime import datetime
+from .author import Author
 
 
 @dataclass
@@ -16,3 +17,4 @@ class Channel:
     updated_at: datetime
     # ID of the user who created the channel
     author_id: str
+    author: Author | None

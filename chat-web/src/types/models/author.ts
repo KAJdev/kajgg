@@ -1,4 +1,4 @@
-import { Status } from "./status";
+import type { Status } from "./status";
 
 export type Author = {
     /** Unique identifier for the author */
@@ -6,9 +6,9 @@ export type Author = {
     /** Display name of the author */
     username: string;
     /** URL to the author's avatar image */
-    avatar_url: string;
+    avatar_url?: string;
     /** Biography or description of the author */
-    bio: string;
+    bio?: string;
     /** When the author was created */
     created_at: Date;
     /** When the author was last updated */
