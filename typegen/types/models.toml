@@ -4,7 +4,7 @@ enum = ["online", "offline", "away", "do_not_disturb"]
 
 [Author]
 type = "object"
-required = ["id", "username", "created_at", "updated_at", "status"]
+required = ["id", "username", "created_at", "updated_at"]
 
 [Author.properties]
 id = { type = "string", doc = "Unique identifier for the author" }

@@ -6,6 +6,6 @@ from ..models.message import Message
 
 @dataclass
 class MessageCreated:
-    message: Message
-    channel: Channel
-    author: Author
+    message: Message | None = None
+    channel: Channel | None = None
+    author: Author | None = None

@@ -4,4 +4,4 @@ from ..models.channel import Channel
 
 @dataclass
 class ChannelCreated:
-    channel: Channel
+    channel: Channel | None = None

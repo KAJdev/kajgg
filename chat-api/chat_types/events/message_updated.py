@@ -4,4 +4,4 @@ from ..models.message import Message
 
 @dataclass
 class MessageUpdated:
-    message: Message
+    message: Message | None = None

@@ -22,10 +22,10 @@ export const cache = create<Cache>()(() => ({
   last_event_ts: undefined,
 }));
 
-export const tokenCache = create<{ token?: string }>()(
+export const tokenCache = create<{ token: string | null }>()(
   persist(
     (set) => ({
-      token: undefined,
+      token: null,
       setToken: (token: string) => set({ token }),
     }),
     {
@@ -41,6 +41,10 @@ export function setUser(user: User) {
 
 export function getToken() {
   return tokenCache.getState().token;
+}
+
+export function useToken() {
+  return tokenCache(useShallow((state) => state.token));
 }
 
 export function setLastEventTs(last_event_ts: number) {

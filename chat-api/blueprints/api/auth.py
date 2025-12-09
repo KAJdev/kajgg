@@ -42,6 +42,7 @@ async def signup(request: Request):
 
     await user.save()
     await user.start_verification()
+    await user.fetch_status()
     return json(utils.dtoa(ApiUser, user))
 
 
@@ -71,5 +72,7 @@ async def signin(request: Request):
         data["password"].encode("utf-8"), user.password.encode("utf-8")
     ):
         raise exceptions.Unauthorized("Unauthorized")
+
+    await user.fetch_status()
 
     return json(utils.dtoa(ApiUser, user))

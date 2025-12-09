@@ -1,10 +1,17 @@
 [EventType]
 type = "string"
-enum = ["MESSAGE_CREATED", "MESSAGE_UPDATED", "CHANNEL_CREATED", "HEARTBEAT"]
+enum = [
+  "MESSAGE_CREATED",
+  "MESSAGE_UPDATED",
+  "CHANNEL_CREATED",
+  "HEARTBEAT",
+  "AUTHOR_UPDATED",
+  "MESSAGE_DELETED",
+]
 
 [MessageCreated]
 type = "object"
-required = ["type", "message", "channel", "author", "created_at"]
+required = ["message", "channel", "author"]
 
 [MessageCreated.properties]
 message = { ref = "Message" }
@@ -18,6 +25,14 @@ required = ["message"]
 [MessageUpdated.properties]
 message = { ref = "Message" }
 
+[MessageDeleted]
+type = "object"
+required = ["message_id", "channel_id"]
+
+[MessageDeleted.properties]
+message_id = { type = "string", doc = "Unique identifier for the message" }
+channel_id = { type = "string", doc = "Unique identifier for the channel" }
+
 [ChannelCreated]
 type = "object"
 required = ["channel"]
@@ -25,6 +40,19 @@ required = ["channel"]
 [ChannelCreated.properties]
 channel = { ref = "Channel" }
 
+[AuthorUpdated]
+type = "object"
+required = ["author"]
+
+[AuthorUpdated.properties]
+author = { ref = "Author" }
+
 [Union.Event]
-types = ["MessageCreated", "MessageUpdated", "ChannelCreated"]
+types = [
+  "MessageCreated",
+  "MessageUpdated",
+  "ChannelCreated",
+  "AuthorUpdated",
+  "MessageDeleted",
+]
 discriminator = { field = "t", enum = "EventType", data_field = "d" }

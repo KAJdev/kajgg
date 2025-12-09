@@ -245,8 +245,7 @@ def generate_python_type(
             ):
                 prop_type = ref_name
 
-        if prop_name not in required:
-            prop_type += " | None"
+        prop_type += " | None = None"
 
         lines.append(f"    {prop_name}: {prop_type}")
 

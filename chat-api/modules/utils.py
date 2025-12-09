@@ -1,6 +1,6 @@
 from enum import Enum
 from os import getenv
-from typing import Any, Type, TypeVar
+from typing import Any, Optional, Type, TypeVar
 import aiohttp
 from attr import asdict
 from sanic import Request

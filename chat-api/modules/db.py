@@ -6,6 +6,7 @@ from os import getenv
 from modules.utils import generate_id
 from modules.resend import send_verification_email
 import logging
+from modules.kv import get_client
 
 load_dotenv()
 
@@ -42,7 +43,13 @@ class User(Document):
     username: str
     password: str
     token: str
-    status: Status = Field(default=Status.OFFLINE)
+
+    # default status when a user is connected to the gateway
+    default_status: Status = Field(default=Status.ONLINE)
+
+    # current status of the user
+    status: Optional[Status] = Field(default=None)
+
     email: str
     avatar_url: Optional[str] = Field(default=None)
     bio: Optional[str] = Field(default=None)
@@ -61,6 +68,13 @@ class User(Document):
             }
         )
         return convert_dates_to_iso(d)
+
+    async def fetch_status(self):
+        connections = await get_client().smembers(
+            f"{getenv('ENV')}-gateway-connections:{self.id}"
+        )
+        self.status = self.default_status if connections else Status.OFFLINE
+        return self.status
 
     async def start_verification(self):
         self.verification_code = generate_id()

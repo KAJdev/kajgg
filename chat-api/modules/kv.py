@@ -1,4 +1,4 @@
-import json
+import sanic
 from os import getenv
 import redis.asyncio as redis
 from redis.exceptions import ResponseError

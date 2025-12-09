@@ -4,6 +4,9 @@ import {
   addMessage,
   cache,
   getToken,
+  removeMessage,
+  tokenCache,
+  updateAuthor,
   updateMessage,
 } from "./cache";
 import type { Event } from "@schemas/events/event";
@@ -77,18 +80,25 @@ function handleEvent(event: Event) {
       return addMessage(event.d.channel.id, event.d.message);
     case EventType.MESSAGE_UPDATED:
       return updateMessage(event.d.message.channel_id, event.d.message);
+    case EventType.MESSAGE_DELETED:
+      return removeMessage(event.d.message_id, event.d.channel_id);
+    case EventType.AUTHOR_UPDATED:
+      return updateAuthor(event.d.author);
   }
 }
 
 export function useGateway() {
   const { eventSource, connect, disconnect, reconnect } = useEventSource();
+  const { token } = tokenCache();
 
   useEffect(() => {
-    connect();
+    if (token) {
+      connect();
+    }
     return () => {
       disconnect();
     };
-  }, [connect, disconnect]);
+  }, [connect, disconnect, token]);
 
   return { eventSource, connect, disconnect, reconnect } as const;
 }

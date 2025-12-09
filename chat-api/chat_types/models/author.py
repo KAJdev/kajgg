@@ -6,16 +6,16 @@ from .status import Status
 @dataclass
 class Author:
     # Unique identifier for the author
-    id: str
+    id: str | None = None
     # Display name of the author
-    username: str
+    username: str | None = None
     # URL to the author's avatar image
-    avatar_url: str | None
+    avatar_url: str | None = None
     # Biography or description of the author
-    bio: str | None
+    bio: str | None = None
     # When the author was created
-    created_at: datetime
+    created_at: datetime | None = None
     # When the author was last updated
-    updated_at: datetime
+    updated_at: datetime | None = None
     # Current online status of the author
-    status: Status
+    status: Status | None = None

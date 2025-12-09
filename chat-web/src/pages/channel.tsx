@@ -3,7 +3,7 @@ import { useParams } from "react-router";
 import { Message } from "src/components/Message";
 import { Page } from "src/layout/page";
 import { createMessage, fetchMessages } from "src/lib/api";
-import { cache, useChannel, useChannelMessages } from "src/lib/cache";
+import { useChannel, useChannelMessages } from "src/lib/cache";
 
 export function Channel() {
   const { channelId } = useParams();
@@ -11,8 +11,6 @@ export function Channel() {
 
   const messageMap = useChannelMessages(channelId ?? "");
   const channel = useChannel(channelId ?? "");
-
-  console.log(channel, messageMap, cache.getState());
 
   useEffect(() => {
     if (channelId) {

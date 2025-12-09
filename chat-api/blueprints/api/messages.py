@@ -9,7 +9,7 @@ from modules.db import Channel, ChannelMember, Message
 from modules import utils
 from modules.auth import authorized
 from modules.events import publish_event
-from chat_types.events import MessageCreated, MessageUpdated
+from chat_types.events import MessageCreated, MessageUpdated, MessageDeleted
 
 bp = Blueprint("messages")
 
@@ -43,7 +43,9 @@ async def get_messages(request: Request, channel_id: str):
     limit = min(limit, 100)
     limit = max(limit, 1)
 
-    query = {}
+    query = {
+        "deleted_at": None,
+    }
 
     if after:
         query["created_at"] = {"$gt": after}
@@ -94,6 +96,8 @@ async def create_message(request: Request, channel_id: str):
     )
     await message.save()
 
+    await request.ctx.user.fetch_status()
+
     publish_event(
         MessageCreated(
             message=utils.dtoa(ApiMessage, message),
@@ -108,7 +112,9 @@ async def create_message(request: Request, channel_id: str):
 @bp.route("/v1/channels/<channel_id>/messages/<message_id>", methods=["PATCH"])
 @authorized()
 async def update_message(request: Request, channel_id: str, message_id: str):
-    message: Message = await Message.find_one(Message.id == message_id)
+    message: Message = await Message.find_one(
+        Message.id == message_id, Message.deleted_at == None
+    )
     if not message:
         raise exceptions.NotFound("Message not found")
 
@@ -126,6 +132,27 @@ async def update_message(request: Request, channel_id: str, message_id: str):
     message.updated_at = datetime.now(UTC)
     await message.save()
 
+    await request.ctx.user.fetch_status()
+
     publish_event(MessageUpdated(message=utils.dtoa(ApiMessage, message)))
+
+    return json(utils.dtoa(ApiMessage, message))
+
+
+@bp.route("/v1/channels/<channel_id>/messages/<message_id>", methods=["DELETE"])
+@authorized()
+async def delete_message(request: Request, channel_id: str, message_id: str):
+    message: Message = await Message.find_one(
+        Message.id == message_id,
+        Message.channel_id == channel_id,
+        Message.author_id == request.ctx.user.id,
+    )
+    if not message:
+        raise exceptions.NotFound("Message not found")
+
+    message.deleted_at = datetime.now(UTC)
+    await message.save()
+
+    publish_event(MessageDeleted(message_id=message_id, channel_id=channel_id))
 
     return json(utils.dtoa(ApiMessage, message))

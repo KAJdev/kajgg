@@ -1,4 +1,4 @@
-import { getToken } from "./cache";
+import { getToken, tokenCache } from "./cache";
 
 const API_URL = import.meta.env.VITE_API_URL;
 
@@ -48,6 +48,10 @@ export async function request<T>(
   try {
     const data = await response.json();
     if (!response.ok) {
+      if (response.status === 401) {
+        tokenCache.setState({ token: null });
+      }
+
       return [null, { message: data.message, status: response.status }];
     }
     return [data, null];

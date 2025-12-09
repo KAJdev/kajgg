@@ -1,8 +1,9 @@
 import type { User } from "@schemas/models/user";
-import { addChannel, addMessage, setUser } from "./cache";
+import { addAuthor, addChannel, addMessage, setUser } from "./cache";
 import type { Channel } from "@schemas/models/channel";
 import type { Message } from "@schemas/models/message";
 import { request } from "./request";
+import type { Author } from "@schemas/models/author";
 
 export async function login(username: string, password: string) {
   const [user, error] = await request<User>("login", {
@@ -117,4 +118,27 @@ export async function fetchMessages(
   }
 
   return messages;
+}
+
+export async function fetchAuthor(userId: string) {
+  const [author, error] = await request<Author>(`users/${userId}`);
+
+  if (error) {
+    throw error;
+  }
+
+  addAuthor(author);
+
+  return author;
+}
+
+export async function fetchMe() {
+  const [user, error] = await request<User>("users/@me");
+
+  if (error) {
+    throw error;
+  }
+
+  setUser(user);
+  return user;
 }

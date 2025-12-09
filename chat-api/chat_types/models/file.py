@@ -4,12 +4,12 @@ from dataclasses import dataclass
 @dataclass
 class File:
     # Unique identifier for the file
-    id: str
+    id: str | None = None
     # Original filename
-    name: str
+    name: str | None = None
     # MIME type of the file
-    mime_type: str
+    mime_type: str | None = None
     # File size in bytes
-    size: int
+    size: int | None = None
     # URL to access the file
-    url: str
+    url: str | None = None

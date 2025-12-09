@@ -14,5 +14,5 @@ export type Author = {
     /** When the author was last updated */
     updated_at: Date;
     /** Current online status of the author */
-    status: Status;
+    status?: Status;
 }

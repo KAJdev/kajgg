@@ -1,10 +1,9 @@
 import { Input } from "@theme/Input";
-import { Link, useNavigate } from "react-router";
-import { createChannel, fetchChannels, login, signup } from "src/lib/api";
+import { Link } from "react-router";
+import { login, signup } from "src/lib/api";
 import { Button } from "@theme/Button";
 
 export function Auth({ mode }: { mode: "login" | "signup" }) {
-  const navigate = useNavigate();
   const [username, setUsername] = useState<string>("");
   const [email, setEmail] = useState<string>("");
   const [password, setPassword] = useState<string>("");
@@ -15,15 +14,6 @@ export function Auth({ mode }: { mode: "login" | "signup" }) {
     } else {
       await signup(username, password, email);
     }
-
-    const channels = await fetchChannels();
-    let channelId = channels[0]?.id;
-    if (channels.length === 0) {
-      const channel = await createChannel("general", "General channel", false);
-      channelId = channel.id;
-    }
-
-    navigate(`/channels/${channelId}`);
   }
 
   return (
