@@ -109,7 +109,7 @@ class Message(Document):
     content: str
     files: list[File] = Field(default_factory=list)
     created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
-    updated_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
+    updated_at: Optional[datetime] = None
     deleted_at: Optional[datetime] = None
 
     class Settings:

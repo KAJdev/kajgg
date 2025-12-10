@@ -12,7 +12,7 @@ export type Message = {
     /** When the message was created */
     created_at: Date;
     /** When the message was last updated */
-    updated_at: Date;
+    updated_at?: Date;
     /** ID of the user who sent the message */
     author_id: string;
     /** ID of the channel this message belongs to */

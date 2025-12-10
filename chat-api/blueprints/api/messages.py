@@ -45,6 +45,7 @@ async def get_messages(request: Request, channel_id: str):
 
     query = {
         "deleted_at": None,
+        "channel_id": channel_id,
     }
 
     if after:
@@ -113,7 +114,9 @@ async def create_message(request: Request, channel_id: str):
 @authorized()
 async def update_message(request: Request, channel_id: str, message_id: str):
     message: Message = await Message.find_one(
-        Message.id == message_id, Message.deleted_at == None
+        Message.id == message_id,
+        Message.deleted_at == None,
+        Message.channel_id == channel_id,
     )
     if not message:
         raise exceptions.NotFound("Message not found")

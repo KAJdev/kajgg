@@ -1,5 +1,12 @@
 import type { User } from "@schemas/models/user";
-import { addAuthor, addChannel, addMessage, setUser } from "./cache";
+import {
+  addAuthor,
+  addChannel,
+  addMessage,
+  removeMessage,
+  setUser,
+  updateMessage,
+} from "./cache";
 import type { Channel } from "@schemas/models/channel";
 import type { Message } from "@schemas/models/message";
 import { request } from "./request";
@@ -70,6 +77,10 @@ export async function fetchChannels() {
 }
 
 export async function createMessage(channelId: string, content: string) {
+  if (content.length === 0) {
+    return;
+  }
+
   const [message, error] = await request<Message>(
     `channels/${channelId}/messages`,
     {
@@ -83,6 +94,45 @@ export async function createMessage(channelId: string, content: string) {
   }
 
   addMessage(channelId, message);
+
+  return message;
+}
+
+export async function editMessage(
+  channelId: string,
+  messageId: string,
+  content: string
+) {
+  const [message, error] = await request<Message>(
+    `channels/${channelId}/messages/${messageId}`,
+    {
+      method: "PATCH",
+      body: { content },
+    }
+  );
+
+  if (error) {
+    throw error;
+  }
+
+  updateMessage(channelId, message);
+
+  return message;
+}
+
+export async function deleteMessage(channelId: string, messageId: string) {
+  const [message, error] = await request<Message>(
+    `channels/${channelId}/messages/${messageId}`,
+    {
+      method: "DELETE",
+    }
+  );
+
+  if (error) {
+    throw error;
+  }
+
+  removeMessage(channelId, messageId);
 
   return message;
 }

@@ -1,6 +1,7 @@
 from enum import Enum
 from os import getenv
-from typing import Any, Optional, Type, TypeVar
+from typing import Any, Type, TypeVar
+import types
 import aiohttp
 from attr import asdict
 from sanic import Request
@@ -11,6 +12,8 @@ from dataclasses import fields, is_dataclass
 import logging
 from pydantic import BaseModel
 from beanie import Document
+from typing import get_origin, get_args, Union, List
+import enum
 
 CUID_GENERATOR: Cuid = Cuid(length=10)
 
@@ -151,7 +154,6 @@ def dataclass_from_dict(klass, data):
     Recursively convert a dict (or list of dicts) into a dataclass instance.
     Handles nested dataclasses, optional fields, lists, and basic types.
     """
-    from typing import get_origin, get_args, Union, List
 
     def is_dataclass_type(cls):
         try:
@@ -174,8 +176,15 @@ def dataclass_from_dict(klass, data):
             return [_convert(args[0], item) for item in data]
 
         # Handle Optionals and Unions (Optional is Union[..., NoneType])
-        if origin == Union:
-            non_none_args = [arg for arg in args if arg is not type(None)]
+        if (
+            origin == Union
+            or isinstance(klass, types.UnionType)
+            or origin == types.UnionType
+        ):
+            union_args = args
+            if not union_args and hasattr(klass, "__args__"):
+                union_args = getattr(klass, "__args__", ())
+            non_none_args = [arg for arg in union_args if arg is not type(None)]
             # Try to build with the non-None type(s)
             for typ in non_none_args:
                 try:
@@ -194,9 +203,6 @@ def dataclass_from_dict(klass, data):
                 else:
                     converted[key] = val  # unknown/extra field, just pass through
             return klass(**converted)
-
-        # For enums: autocast from string if needed
-        import enum
 
         if isinstance(klass, type) and issubclass(klass, enum.Enum):
             if isinstance(data, klass):
