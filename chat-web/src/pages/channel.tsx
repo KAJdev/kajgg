@@ -1,5 +1,7 @@
 import { Link, useParams } from "react-router";
+import { ListAuthor } from "src/components/ListAuthor";
 import { Message } from "src/components/Message";
+import { User } from "src/components/User";
 import { Page } from "src/layout/page";
 import {
   createMessage,
@@ -140,6 +142,7 @@ export function Channel() {
               <div className="px-2 py-1 text-neutral-600">no channels</div>
             )}
           </div>
+          <User />
         </div>
 
         <div className="grid h-full grid-rows-[auto_1fr_auto] p-3 min-h-0">
@@ -172,7 +175,7 @@ export function Channel() {
             </div>
           </div>
 
-          <div className="flex items-center gap-2 px-2 border border-neutral-800">
+          <div className="flex items-center gap-2 px-2 h-12 border border-neutral-800">
             <input
               className="flex-1 bg-transparent py-2 px-1 text-neutral-100 placeholder:text-neutral-600 outline-none ring-0 transition focus:border-neutral-500/70"
               type="text"
@@ -202,19 +205,7 @@ export function Channel() {
           <div className="flex-1 overflow-y-auto flex-col">
             {authorList.length ? (
               authorList.map((author) => (
-                <div key={author.id} className="text-neutral-300">
-                  <span
-                    className={classes(
-                      author.status === "online" && "text-green-500",
-                      author.status === "away" && "text-yellow-500",
-                      author.status === "do_not_disturb" && "text-red-500",
-                      author.status === "offline" && "text-neutral-500"
-                    )}
-                  >
-                    @
-                  </span>
-                  {author.username}
-                </div>
+                <ListAuthor key={author.id} author={author} />
               ))
             ) : (
               <div className="text-neutral-600">no authors</div>

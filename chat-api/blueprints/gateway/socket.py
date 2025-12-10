@@ -1,9 +1,10 @@
 import asyncio
 from sanic import Blueprint, Request, exceptions, HTTPResponse
 from sanic_ext import openapi
-from chat_types.events import EventType
+from chat_types.events import EventType, AuthorUpdated
+from chat_types.models.author import Author as ApiAuthor
 from modules.auth import authorized
-from modules import events
+from modules import events, utils
 import logging
 
 bp = Blueprint("socket")
@@ -33,7 +34,7 @@ async def gateway(request: Request):
 
     logging.info(f"Client connected {request.ctx.user.id}")
     conn = events.GatewayConnection(user_id=request.ctx.user.id, writer=response)
-    events.add_connection(request.ctx.user.id, conn)
+    await events.add_connection(request.ctx.user.id, conn)
 
     if last_event_ts is not None:
         logging.info(f" ---> catching up {request.ctx.user.id} from {last_event_ts}...")
@@ -41,6 +42,9 @@ async def gateway(request: Request):
         logging.info(f" ---> caught up {request.ctx.user.id}")
 
     await events.populate_client_cache(request.ctx.user.id, conn)
+
+    await request.ctx.user.fetch_status()
+    events.publish_event(AuthorUpdated(author=utils.dtoa(ApiAuthor, request.ctx.user)))
 
     try:
         while True:
@@ -50,6 +54,8 @@ async def gateway(request: Request):
     except asyncio.CancelledError:
         logging.info(f"Client disconnected {request.ctx.user.id}")
     finally:
-        events.remove_connection(request.ctx.user.id, conn)
-
-    return conn.writer
+        await events.remove_connection(request.ctx.user.id, conn)
+        await request.ctx.user.fetch_status()
+        events.publish_event(
+            AuthorUpdated(author=utils.dtoa(ApiAuthor, request.ctx.user))
+        )

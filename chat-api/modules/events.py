@@ -156,18 +156,14 @@ async def update_user_entitlements(user: User):
     user_entitlements[user.id] = await UserEntitlements.from_user(user)
 
 
-def add_connection(user_id: str, conn: GatewayConnection):
+async def add_connection(user_id: str, conn: GatewayConnection):
     connections[user_id].add(conn)
-    asyncio.create_task(
-        get_client().sadd(f"{getenv('ENV')}-gateway-connections:{user_id}", conn.id),
-    )
+    await get_client().sadd(f"{getenv('ENV')}-gateway-connections:{user_id}", conn.id)
 
 
-def remove_connection(user_id: str, conn: GatewayConnection):
+async def remove_connection(user_id: str, conn: GatewayConnection):
     connections[user_id].discard(conn)
-    asyncio.create_task(
-        get_client().srem(f"{getenv('ENV')}-gateway-connections:{user_id}", conn.id)
-    )
+    await get_client().srem(f"{getenv('ENV')}-gateway-connections:{user_id}", conn.id)
     if not connections[user_id] and user_id in user_entitlements:
         del user_entitlements[user_id]
 
@@ -229,9 +225,10 @@ async def populate_client_cache(user_id: str, conn: GatewayConnection):
     users = await User.find().to_list(None)
     await asyncio.gather(*[user.fetch_status() for user in users])
     for user in users:
-        await _send_event(
-            conn, format_event(AuthorUpdated(author=dtoa(ApiAuthor, user)))
-        )
+        if user.id != user_id:
+            await _send_event(
+                conn, format_event(AuthorUpdated(author=dtoa(ApiAuthor, user)))
+            )
 
 
 def handle_channel_created(event: ChannelCreated):

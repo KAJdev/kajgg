@@ -61,5 +61,6 @@ created_at = { type = "string", format = "date-time", doc = "When the message wa
 updated_at = { type = "string", format = "date-time", doc = "When the message was last updated" }
 author_id = { type = "string", doc = "ID of the user who sent the message" }
 channel_id = { type = "string", doc = "ID of the channel this message belongs to" }
+nonce = { type = "string", doc = "Nonce for the message" }
 author = { ref = "Author" }
 channel = { ref = "Channel" }
