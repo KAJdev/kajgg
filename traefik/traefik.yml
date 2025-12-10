@@ -1,0 +1,12 @@
+entryPoints:
+  web:
+    address: ":80"
+
+providers:
+  file:
+    filename: /etc/traefik/dynamic.yml.tmpl
+    watch: true
+
+accessLog: {}
+log:
+  level: INFO

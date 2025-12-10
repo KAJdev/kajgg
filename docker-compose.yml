@@ -1,15 +1,13 @@
 services:
   traefik:
-    image: traefik:v3.0
+    build:
+      context: ./traefik
     attach: false
-    command:
-      - "--providers.docker=true"
-      - "--providers.docker.exposedbydefault=false"
-      - "--entrypoints.web.address=:80"
     ports:
       - "80:80"
-    volumes:
-      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+    environment:
+      - CHAT_API_URL=http://chat-api:3002
+      - CHAT_GATEWAY_URL=http://chat-gateway:3003
     networks:
       - chat-network
 

@@ -1,0 +1,37 @@
+http:
+  routers:
+    chat-api:
+      rule: PathPrefix(`/api`)
+      entryPoints:
+        - web
+      service: chat-api
+      middlewares:
+        - chat-api-stripprefix
+    chat-gateway:
+      rule: PathPrefix(`/gateway`)
+      entryPoints:
+        - web
+      service: chat-gateway
+      middlewares:
+        - chat-gateway-stripprefix
+
+  middlewares:
+    chat-api-stripprefix:
+      stripPrefix:
+        prefixes:
+          - /api
+    chat-gateway-stripprefix:
+      stripPrefix:
+        prefixes:
+          - /gateway
+
+  services:
+    chat-api:
+      loadBalancer:
+        servers:
+          - url: "{{ env `CHAT_API_URL` }}"
+    chat-gateway:
+      loadBalancer:
+        servers:
+          - url: "{{ env `CHAT_GATEWAY_URL` }}"
+
