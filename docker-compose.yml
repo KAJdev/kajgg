@@ -2,7 +2,6 @@ services:
   traefik:
     build:
       context: ./traefik
-    attach: false
     ports:
       - "80:80"
     environment:
