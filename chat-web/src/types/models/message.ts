@@ -17,6 +17,8 @@ export type Message = {
     author_id: string;
     /** ID of the channel this message belongs to */
     channel_id: string;
+    /** Nonce for the message */
+    nonce?: string;
     author?: Author;
     channel?: Channel;
 }

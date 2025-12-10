@@ -1,6 +1,6 @@
 import type { Status as StatusType } from "src/types";
 
-export function Status({ status }: { status: StatusType }) {
+export function Status({ status }: { status?: StatusType }) {
   return (
     <span
       className={classes(

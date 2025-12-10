@@ -21,5 +21,7 @@ class Message:
     author_id: str | None = None
     # ID of the channel this message belongs to
     channel_id: str | None = None
+    # Nonce for the message
+    nonce: str | None = None
     author: Author | None = None
     channel: Channel | None = None

@@ -253,12 +253,14 @@ def generate_python_type(
 
 
 def generate_typescript_enum(name: str, enum_values: List[str]) -> str:
-    """Generate a TypeScript enum."""
-    lines = [f"export enum {name} {{"]
+    """Generate a TypeScript enum as a const object plus a type alias (erasable)."""
+    lines = [f"export const {name} = {{"]
     for value in enum_values:
         key = value.upper()
-        lines.append(f'    {key} = "{value}",')
-    lines.append("}")
+        lines.append(f'  {key}: "{value}",')
+    lines.append("} as const;")
+    lines.append("")
+    lines.append(f"export type {name} = (typeof {name})[keyof typeof {name}];")
     return "\n".join(lines) + "\n"
 
 
@@ -480,15 +482,10 @@ def generate_typescript_discriminated_union(
     """Generate a TypeScript discriminated union type."""
     lines = []
 
-    # Import discriminator enum
-    lines.append(
-        f'import {{ {discriminator_enum} }} from "./{discriminator_enum.lower()}";'
-    )
-
     # Import all the union member types
     for type_name in sorted(type_names):
         type_file = type_name.lower()
-        lines.append(f'import {{ {type_name} }} from "./{type_file}";')
+        lines.append(f'import type {{ {type_name} }} from "./{type_file}";')
 
     lines.append("")
 
@@ -497,7 +494,7 @@ def generate_typescript_discriminated_union(
     for type_name in sorted(type_names):
         enum_value = type_to_enum_map.get(type_name, type_name.upper())
         union_parts.append(
-            f"  | {{ {discriminator_field}: {discriminator_enum}.{enum_value}; {data_field}: {type_name} }}"
+            f'  | {{ {discriminator_field}: "{enum_value}"; {data_field}: {type_name} }}'
         )
 
     lines.append(f"export type {union_name} =")
@@ -693,7 +690,7 @@ def generate_types(
             types[name] = defn
 
     py_exports: List[Tuple[str, str]] = []
-    ts_exports: List[Tuple[str, str]] = []
+    ts_exports: List[Tuple[str, str, str, bool]] = []
 
     # Generate enums
     for name, defn in enums.items():
@@ -707,7 +704,7 @@ def generate_types(
             content = generate_typescript_enum(name, enum_values)
             ext = ".ts"
             file_base = name.lower()
-            ts_exports.append((file_base, name))
+            ts_exports.append((file_base, name, subfolder, True))
 
         output_path = os.path.join(target_output_dir, file_base + ext)
         with open(output_path, "w", encoding="utf-8") as f:
@@ -733,7 +730,7 @@ def generate_types(
             )
             ext = ".ts"
             file_base = name.lower()
-            ts_exports.append((file_base, name))
+            ts_exports.append((file_base, name, subfolder, False))
 
         output_path = os.path.join(target_output_dir, file_base + ext)
         with open(output_path, "w", encoding="utf-8") as f:
@@ -804,7 +801,7 @@ def generate_types(
                 )
                 ext = ".ts"
                 union_file = union_name.lower()
-                ts_exports.append((union_file, union_name))
+                ts_exports.append((union_file, union_name, subfolder, False))
         else:
             # Simple union without discriminator
             if language == "python":
@@ -820,7 +817,7 @@ def generate_types(
                 )
                 ext = ".ts"
                 union_file = union_name.lower()
-                ts_exports.append((union_file, union_name))
+                ts_exports.append((union_file, union_name, subfolder, False))
         output_path = os.path.join(target_output_dir, union_file + ext)
         with open(output_path, "w", encoding="utf-8") as f:
             f.write(content)
@@ -835,11 +832,40 @@ def generate_types(
             f.write("\n".join(init_lines) + ("\n" if init_lines else ""))
     else:
         index_lines = []
-        for mod, name in sorted(set(ts_exports), key=lambda x: x[1]):
-            index_lines.append(f'export {{ {name} }} from "./{mod}";')
+        for mod, name, subfolder, is_value in sorted(
+            set(ts_exports), key=lambda x: x[1]
+        ):
+            path = f"./{subfolder}/{mod}" if subfolder else f"./{mod}"
+            if is_value:
+                index_lines.append(f'export {{ {name} }} from "{path}";')
+            else:
+                index_lines.append(f'export type {{ {name} }} from "{path}";')
+
         index_path = os.path.join(output_dir, "index.ts")
+        if os.path.exists(index_path):
+            with open(index_path, "r", encoding="utf-8") as existing_file:
+                existing_lines = [
+                    line.strip() for line in existing_file.readlines() if line.strip()
+                ]
+        else:
+            existing_lines = []
+
+        # Remove existing exports that would be overwritten by the current run
+        import re
+
+        def extract_name(line: str) -> str | None:
+            match = re.match(r'export(?: type)? \{ ([^}]+) \} from ".*";', line)
+            return match.group(1) if match else None
+
+        new_names = {extract_name(line) for line in index_lines}
+        cleaned_existing = [
+            line for line in existing_lines if extract_name(line) not in new_names
+        ]
+
+        merged = sorted(set(cleaned_existing + index_lines))
+
         with open(index_path, "w", encoding="utf-8") as f:
-            f.write("\n".join(index_lines) + ("\n" if index_lines else ""))
+            f.write("\n".join(merged) + ("\n" if merged else ""))
 
     print(f"Generated {len(enums) + len(types) + len(unions)} types for {language}")
 
