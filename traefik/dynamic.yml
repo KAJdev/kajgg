@@ -20,10 +20,18 @@ http:
       stripPrefix:
         prefixes:
           - /api
+      headers:
+        customResponseHeaders:
+          - "Access-Control-Allow-Origin: *"
+          - "Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS"
     chat-gateway-stripprefix:
       stripPrefix:
         prefixes:
           - /gateway
+      headers:
+        customResponseHeaders:
+          - "Access-Control-Allow-Origin: *"
+          - "Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS"
 
   services:
     chat-api:
@@ -34,5 +42,3 @@ http:
       loadBalancer:
         servers:
           - url: "{{ env `CHAT_GATEWAY_URL` }}"
-
-
