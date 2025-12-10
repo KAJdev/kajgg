@@ -4,7 +4,7 @@ entryPoints:
 
 providers:
   file:
-    filename: /etc/traefik/dynamic.yml.tmpl
+    filename: /etc/traefik/dynamic.yml
     watch: true
 
 accessLog: {}
