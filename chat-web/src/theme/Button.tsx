@@ -1,24 +1,21 @@
 type ButtonProps = Styleable &
   Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, "onClick"> & {
     onClick?: (() => void) | React.MouseEventHandler<HTMLButtonElement>;
-    variant?: "primary" | "secondary" | "transparent" | "danger";
+    variant?: "primary" | "danger";
   };
 
 export function Button({
   className,
   onClick,
-  variant = "secondary",
+  children,
+  variant = "primary",
   ...props
 }: ButtonProps) {
   return (
     <button
       className={classes(
-        "rounded px-3 py-1 active:outline-none focus:outline-none transition-colors font-[450]",
-        variant === "primary" && "bg-primary text-black",
-        variant === "secondary" &&
-          "bg-secondary ring-[1px] ring-black/20 dark:ring-white/20",
-        variant === "transparent" && "bg-transparent text-black",
-        variant === "danger" && "bg-danger text-black",
+        "active:outline-none flex items-center cursor-pointer justify-between gap-2 focus:outline-none transition-colors opacity-70 hover:opacity-100",
+        variant === "danger" && "text-red-500",
         className
       )}
       onClick={(e) => {
@@ -33,6 +30,10 @@ export function Button({
         }
       }}
       {...props}
-    />
+    >
+      <span>[</span>
+      {children}
+      <span>]</span>
+    </button>
   );
 }
