@@ -16,6 +16,24 @@ import { EventType } from "@schemas/events/eventtype";
 
 const GATEWAY_URL = import.meta.env.VITE_GATEWAY_URL;
 
+const levelStyles: Record<string, string> = {
+  info: "color:#22e08a;font-weight:600;",
+  warn: "color:#f7c266;font-weight:600;",
+  error: "color:#ff5f52;font-weight:700;",
+  tag: "color:#7ae7ff;font-weight:700;",
+  dim: "color:#8fa3b0;",
+};
+
+function logFancy(
+  level: "info" | "warn" | "error",
+  tag: string,
+  message: string,
+  extra?: unknown
+) {
+  const style = levelStyles[level] ?? "";
+  console.log(`%c${tag}%c ${message}`, levelStyles.tag, style, extra ?? "");
+}
+
 function createEventSource() {
   const url = new URL(`${GATEWAY_URL}/gateway`);
 
@@ -32,7 +50,7 @@ function createEventSource() {
   const eventSource = new EventSource(url.toString());
 
   eventSource.onopen = () => {
-    console.log("[Gateway] SSE connected");
+    logFancy("info", "[gateway]", "sse connected");
   };
 
   eventSource.onmessage = (event) => {
@@ -40,12 +58,12 @@ function createEventSource() {
       const data: Event = JSON.parse(event.data);
       handleEvent(data);
     } catch (err) {
-      console.error("[Gateway] malformed frame", err);
+      logFancy("error", "[gateway]", "malformed frame", err);
     }
   };
 
   eventSource.onerror = (err) => {
-    console.error("[Gateway] SSE error", err);
+    logFancy("error", "[gateway]", "sse error", err);
   };
 
   return eventSource;
@@ -78,7 +96,7 @@ const useEventSource = create<{
 }));
 
 function handleEvent(event: Event) {
-  console.log("[Gateway] Received event:", event.t, event.d);
+  logFancy("info", "[gateway]", `${event.t}`, event.d ?? levelStyles.dim);
   switch (event.t) {
     case EventType.CHANNEL_CREATED:
       return addChannel(event.d.channel);
