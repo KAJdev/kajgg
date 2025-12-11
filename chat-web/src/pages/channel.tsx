@@ -89,6 +89,15 @@ export function Channel() {
     }
   });
 
+  // we want tuples of messages like
+  // [(null, 0), (0, 1), (1, 2), (2, null)]
+  // where its [message, previousMessage]
+  const tupledMessages = useMemo(() => {
+    return messages.map((message, index) => {
+      return [message, messages[index + 1]];
+    });
+  }, [messages]);
+
   return (
     <Page>
       <div className="grid h-full min-h-0 w-full grid-cols-1 gap-3 md:grid-cols-[18ch_1fr_18ch]">
@@ -136,15 +145,15 @@ export function Channel() {
           <div className="flex flex-col gap-2 min-h-0">
             <div className="flex-1 overflow-y-auto pr-1 min-h-0 flex flex-col-reverse pb-4">
               {messages?.length > 0 ? (
-                messages
+                tupledMessages
                   .slice()
                   .reverse()
-                  .map((message, index) => (
+                  .map(([message, previousMessage]) => (
                     <Message
                       key={message.id}
                       message={message}
-                      previousMessage={messages[index + 1]}
-                      editing={editingMessageId === message.id}
+                      previousMessage={previousMessage ?? null}
+                      editing={editingMessageId === message?.id}
                       onCancelEdit={() => setEditingMessageId(null)}
                     />
                   ))
