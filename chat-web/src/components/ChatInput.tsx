@@ -51,6 +51,7 @@ export function ChatInput({
       Date.now() - lastTypedRef.current > 10_000 &&
       content.length > 0
     ) {
+      lastTypedRef.current = Date.now() - 1_000;
       startTyping(channelId).then(() => (lastTypedRef.current = Date.now()));
     }
   }, [content, channelId]);
