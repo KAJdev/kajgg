@@ -95,7 +95,7 @@ export function Channel() {
   // where its [message, previousMessage]
   const tupledMessages = useMemo(() => {
     return messages.map((message, index) => {
-      return [message, messages[index + 1]];
+      return [message, messages[index - 1] ?? null];
     });
   }, [messages]);
 
