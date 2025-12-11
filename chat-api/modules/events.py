@@ -258,20 +258,26 @@ EVENT_HANDLERS = {
 
 
 async def event_listener():
-    async for event_type, raw_event_data, event in _stream_live_events():
-        logging.info(f" ---> RECEIVED EVENT: {event_type.value}")
-        if handler := EVENT_HANDLERS.get(event_type):
-            handler(event)
+    try:
+        async for event_type, raw_event_data, event in _stream_live_events():
+            logging.info(f" ---> RECEIVED EVENT: {event_type.value}")
+            if handler := EVENT_HANDLERS.get(event_type):
+                handler(event)
 
-        for user_id, entitlements in user_entitlements.items():
-            if entitlements.validate(event):
-                for conn in connections[user_id]:
-                    asyncio.create_task(
-                        _send_event(
-                            conn,
-                            raw_event_data,
+            for user_id, entitlements in user_entitlements.items():
+                if entitlements.validate(event):
+                    for conn in connections[user_id]:
+                        asyncio.create_task(
+                            _send_event(
+                                conn,
+                                raw_event_data,
+                            )
                         )
-                    )
+    except Exception as e:
+        logging.error(f"[Gateway] error streaming live events: {e}")
+
+    finally:
+        asyncio.create_task(event_listener())
 
 
 def init():
