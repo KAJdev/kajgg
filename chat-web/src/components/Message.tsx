@@ -184,7 +184,7 @@ function JoinLeaveMessage({ message }: MessageProps) {
   );
 
   return (
-    <div className="flex w-full items-center gap-2 py-4 text-emerald-100">
+    <div className="flex w-full items-center gap-2 mt-4 py-2 text-emerald-100">
       <p className="text-neutral-500">
         {message.type === MessageTypeEnum.JOIN ? (
           <>
