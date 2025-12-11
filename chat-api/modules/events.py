@@ -31,11 +31,12 @@ import sanic
 @dataclass
 class UserEntitlements:
     channels: set[str]
+    user: User
 
     @classmethod
     async def from_user(cls, user: User):
         user_channels = await Channel.get_user_channels(user.id)
-        return cls(channels=set(channel.id for channel in user_channels))
+        return cls(channels=set(channel.id for channel in user_channels), user=user)
 
     def validate(
         self,
@@ -54,7 +55,7 @@ class UserEntitlements:
             return event.channel.id in self.channels
         elif isinstance(event, MessageDeleted):
             return event.channel_id in self.channels
-        elif isinstance(event, TypingStarted) and event.user_id != self.user_id:
+        elif isinstance(event, TypingStarted) and event.user_id != self.user.id:
             return event.channel_id in self.channels
         elif isinstance(event, AuthorUpdated):
             return True
