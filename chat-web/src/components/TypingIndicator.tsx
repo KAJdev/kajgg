@@ -1,22 +1,52 @@
 import type { Author } from "@schemas/index";
 import { useTypingAuthors } from "src/lib/cache";
+import { Username } from "./Username";
 
-function typingString(authors: Author[]) {
+function Typing({ authors }: { authors: Author[] }) {
+  const [ellipsis, setEllipsis] = useState("");
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setEllipsis((prev) => (prev === "..." ? "." : prev + "."));
+    }, 400);
+    return () => clearInterval(interval);
+  }, []);
+
   const usernames = authors.map((author) => author.username);
 
   if (usernames.length === 1) {
-    return `${usernames[0]} is typing...`;
+    return (
+      <>
+        <Username id={authors[0].id} username={authors[0].username} /> is typing
+        {ellipsis}
+      </>
+    );
   }
 
   if (usernames.length === 2) {
-    return `${usernames[0]} and ${usernames[1]} are typing...`;
+    return (
+      <>
+        <Username id={authors[0].id} username={authors[0].username} /> and{" "}
+        <Username id={authors[1].id} username={authors[1].username} /> are
+        typing{ellipsis}
+      </>
+    );
   }
 
   if (usernames.length > 4) {
-    return `several people are typing...`;
+    return <>several people are typing{ellipsis}</>;
   }
 
-  return `${usernames.join(", ")} are typing...`;
+  return (
+    <>
+      {usernames
+        .map((username) => (
+          <Username key={username} id={username} username={username} />
+        ))
+        .join(", ")}{" "}
+      are typing{ellipsis}
+    </>
+  );
 }
 
 export function TypingIndicator({ channelId }: { readonly channelId: string }) {
@@ -27,8 +57,8 @@ export function TypingIndicator({ channelId }: { readonly channelId: string }) {
   }
 
   return (
-    <div className="bg-neutral-800 px-1 text-neutral-400 w-fit">
-      <p className="animate-pulse">{typingString(typingAuthors)}</p>
+    <div className="bg-neutral-800 px-1 text-neutral-400 w-full">
+      <Typing authors={typingAuthors} />
     </div>
   );
 }

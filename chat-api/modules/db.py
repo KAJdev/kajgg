@@ -94,12 +94,21 @@ class User(Document):
         use_state_management = True
 
 
-class File(BaseModel):
+class StoredFile(Document):
     id: str = Field(default_factory=generate_id)
+    owner_id: str
     name: str = Field(default="")
     mime_type: str = Field(default="application/octet-stream")
     size: int = Field(default=0)
+    key: str
     url: str = Field(default="")
+    uploaded: bool = Field(default=False)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
+    uploaded_at: Optional[datetime] = None
+
+    class Settings:
+        name = "files"
+        use_state_management = True
 
 
 class Message(Document):
@@ -107,9 +116,10 @@ class Message(Document):
     type: MessageType = Field(default=MessageType.DEFAULT)
     author_id: str
     channel_id: str
-    files: list[File] = Field(default_factory=list)
+    file_ids: list[str] = Field(default_factory=list)
     created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
     content: Optional[str] = Field(default=None)
+    nonce: Optional[str] = Field(default=None)
     updated_at: Optional[datetime] = None
     deleted_at: Optional[datetime] = None
 
@@ -183,6 +193,7 @@ async def init():
         database=client[getenv("ENV")],
         document_models=[
             User,
+            StoredFile,
             Message,
             Channel,
             ChannelMember,

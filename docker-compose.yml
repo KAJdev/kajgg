@@ -21,6 +21,12 @@ services:
       - MONGO_URL=mongodb://admin:admin@chat-db:27017/chat?authSource=admin
       - EMBEDDINGS_URL=http://embeddings:8000
       - REDIS_URL=redis://:password@chat-redis:6379/0
+      # r2 creds (s3-compatible)
+      - R2_ENDPOINT_URL=${R2_ENDPOINT_URL}
+      - R2_ACCESS_KEY_ID=${R2_ACCESS_KEY_ID}
+      - R2_SECRET_ACCESS_KEY=${R2_SECRET_ACCESS_KEY}
+      - R2_BUCKET=${R2_BUCKET}
+      - R2_PUBLIC_BASE_URL=${R2_PUBLIC_BASE_URL}
     depends_on:
       - chat-db
       - chat-redis
@@ -48,6 +54,12 @@ services:
       - PORT=3003
       - MONGO_URL=mongodb://admin:admin@chat-db:27017/chat?authSource=admin
       - REDIS_URL=redis://:password@chat-redis:6379/0
+      # r2 creds (s3-compatible)
+      - R2_ENDPOINT_URL=${R2_ENDPOINT_URL}
+      - R2_ACCESS_KEY_ID=${R2_ACCESS_KEY_ID}
+      - R2_SECRET_ACCESS_KEY=${R2_SECRET_ACCESS_KEY}
+      - R2_BUCKET=${R2_BUCKET}
+      - R2_PUBLIC_BASE_URL=${R2_PUBLIC_BASE_URL}
     depends_on:
       - chat-db
       - chat-redis

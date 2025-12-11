@@ -1,41 +1,10 @@
-import { useAuthor } from "src/lib/cache";
-import type { Message as MessageType } from "src/types/models/message";
+import { useAuthor, type CachedMessage } from "src/lib/cache";
 import { ChatInput } from "./ChatInput";
 import { deleteMessage, editMessage } from "src/lib/api";
 import { MessageType as MessageTypeEnum } from "@schemas/index";
-
-const colors = [
-  "#d8b4fecc", // bg-purple-300/80
-  "#c084fccc", // bg-purple-400/80
-  "#a21cafcc", // bg-purple-500/80
-  "#e9d5ffcc", // bg-violet-300/80
-  "#c7d2fecc", // bg-violet-400/80
-  "#a5b4facc", // bg-indigo-300/80
-  "#818cf8cc", // bg-indigo-400/80
-  "#93c5fdcc", // bg-blue-300/80
-  "#60a5facc", // bg-blue-400/80
-  "#7dd3fcc", // bg-sky-300/80
-  "#38bdf8cc", // bg-sky-400/80
-  "#67e8f9cc", // bg-cyan-300/80
-  "#22d3e6cc", // bg-cyan-400/80
-  "#5eead4cc", // bg-teal-300/80
-  "#2dd4bffc", // bg-teal-400/80
-  "#86efacca", // bg-green-300/80
-  "#4ade80cc", // bg-green-400/80
-  "#bef264cc", // bg-lime-300/80
-  "#a3e635cc", // bg-lime-400/80
-  "#fde047cc", // bg-yellow-300/80
-  "#facc15cc", // bg-yellow-400/80
-  "#fcd34dcc", // bg-amber-300/80
-  "#fbbf24cc", // bg-amber-400/80
-  "#fdba74cc", // bg-orange-300/80
-  "#fb923ccc", // bg-orange-400/80
-  "#fca5a5cc", // bg-red-300/80
-  "#f87171cc", // bg-red-400/80
-  "#fda4afcc", // bg-rose-300/80
-  "#fb7185cc", // bg-rose-400/80
-  "#f9a8d4cc", // bg-pink-300/80
-];
+import { hashString } from "src/lib/utils";
+import { Username } from "./Username";
+import type { File as ApiFile } from "@schemas/models/file";
 
 const leaveMessages = [
   "has dissapeared",
@@ -54,29 +23,100 @@ const joinMessages = [
   "has arrived in the chat",
 ];
 
-// Deterministically pick a color by hashing the author ID
-function hashString(str: string) {
-  let hash = 0;
-  for (let i = 0; i < str.length; i++) {
-    hash = (hash * 31 + (str.codePointAt(i) ?? 0)) >>> 0;
-  }
-  return hash;
-}
-
-function getColor(authorId: string) {
-  return colors[hashString(authorId) % colors.length];
-}
-
 function getRandomMessage(messages: string[], authorId: string) {
   return messages[hashString(authorId) % messages.length];
 }
 
 export type MessageProps = {
-  readonly message: MessageType;
-  readonly previousMessage: MessageType | null;
+  readonly message: CachedMessage;
+  readonly previousMessage: CachedMessage | null;
   readonly editing?: boolean;
   readonly onCancelEdit: () => void;
 };
+
+function MessageFile({
+  file,
+  progress,
+  previewUrl,
+}: {
+  file: ApiFile;
+  /** 0..1 */
+  progress?: number;
+  /** local preview url while uploading */
+  previewUrl?: string;
+}) {
+  const showProgress =
+    typeof progress === "number" &&
+    progress >= 0 &&
+    progress < 1 &&
+    (file.mime_type.startsWith("image/") ||
+      file.mime_type.startsWith("video/"));
+
+  const src = showProgress && previewUrl ? previewUrl : file.url;
+
+  if (file.mime_type.startsWith("image/")) {
+    return (
+      <div className="flex flex-col gap-1">
+        <a href={file.url} target="_blank" rel="noreferrer" className="block">
+          <img
+            src={src}
+            alt={file.name}
+            className="max-h-72 max-w-88 border border-neutral-800"
+          />
+        </a>
+        {showProgress && (
+          <div className="h-1 w-full max-w-88 bg-neutral-800">
+            <div
+              className="h-1 bg-emerald-400 transition-[width]"
+              style={{ width: `${Math.floor(progress * 100)}%` }}
+            />
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  if (file.mime_type.startsWith("video/")) {
+    return (
+      <div className="flex flex-col gap-1">
+        <video
+          src={src}
+          controls
+          className="max-h-72 max-w-88 border border-neutral-800"
+        />
+        {showProgress && (
+          <div className="h-1 w-full max-w-88 bg-neutral-800">
+            <div
+              className="h-1 bg-emerald-400 transition-[width]"
+              style={{ width: `${Math.floor(progress * 100)}%` }}
+            />
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  if (file.mime_type.startsWith("audio/")) {
+    return (
+      <audio
+        src={file.url}
+        controls
+        className="max-w-88 border border-neutral-800"
+      />
+    );
+  }
+
+  return (
+    <a
+      href={file.url}
+      target="_blank"
+      rel="noreferrer"
+      className="border border-neutral-800 px-2 py-1 text-neutral-200 hover:underline max-w-88 overflow-hidden text-ellipsis whitespace-nowrap"
+    >
+      {file.name}
+    </a>
+  );
+}
 
 function DefaultMessage({
   message,
@@ -92,8 +132,6 @@ function DefaultMessage({
     hour: "2-digit",
     minute: "2-digit",
   });
-
-  const color = getColor(message.author_id);
 
   // Time since previous message in milliseconds
   const timeSincePreviousMessage = previousMessage
@@ -119,16 +157,23 @@ function DefaultMessage({
     previousMessage.type !== message.type ||
     timeSincePreviousMessage > 1000 * 60 * 5;
 
+  const isSending = message.client?.status === "sending";
+  const isFailed = message.client?.status === "failed";
+
   return (
-    <div className="flex flex-col w-full items-start gap-2 py-[2px] text-emerald-100">
+    <div
+      className={classes(
+        "flex flex-col w-full items-start gap-2 py-[2px] text-emerald-100",
+        isSending && "opacity-50",
+        isFailed && "opacity-70 text-red-400"
+      )}
+    >
       {showAuthorName && (
         <div className="flex items-center gap-2 mt-4">
-          <span
-            style={{ backgroundColor: color }}
-            className={classes("font-black px-1 text-black")}
-          >
-            {author?.username ?? "anon"}
-          </span>
+          <Username
+            id={message.author_id}
+            username={author?.username ?? "anon"}
+          />
           <span className="opacity-30">{timestamp}</span>
         </div>
       )}
@@ -159,16 +204,37 @@ function DefaultMessage({
           </p>
         </div>
       ) : (
-        message.content && (
-          <span>
-            <span className="flex-1 break-words opacity-80">
-              {message.content}
+        <>
+          {message.content && (
+            <span>
+              <span className="flex-1 wrap-break-word opacity-80">
+                {message.content}
+              </span>
+              {message.updated_at && (
+                <span className="opacity-10 ml-2">(edited)</span>
+              )}
             </span>
-            {message.updated_at && (
-              <span className="opacity-10 ml-2">(edited)</span>
-            )}
-          </span>
-        )
+          )}
+        </>
+      )}
+      {message.files.length > 0 && (
+        <div className="flex flex-wrap gap-2">
+          {message.files.map((f) => (
+            <MessageFile
+              key={f.id}
+              file={f}
+              progress={message.client?.uploads?.[f.id]?.progress}
+              previewUrl={message.client?.uploads?.[f.id]?.preview_url}
+            />
+          ))}
+        </div>
+      )}
+
+      {isFailed && (
+        <div className="text-xs text-red-400/90">
+          failed to send
+          {message.client?.error ? `: ${message.client.error}` : ""}
+        </div>
       )}
     </div>
   );
@@ -176,7 +242,6 @@ function DefaultMessage({
 
 function JoinLeaveMessage({ message }: MessageProps) {
   const author = useAuthor(message.author_id);
-  const color = getColor(message.author_id);
 
   const supplementaryMessage = getRandomMessage(
     message.type === MessageTypeEnum.JOIN ? joinMessages : leaveMessages,
@@ -196,7 +261,8 @@ function JoinLeaveMessage({ message }: MessageProps) {
           </>
         )}
       </p>
-      <span style={{ color }}>{author?.username}</span> {supplementaryMessage}
+      <Username id={message.author_id} username={author?.username ?? "anon"} />{" "}
+      {supplementaryMessage}
     </div>
   );
 }

@@ -3,15 +3,51 @@ from chat_types.models import (
     Message as ApiMessage,
     Channel as ApiChannel,
     Author as ApiAuthor,
+    File as ApiFile,
 )
 from sanic import Blueprint, Request, json, exceptions
-from modules.db import Channel, ChannelMember, Message
+from modules.db import Channel, ChannelMember, Message, StoredFile
 from modules import utils
 from modules.auth import authorized
 from modules.events import publish_event
 from chat_types.events import MessageCreated, MessageUpdated, MessageDeleted
+from beanie.operators import In
 
 bp = Blueprint("messages")
+
+
+def _file_to_api(file: StoredFile) -> dict:
+    return utils.dtoa(
+        ApiFile,
+        {
+            "id": file.id,
+            "name": file.name,
+            "mime_type": file.mime_type,
+            "size": file.size,
+            "url": file.url,
+        },
+    )
+
+
+async def _messages_to_api(messages: list[Message]) -> list[dict]:
+    file_ids: list[str] = []
+    for m in messages:
+        file_ids.extend(m.file_ids or [])
+
+    files_by_id: dict[str, StoredFile] = {}
+    if file_ids:
+        files = await StoredFile.find(In(StoredFile.id, list(set(file_ids)))).to_list()
+        files_by_id = {f.id: f for f in files}
+
+    out: list[dict] = []
+    for m in messages:
+        files = [
+            _file_to_api(files_by_id[fid])
+            for fid in (m.file_ids or [])
+            if fid in files_by_id
+        ]
+        out.append(utils.dtoa(ApiMessage, {**m.dict(), "files": files}))
+    return out
 
 
 @bp.route("/v1/channels/<channel_id>/messages", methods=["GET"])
@@ -61,7 +97,7 @@ async def get_messages(request: Request, channel_id: str):
         await Message.find(query).sort(-Message.created_at).limit(limit).to_list()
     )
 
-    return json([utils.dtoa(ApiMessage, message) for message in messages])
+    return json(await _messages_to_api(messages))
 
 
 @bp.route("/v1/channels/<channel_id>/messages", methods=["POST"])
@@ -87,27 +123,67 @@ async def create_message(request: Request, channel_id: str):
     if not data:
         raise exceptions.BadRequest("Bad Request")
 
-    if not all(data.get(k) for k in ("content",)):
+    content = data.get("content", None)
+    file_ids = data.get("file_ids", [])
+    nonce = data.get("nonce", None)
+
+    if content is not None and not isinstance(content, str):
         raise exceptions.BadRequest("Bad Request")
+    if content is not None:
+        content = content.strip()
+
+    if file_ids is None:
+        file_ids = []
+    if not isinstance(file_ids, list) or not all(isinstance(x, str) for x in file_ids):
+        raise exceptions.BadRequest("Bad Request")
+
+    if nonce is not None and not isinstance(nonce, str):
+        raise exceptions.BadRequest("Bad Request")
+
+    if (not content) and len(file_ids) == 0:
+        raise exceptions.BadRequest("Bad Request")
+
+    files: list[StoredFile] = []
+    if file_ids:
+        files = await StoredFile.find(
+            In(StoredFile.id, file_ids),
+            StoredFile.owner_id == request.ctx.user.id,
+            StoredFile.uploaded == True,
+        ).to_list()
+        if len(files) != len(file_ids):
+            raise exceptions.BadRequest("File not uploaded")
 
     message = Message(
         author_id=request.ctx.user.id,
         channel_id=channel_id,
-        content=data["content"],
+        content=content,
+        file_ids=file_ids,
+        nonce=nonce,
     )
     await message.save()
 
     await request.ctx.user.fetch_status()
 
+    api_files = {f.id: f for f in files}
+    message_api = utils.dtoa(
+        ApiMessage,
+        {
+            **message.dict(),
+            "files": [
+                _file_to_api(api_files[fid]) for fid in file_ids if fid in api_files
+            ],
+        },
+    )
+
     publish_event(
         MessageCreated(
-            message=utils.dtoa(ApiMessage, message),
+            message=message_api,
             channel=utils.dtoa(ApiChannel, channel),
             author=utils.dtoa(ApiAuthor, request.ctx.user),
         )
     )
 
-    return json(utils.dtoa(ApiMessage, message))
+    return json(message_api)
 
 
 @bp.route("/v1/channels/<channel_id>/messages/<message_id>", methods=["PATCH"])
@@ -137,9 +213,11 @@ async def update_message(request: Request, channel_id: str, message_id: str):
 
     await request.ctx.user.fetch_status()
 
-    publish_event(MessageUpdated(message=utils.dtoa(ApiMessage, message)))
+    # files are static rn so we just send empty list if we can’t expand
+    api_message = (await _messages_to_api([message]))[0]
+    publish_event(MessageUpdated(message=api_message))
 
-    return json(utils.dtoa(ApiMessage, message))
+    return json(api_message)
 
 
 @bp.route("/v1/channels/<channel_id>/messages/<message_id>", methods=["DELETE"])
@@ -158,4 +236,5 @@ async def delete_message(request: Request, channel_id: str, message_id: str):
 
     publish_event(MessageDeleted(message_id=message_id, channel_id=channel_id))
 
-    return json(utils.dtoa(ApiMessage, message))
+    api_message = (await _messages_to_api([message]))[0]
+    return json(api_message)

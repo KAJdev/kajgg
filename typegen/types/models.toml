@@ -69,3 +69,12 @@ channel_id = { type = "string", doc = "ID of the channel this message belongs to
 nonce = { type = "string", doc = "Nonce for the message" }
 author = { ref = "Author" }
 channel = { ref = "Channel" }
+
+[FileUpload]
+type = "object"
+required = ["file", "upload_url", "method"]
+
+[FileUpload.properties]
+file = { ref = "File", doc = "The file metadata created server-side" }
+upload_url = { type = "string", doc = "Presigned URL for uploading the file (PUT)" }
+method = { type = "string", doc = "HTTP method to use for the upload" }

@@ -8,10 +8,28 @@ import { useShallow } from "zustand/shallow";
 
 type TimeoutId = ReturnType<typeof setTimeout>;
 
+export type ClientUploadProgress = {
+  /** 0..1 */
+  progress: number;
+  /** local preview url while uploading */
+  preview_url?: string;
+};
+
+export type ClientMessageMeta = {
+  status: "sending" | "sent" | "failed";
+  uploads?: Record<string, ClientUploadProgress>;
+  error?: string;
+};
+
+export type CachedMessage = Message & {
+  /** client-only metadata for optimistic ui */
+  client?: ClientMessageMeta;
+};
+
 export type Cache = {
   user?: User;
   channels: Record<string, Channel>;
-  messages: Record<string, Record<string, Message>>;
+  messages: Record<string, Record<string, CachedMessage>>;
   authors: Record<string, Author>;
   typing: Record<string, Record<string, TimeoutId>>;
   last_event_ts?: number;
@@ -117,9 +135,67 @@ export function addMessage(channelId: string, message: Message) {
   cache.setState((state) => ({
     messages: {
       ...state.messages,
-      [channelId]: { ...state.messages[channelId], [message.id]: message },
+      [channelId]: {
+        ...state.messages[channelId],
+        [message.id]: message as CachedMessage,
+      },
     },
   }));
+}
+
+export function addOptimisticMessage(
+  channelId: string,
+  message: CachedMessage
+) {
+  cache.setState((state) => ({
+    messages: {
+      ...state.messages,
+      [channelId]: {
+        ...state.messages[channelId],
+        [message.id]: message,
+      },
+    },
+  }));
+}
+
+export function updateMessageById(
+  channelId: string,
+  messageId: string,
+  patch: Partial<CachedMessage>
+) {
+  cache.setState((state) => ({
+    messages: {
+      ...state.messages,
+      [channelId]: {
+        ...state.messages[channelId],
+        [messageId]: {
+          ...(state.messages[channelId]?.[messageId] as CachedMessage),
+          ...patch,
+        },
+      },
+    },
+  }));
+}
+
+export function reconcileMessageByNonce(
+  channelId: string,
+  serverMessage: Message
+) {
+  const nonce = serverMessage.nonce;
+  if (!nonce) {
+    return addMessage(channelId, serverMessage);
+  }
+
+  const messages = cache.getState().messages[channelId] ?? {};
+  const optimisticId = Object.keys(messages).find(
+    (id) => messages[id]?.nonce === nonce
+  );
+
+  if (optimisticId && optimisticId !== serverMessage.id) {
+    removeMessage(channelId, optimisticId);
+  }
+
+  addMessage(channelId, serverMessage);
 }
 
 export function addAuthor(author: Author) {
@@ -167,7 +243,10 @@ export function updateMessage(channelId: string, message: Message) {
   cache.setState((state) => ({
     messages: {
       ...state.messages,
-      [channelId]: { ...state.messages[channelId], [message.id]: message },
+      [channelId]: {
+        ...state.messages[channelId],
+        [message.id]: message as CachedMessage,
+      },
     },
   }));
 }

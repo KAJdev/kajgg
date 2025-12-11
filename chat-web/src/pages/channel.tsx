@@ -15,6 +15,7 @@ import {
 } from "src/lib/cache";
 import { useKeybind } from "src/lib/keybind";
 import type { Author } from "@schemas/index";
+import type { Attachment } from "src/components/ChatInput";
 
 const statusOrder = [
   StatusType.ONLINE,
@@ -45,6 +46,7 @@ function Label({
 export function Channel() {
   const { channelId = "" } = useParams();
   const [content, setContent] = useState("");
+  const [attachments, setAttachments] = useState<Attachment[]>([]);
 
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
 
@@ -56,13 +58,18 @@ export function Channel() {
   function afterSubmit() {
     setEditingMessageId(null);
     setContent("");
+    setAttachments([]);
   }
 
   function handleSubmit() {
     const newContent = content.trim();
-    if (newContent.length > 0) {
-      return createMessage(channelId, newContent).then(afterSubmit);
+    if (newContent.length === 0 && attachments.length === 0) {
+      return;
     }
+
+    const files = attachments.map((a) => a.file);
+    afterSubmit();
+    return createMessage(channelId, newContent, files);
   }
 
   useEffect(() => {
@@ -124,7 +131,7 @@ export function Channel() {
   return (
     <Page>
       <div className="grid h-full min-h-0 w-full grid-cols-1 gap-3 md:grid-cols-[18ch_1fr_18ch]">
-        <div className="flex flex-col gap-2 overflow-hidden p-3">
+        <div className="flex-col gap-2 overflow-hidden p-3 hidden md:flex">
           <Label>channels</Label>
           <div className="flex-1 overflow-y-auto flex-col">
             {channelList.length ? (
@@ -190,13 +197,15 @@ export function Channel() {
 
           <ChatInput
             content={content}
+            attachments={attachments}
+            setAttachments={setAttachments}
             setContent={setContent}
             onSubmit={handleSubmit}
             placeholder={`> message #${channel?.name ?? ""}`}
           />
         </div>
 
-        <div className="flex flex-col gap-6 overflow-hidden p-3 overflow-y-auto min-h-0">
+        <div className="flex-col gap-6 overflow-hidden p-3 overflow-y-auto min-h-0 hidden md:flex">
           {Object.entries(authorList)
             .sort(
               (a, b) =>

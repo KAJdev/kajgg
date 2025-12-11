@@ -10,7 +10,7 @@ export function Status({ status }: { status?: StatusType }) {
         status === "offline" && "text-neutral-500"
       )}
     >
-      @
+      {status === "online" ? "+" : "-"}
     </span>
   );
 }

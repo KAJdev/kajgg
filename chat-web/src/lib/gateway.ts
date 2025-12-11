@@ -1,10 +1,10 @@
 import { create } from "zustand";
 import {
   addChannel,
-  addMessage,
   cache,
   getToken,
   removeMessage,
+  reconcileMessageByNonce,
   startTyping,
   stopTyping,
   tokenCache,
@@ -34,7 +34,11 @@ function logFancy(
   console.log(`%c${tag}%c ${message}`, levelStyles.tag, style, extra ?? "");
 }
 
-function createEventSource() {
+type SseClient = {
+  close: () => void;
+};
+
+function buildGatewayUrl() {
   const url = new URL(`${GATEWAY_URL}/gateway`);
 
   const last_event_ts = cache.getState().last_event_ts;
@@ -47,37 +51,126 @@ function createEventSource() {
     url.searchParams.set("token", token);
   }
 
-  const eventSource = new EventSource(url.toString());
+  return url;
+}
 
-  eventSource.onopen = () => {
-    logFancy("info", "[gateway]", "sse connected");
+function createSseClient(): SseClient {
+  const abort = new AbortController();
+  let closed = false;
+  let retryMs = 500;
+  let retryTimer: ReturnType<typeof setTimeout> | null = null;
+
+  const scheduleRetry = (reason: unknown) => {
+    if (closed) return;
+    logFancy("warn", "[gateway]", "sse retrying", reason ?? "");
+    if (retryTimer) clearTimeout(retryTimer);
+    retryTimer = setTimeout(() => {
+      void connectLoop();
+    }, retryMs);
+    retryMs = Math.min(Math.floor(retryMs * 1.5), 10_000);
   };
 
-  eventSource.onmessage = (event) => {
+  const connectLoop = async () => {
+    if (closed) return;
+
+    const url = buildGatewayUrl();
+
     try {
-      const data: Event = JSON.parse(event.data);
-      handleEvent(data);
+      const resp = await fetch(url.toString(), {
+        method: "GET",
+        headers: {
+          Accept: "text/event-stream",
+        },
+        signal: abort.signal,
+      });
+
+      // if a proxy returns 502/503/etc, eventsource can get stuck.
+      // we treat any non-200 as retryable.
+      if (!resp.ok) {
+        scheduleRetry({ status: resp.status });
+        return;
+      }
+
+      const ct = resp.headers.get("content-type") ?? "";
+      if (!ct.includes("text/event-stream")) {
+        scheduleRetry({ status: resp.status, contentType: ct });
+        return;
+      }
+
+      retryMs = 500;
+      logFancy("info", "[gateway]", "sse connected");
+
+      if (!resp.body) {
+        scheduleRetry("no response body");
+        return;
+      }
+
+      const reader = resp.body.getReader();
+      const decoder = new TextDecoder();
+
+      let buf = "";
+      let dataLines: string[] = [];
+
+      while (!closed) {
+        const { value, done } = await reader.read();
+        if (done) break;
+
+        buf += decoder.decode(value, { stream: true });
+
+        let idx: number;
+        while ((idx = buf.indexOf("\n")) >= 0) {
+          const rawLine = buf.slice(0, idx);
+          buf = buf.slice(idx + 1);
+
+          const line = rawLine.replace(/\r$/, "");
+          if (line === "") {
+            // end of event
+            if (dataLines.length) {
+              const dataStr = dataLines.join("\n");
+              dataLines = [];
+              try {
+                const data: Event = JSON.parse(dataStr);
+                handleEvent(data);
+              } catch (err) {
+                logFancy("error", "[gateway]", "malformed frame", err);
+              }
+            }
+            continue;
+          }
+
+          if (line.startsWith("data:")) {
+            dataLines.push(line.slice(5).trimStart());
+          }
+        }
+      }
+
+      scheduleRetry("stream closed");
     } catch (err) {
-      logFancy("error", "[gateway]", "malformed frame", err);
+      if (abort.signal.aborted) return;
+      scheduleRetry(err);
     }
   };
 
-  eventSource.onerror = (err) => {
-    logFancy("error", "[gateway]", "sse error", err);
-  };
+  void connectLoop();
 
-  return eventSource;
+  return {
+    close: () => {
+      closed = true;
+      if (retryTimer) clearTimeout(retryTimer);
+      abort.abort();
+    },
+  };
 }
 
 const useEventSource = create<{
-  eventSource: EventSource | null;
+  eventSource: SseClient | null;
   connect: () => void;
   disconnect: () => void;
   reconnect: () => void;
 }>((set, get) => ({
   eventSource: null,
   connect: () => {
-    set({ eventSource: createEventSource() });
+    set({ eventSource: createSseClient() });
   },
   disconnect: () => {
     const source = get().eventSource;
@@ -91,7 +184,7 @@ const useEventSource = create<{
     if (source) {
       source.close();
     }
-    set({ eventSource: createEventSource() });
+    set({ eventSource: createSseClient() });
   },
 }));
 
@@ -102,7 +195,7 @@ function handleEvent(event: Event) {
       return addChannel(event.d.channel);
     case EventType.MESSAGE_CREATED:
       return (
-        addMessage(event.d.channel.id, event.d.message),
+        reconcileMessageByNonce(event.d.channel.id, event.d.message),
         stopTyping(event.d.channel.id, event.d.author.id)
       );
     case EventType.MESSAGE_UPDATED:
@@ -111,7 +204,7 @@ function handleEvent(event: Event) {
         stopTyping(event.d.message.channel_id, event.d.message.author_id)
       );
     case EventType.MESSAGE_DELETED:
-      return removeMessage(event.d.message_id, event.d.channel_id);
+      return removeMessage(event.d.channel_id, event.d.message_id);
     case EventType.AUTHOR_UPDATED:
       return updateAuthor(event.d.author);
     case EventType.TYPING_STARTED:
