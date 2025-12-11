@@ -4,6 +4,7 @@ import { ListAuthor } from "src/components/ListAuthor";
 import { Message } from "src/components/Message";
 import { TypingIndicator } from "src/components/TypingIndicator";
 import { User } from "src/components/User";
+import { Status as StatusType } from "src/types/models/status";
 import { Page } from "src/layout/page";
 import { createMessage, fetchMessages } from "src/lib/api";
 import {
@@ -13,10 +14,29 @@ import {
   useChannels,
 } from "src/lib/cache";
 import { useKeybind } from "src/lib/keybind";
+import type { Author } from "@schemas/index";
 
-function Label({ children }: { readonly children: React.ReactNode }) {
+const statusOrder = [
+  StatusType.ONLINE,
+  StatusType.AWAY,
+  StatusType.DO_NOT_DISTURB,
+  StatusType.OFFLINE,
+];
+
+function Label({
+  children,
+  className,
+}: {
+  readonly children: React.ReactNode;
+  className?: string;
+}) {
   return (
-    <div className="uppercase tracking-[0.08em] text-neutral-400/50">
+    <div
+      className={classes(
+        "uppercase tracking-[0.08em] text-neutral-400/50",
+        className
+      )}
+    >
       {children}
     </div>
   );
@@ -66,13 +86,15 @@ export function Channel() {
     [channels]
   );
 
-  const authorList = useMemo(
-    () =>
-      Object.values(authors ?? {}).sort((a, b) =>
-        a.username.localeCompare(b.username)
-      ),
-    [authors]
-  );
+  const authorList: Record<StatusType, Author[]> = useMemo(() => {
+    return Object.values(authors ?? {}).reduce((acc, author) => {
+      acc[author.status as StatusType] = [
+        ...(acc[author.status as StatusType] ?? []),
+        author,
+      ];
+      return acc;
+    }, {} as Record<StatusType, Author[]>);
+  }, [authors]);
 
   useKeybind("arrowup", () => {
     if (editingMessageId) {
@@ -174,17 +196,30 @@ export function Channel() {
           />
         </div>
 
-        <div className="flex flex-col gap-2 overflow-hidden p-3">
-          <Label>members ({authorList.length})</Label>
-          <div className="flex-1 overflow-y-auto flex-col">
-            {authorList.length ? (
-              authorList.map((author) => (
-                <ListAuthor key={author.id} author={author} />
-              ))
-            ) : (
-              <div className="text-neutral-600">no authors</div>
-            )}
-          </div>
+        <div className="flex flex-col gap-6 overflow-hidden p-3 overflow-y-auto min-h-0">
+          {Object.entries(authorList)
+            .sort(
+              (a, b) =>
+                statusOrder.indexOf(a[0] as StatusType) -
+                statusOrder.indexOf(b[0] as StatusType)
+            )
+            .map(([status, authors]) => (
+              <div key={status} className="flex flex-col gap-2">
+                <Label className="flex items-center gap-2 justify-between">
+                  {status}{" "}
+                  <span className="text-neutral-400/50">{authors.length}</span>
+                </Label>
+                <div className="flex flex-col">
+                  {authors.map((author) => (
+                    <ListAuthor key={author.id} author={author} />
+                  ))}
+                </div>
+              </div>
+            ))}
+
+          {Object.keys(authorList).length === 0 && (
+            <div className="text-neutral-600">no authors</div>
+          )}
         </div>
       </div>
     </Page>

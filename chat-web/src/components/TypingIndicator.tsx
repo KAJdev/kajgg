@@ -27,8 +27,8 @@ export function TypingIndicator({ channelId }: { readonly channelId: string }) {
   }
 
   return (
-    <p className="bg-neutral-800 px-1 text-neutral-400 w-fit">
+    <div className="bg-neutral-800 px-1 text-neutral-400 w-fit">
       <p className="animate-pulse">{typingString(typingAuthors)}</p>
-    </p>
+    </div>
   );
 }
