@@ -1,6 +1,6 @@
 import asyncio
 from datetime import datetime, UTC
-from chat_types.models import Status
+from chat_types.models import Status, MessageType
 from dotenv import load_dotenv
 from os import getenv
 from modules.utils import generate_id
@@ -104,11 +104,12 @@ class File(BaseModel):
 
 class Message(Document):
     id: str = Field(default_factory=generate_id)
+    type: MessageType = Field(default=MessageType.DEFAULT)
     author_id: str
     channel_id: str
-    content: str
     files: list[File] = Field(default_factory=list)
     created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
+    content: Optional[str] = Field(default=None)
     updated_at: Optional[datetime] = None
     deleted_at: Optional[datetime] = None
 

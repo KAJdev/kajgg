@@ -1,12 +1,15 @@
 import type { Author } from "./author";
 import type { Channel } from "./channel";
 import type { File } from "./file";
+import type { MessageType } from "./messagetype";
 
 export type Message = {
     /** Unique identifier for the message */
     id: string;
+    /** Type of the message */
+    type: MessageType;
     /** Text content of the message */
-    content: string;
+    content?: string;
     /** List of files attached to the message */
     files: File[];
     /** When the message was created */

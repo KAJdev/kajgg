@@ -2,6 +2,10 @@
 type = "string"
 enum = ["online", "offline", "away", "do_not_disturb"]
 
+[MessageType]
+type = "string"
+enum = ["default", "join", "leave"]
+
 [Author]
 type = "object"
 required = ["id", "username", "created_at", "updated_at"]
@@ -51,10 +55,11 @@ author = { ref = "Author" }
 
 [Message]
 type = "object"
-required = ["id", "content", "files", "created_at", "author_id", "channel_id"]
+required = ["id", "type", "files", "created_at", "author_id", "channel_id"]
 
 [Message.properties]
 id = { type = "string", doc = "Unique identifier for the message" }
+type = { ref = "MessageType", doc = "Type of the message" }
 content = { type = "string", doc = "Text content of the message" }
 files = { type = "array", items = { ref = "File" }, doc = "List of files attached to the message" }
 created_at = { type = "string", format = "date-time", doc = "When the message was created" }

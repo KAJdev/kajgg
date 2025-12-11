@@ -3,12 +3,15 @@ from datetime import datetime
 from .author import Author
 from .channel import Channel
 from .file import File
+from .message_type import MessageType
 
 
 @dataclass
 class Message:
     # Unique identifier for the message
     id: str | None = None
+    # Type of the message
+    type: MessageType | None = None
     # Text content of the message
     content: str | None = None
     # List of files attached to the message
