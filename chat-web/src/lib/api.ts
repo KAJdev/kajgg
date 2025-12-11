@@ -192,3 +192,18 @@ export async function fetchMe() {
   setUser(user);
   return user;
 }
+
+export async function startTyping(channelId: string) {
+  const [response, error] = await request<{ success: boolean }>(
+    `channels/${channelId}/typing`,
+    {
+      method: "POST",
+    }
+  );
+
+  if (error) {
+    throw error;
+  }
+
+  return response;
+}

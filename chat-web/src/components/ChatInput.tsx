@@ -1,3 +1,6 @@
+import { useParams } from "react-router";
+import { startTyping } from "src/lib/api";
+
 export function ChatInput({
   content,
   setContent,
@@ -13,7 +16,19 @@ export function ChatInput({
   editing?: boolean;
   autofocus?: boolean;
 }) {
+  const { channelId } = useParams();
   const inputRef = useRef<HTMLInputElement>(null);
+  const lastTypedRef = useRef<number>(0);
+
+  useEffect(() => {
+    if (
+      channelId &&
+      Date.now() - lastTypedRef.current > 10_000 &&
+      content.length > 0
+    ) {
+      startTyping(channelId).then(() => (lastTypedRef.current = Date.now()));
+    }
+  }, [content, channelId]);
 
   useEffect(() => {
     if (autofocus && editing && inputRef.current) {

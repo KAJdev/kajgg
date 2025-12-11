@@ -11,7 +11,6 @@ import {
   useChannel,
   useChannelMessages,
   useChannels,
-  useTypingAuthors,
 } from "src/lib/cache";
 import { useKeybind } from "src/lib/keybind";
 
