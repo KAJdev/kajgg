@@ -116,6 +116,7 @@ function DefaultMessage({
   const showAuthorName =
     !previousMessage ||
     previousMessage.author_id !== message.author_id ||
+    previousMessage.type !== message.type ||
     timeSincePreviousMessage > 1000 * 60 * 5;
 
   return (
@@ -183,7 +184,7 @@ function JoinLeaveMessage({ message }: MessageProps) {
   );
 
   return (
-    <div className="flex w-full items-center gap-2 py-[6px] text-emerald-100">
+    <div className="flex w-full items-center gap-2 py-4 text-emerald-100">
       <p className="text-neutral-500">
         {message.type === MessageTypeEnum.JOIN ? (
           <>
