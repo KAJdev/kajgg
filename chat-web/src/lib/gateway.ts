@@ -31,17 +31,21 @@ function createEventSource() {
 
   const eventSource = new EventSource(url.toString());
 
+  eventSource.onopen = () => {
+    console.log("[Gateway] SSE connected");
+  };
+
   eventSource.onmessage = (event) => {
     try {
       const data: Event = JSON.parse(event.data);
       handleEvent(data);
     } catch (err) {
-      console.error("Invalid JSON", err);
+      console.error("[Gateway] malformed frame", err);
     }
   };
 
   eventSource.onerror = (err) => {
-    console.error("SSE error", err);
+    console.error("[Gateway] SSE error", err);
   };
 
   return eventSource;

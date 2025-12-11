@@ -192,15 +192,21 @@ async def _stream_live_events(start_id: str = "$"):
     last_id = start_id
 
     while True:
-        results = await get_client().xread(
-            streams={"events": last_id}, block=30_000  # wait up to 30s for new events
-        )
+        try:
+            results = await get_client().xread(
+                streams={"events": last_id},
+                block=30_000,  # wait up to 30s for new events
+            )
 
-        for _, entries in results:
-            for event_id, fields in entries:
-                last_id = event_id
+            for _, entries in results:
+                for event_id, fields in entries:
+                    last_id = event_id
 
-                yield parse_event(fields)
+                    yield parse_event(fields)
+
+        except Exception as e:
+            logging.error(f"[Gateway] error streaming live events: {e}")
+            raise e
 
 
 async def _replay_events_since(last_event_id: str):
