@@ -12,11 +12,10 @@ enum = [
 
 [MessageCreated]
 type = "object"
-required = ["message", "channel", "author"]
+required = ["message", "author"]
 
 [MessageCreated.properties]
 message = { ref = "Message" }
-channel = { ref = "Channel" }
 author = { ref = "Author" }
 
 [MessageUpdated]

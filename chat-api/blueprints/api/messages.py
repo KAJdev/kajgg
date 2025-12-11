@@ -178,7 +178,6 @@ async def create_message(request: Request, channel_id: str):
     publish_event(
         MessageCreated(
             message=message_api,
-            channel=utils.dtoa(ApiChannel, channel),
             author=utils.dtoa(ApiAuthor, request.ctx.user),
         )
     )

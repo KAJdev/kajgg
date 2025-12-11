@@ -52,35 +52,35 @@ function MessageFile({
     (file.mime_type.startsWith("image/") ||
       file.mime_type.startsWith("video/"));
 
-  const [remoteReady, setRemoteReady] = useState(false);
   const hasPreview = !!previewUrl && previewUrl !== file.url;
   const previewSrc = previewUrl ?? file.url;
   const remoteSrc = file.url;
+  const [remoteLoaded, setRemoteLoaded] = useState(() => !hasPreview);
 
   if (file.mime_type.startsWith("image/")) {
     return (
       <div className="flex flex-col gap-1">
         <a href={file.url} target="_blank" rel="noreferrer" className="block">
-          <div className="relative max-h-72 max-w-88">
-            {hasPreview && (
-              <img
-                src={previewSrc}
-                alt={file.name}
-                className={classes(
-                  "max-h-72 max-w-88 border border-neutral-800 transition-opacity",
-                  remoteReady ? "opacity-0" : "opacity-100"
-                )}
-              />
-            )}
+          <div
+            className="max-h-72 max-w-88 border border-neutral-800 bg-black/10"
+            style={
+              hasPreview && !remoteLoaded
+                ? {
+                    backgroundImage: `url(${previewSrc})`,
+                    backgroundRepeat: "no-repeat",
+                    backgroundPosition: "center",
+                    backgroundSize: "contain",
+                  }
+                : undefined
+            }
+          >
             <img
               src={remoteSrc}
               alt={file.name}
-              onLoad={() => setRemoteReady(true)}
+              onLoad={() => setRemoteLoaded(true)}
               className={classes(
-                "max-h-72 max-w-88 border border-neutral-800 transition-opacity",
-                hasPreview && !remoteReady
-                  ? "opacity-0 absolute inset-0"
-                  : "opacity-100"
+                "max-h-72 max-w-88 transition-opacity",
+                hasPreview && !remoteLoaded ? "opacity-0" : "opacity-100"
               )}
             />
           </div>

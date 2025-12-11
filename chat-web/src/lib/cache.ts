@@ -35,6 +35,11 @@ export type Cache = {
   last_event_ts?: number;
 };
 
+export type PersistentCache = {
+  lastSeenChannel: string | null;
+  lastSeenMessages: Record<string, number>; // message id -> timestamp
+};
+
 export const cache = create<Cache>()(() => ({
   user: undefined,
   channels: {},
@@ -56,9 +61,30 @@ export const tokenCache = create<{ token: string | null }>()(
   )
 );
 
+export const persistentCache = create<PersistentCache>()(
+  persist(
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    (_set) => ({
+      lastSeenChannel: null,
+      lastSeenMessages: {},
+    }),
+    {
+      name: "persistent",
+    }
+  )
+);
+
 export function setUser(user: User) {
   cache.setState({ user });
   tokenCache.setState({ token: user.token });
+}
+
+export function setLastSeenChannel(channelId: string) {
+  persistentCache.setState({ lastSeenChannel: channelId });
+}
+
+export function getLastSeenChannel() {
+  return persistentCache.getState().lastSeenChannel;
 }
 
 export function getToken() {

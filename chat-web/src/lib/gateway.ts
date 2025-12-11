@@ -195,8 +195,8 @@ function handleEvent(event: Event) {
       return addChannel(event.d.channel);
     case EventType.MESSAGE_CREATED:
       return (
-        reconcileMessageByNonce(event.d.channel.id, event.d.message),
-        stopTyping(event.d.channel.id, event.d.author.id)
+        reconcileMessageByNonce(event.d.message.channel_id, event.d.message),
+        stopTyping(event.d.message.channel_id, event.d.message.author_id)
       );
     case EventType.MESSAGE_UPDATED:
       return (
