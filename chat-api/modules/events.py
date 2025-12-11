@@ -46,7 +46,9 @@ class UserEntitlements:
             | AuthorUpdated
         ),
     ):
-        if isinstance(event, (MessageCreated, MessageUpdated, ChannelCreated)):
+        if isinstance(event, (MessageCreated, MessageUpdated)):
+            return event.message.channel_id in self.channels
+        elif isinstance(event, ChannelCreated):
             return event.channel.id in self.channels
         elif isinstance(event, MessageDeleted):
             return event.channel_id in self.channels

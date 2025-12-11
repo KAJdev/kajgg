@@ -1,14 +1,10 @@
 import { Link, useParams } from "react-router";
+import { ChatInput } from "src/components/ChatInput";
 import { ListAuthor } from "src/components/ListAuthor";
 import { Message } from "src/components/Message";
 import { User } from "src/components/User";
 import { Page } from "src/layout/page";
-import {
-  createMessage,
-  deleteMessage,
-  editMessage,
-  fetchMessages,
-} from "src/lib/api";
+import { createMessage, fetchMessages } from "src/lib/api";
 import {
   useAuthors,
   useChannel,
@@ -29,7 +25,6 @@ export function Channel() {
   const { channelId = "" } = useParams();
   const [content, setContent] = useState("");
 
-  const [originalContent, setOriginalContent] = useState<string | null>(null);
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
 
   const messageMap = useChannelMessages(channelId);
@@ -44,21 +39,6 @@ export function Channel() {
 
   function handleSubmit() {
     const newContent = content.trim();
-
-    if (
-      editingMessageId &&
-      newContent.length > 0 &&
-      newContent !== originalContent
-    ) {
-      return editMessage(channelId, editingMessageId, newContent).then(
-        afterSubmit
-      );
-    }
-
-    if (editingMessageId && newContent.length === 0) {
-      return deleteMessage(channelId, editingMessageId).then(afterSubmit);
-    }
-
     if (newContent.length > 0) {
       return createMessage(channelId, newContent).then(afterSubmit);
     }
@@ -99,8 +79,6 @@ export function Channel() {
     }
     const lastMessage = messages.at(-1);
     if (lastMessage) {
-      setContent(lastMessage.content);
-      setOriginalContent(lastMessage.content);
       setEditingMessageId(lastMessage.id);
     }
   });
@@ -108,7 +86,6 @@ export function Channel() {
   useKeybind("escape", () => {
     if (editingMessageId) {
       setEditingMessageId(null);
-      setContent("");
     }
   });
 
@@ -139,7 +116,7 @@ export function Channel() {
                 );
               })
             ) : (
-              <div className="px-2 py-1 text-neutral-600">no channels</div>
+              <div className="text-neutral-600">no channels</div>
             )}
           </div>
           <User />
@@ -167,6 +144,8 @@ export function Channel() {
                       key={message.id}
                       message={message}
                       previousMessage={messages[index + 1]}
+                      editing={editingMessageId === message.id}
+                      onCancelEdit={() => setEditingMessageId(null)}
                     />
                   ))
               ) : (
@@ -175,29 +154,12 @@ export function Channel() {
             </div>
           </div>
 
-          <div className="flex items-center gap-2 px-2 h-12 border border-neutral-800">
-            <input
-              className="flex-1 bg-transparent py-2 px-1 text-neutral-100 placeholder:text-neutral-600 outline-none ring-0 transition focus:border-neutral-500/70"
-              type="text"
-              placeholder={`> message #${channel?.name ?? ""}`}
-              value={content}
-              onChange={(e) => setContent((e.target as HTMLInputElement).value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  handleSubmit();
-                }
-              }}
-            />
-            <button
-              className={classes(
-                "bg-transparent px-3 py-2 text-neutral-200 transition",
-                content.length > 0 ? "text-neutral-200" : "text-neutral-500"
-              )}
-              onClick={handleSubmit}
-            >
-              {editingMessageId ? "[ save ]" : "[ send ]"}
-            </button>
-          </div>
+          <ChatInput
+            content={content}
+            setContent={setContent}
+            onSubmit={handleSubmit}
+            placeholder={`> message #${channel?.name ?? ""}`}
+          />
         </div>
 
         <div className="flex flex-col gap-2 overflow-hidden p-3">
