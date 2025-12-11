@@ -13,7 +13,12 @@ import { request } from "./request";
 import type { Author } from "@schemas/models/author";
 import type { FileUpload } from "@schemas/models/fileupload";
 import type { File as ApiFile } from "@schemas/models/file";
-import { cache, addOptimisticMessage, updateMessageById } from "./cache";
+import {
+  cache,
+  addOptimisticMessage,
+  updateMessageById,
+  reconcileMessageByNonce,
+} from "./cache";
 
 export async function login(username: string, password: string) {
   const [user, error] = await request<User>("login", {
@@ -248,9 +253,8 @@ export async function createMessage(
     throw error;
   }
 
-  // replace optimistic message with server message (gateway also reconciles by nonce)
-  removeMessage(channelId, optimisticId);
-  addMessage(channelId, message);
+  // reconcile by nonce so we keep local previews + avoid image flash
+  reconcileMessageByNonce(channelId, message);
 
   return message;
 }

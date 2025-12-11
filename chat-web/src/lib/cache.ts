@@ -191,11 +191,28 @@ export function reconcileMessageByNonce(
     (id) => messages[id]?.nonce === nonce
   );
 
+  const optimistic = optimisticId
+    ? (messages[optimisticId] as CachedMessage)
+    : null;
+
   if (optimisticId && optimisticId !== serverMessage.id) {
     removeMessage(channelId, optimisticId);
   }
 
-  addMessage(channelId, serverMessage);
+  // keep client previews so image/video doesn't flash when swapping blob -> r2 url
+  const merged: CachedMessage = {
+    ...(serverMessage as CachedMessage),
+    client: optimistic?.client
+      ? {
+          ...optimistic.client,
+          status: "sent",
+          // keep progress as-is; ui uses preview until remote loads
+          uploads: optimistic.client.uploads,
+        }
+      : undefined,
+  };
+
+  addMessage(channelId, merged);
 }
 
 export function addAuthor(author: Author) {

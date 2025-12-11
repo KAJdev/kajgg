@@ -52,17 +52,38 @@ function MessageFile({
     (file.mime_type.startsWith("image/") ||
       file.mime_type.startsWith("video/"));
 
-  const src = showProgress && previewUrl ? previewUrl : file.url;
+  const [remoteReady, setRemoteReady] = useState(false);
+  const hasPreview = !!previewUrl && previewUrl !== file.url;
+  const previewSrc = previewUrl ?? file.url;
+  const remoteSrc = file.url;
 
   if (file.mime_type.startsWith("image/")) {
     return (
       <div className="flex flex-col gap-1">
         <a href={file.url} target="_blank" rel="noreferrer" className="block">
-          <img
-            src={src}
-            alt={file.name}
-            className="max-h-72 max-w-88 border border-neutral-800"
-          />
+          <div className="relative max-h-72 max-w-88">
+            {hasPreview && (
+              <img
+                src={previewSrc}
+                alt={file.name}
+                className={classes(
+                  "max-h-72 max-w-88 border border-neutral-800 transition-opacity",
+                  remoteReady ? "opacity-0" : "opacity-100"
+                )}
+              />
+            )}
+            <img
+              src={remoteSrc}
+              alt={file.name}
+              onLoad={() => setRemoteReady(true)}
+              className={classes(
+                "max-h-72 max-w-88 border border-neutral-800 transition-opacity",
+                hasPreview && !remoteReady
+                  ? "opacity-0 absolute inset-0"
+                  : "opacity-100"
+              )}
+            />
+          </div>
         </a>
         {showProgress && (
           <div className="h-1 w-full max-w-88 bg-neutral-800">
@@ -80,7 +101,7 @@ function MessageFile({
     return (
       <div className="flex flex-col gap-1">
         <video
-          src={src}
+          src={showProgress && previewUrl ? previewSrc : remoteSrc}
           controls
           className="max-h-72 max-w-88 border border-neutral-800"
         />

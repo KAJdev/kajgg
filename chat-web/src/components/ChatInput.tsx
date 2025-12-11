@@ -142,6 +142,22 @@ export function ChatInput({
             }
           }}
           autoFocus={autofocus}
+          onPaste={(e) => {
+            const clipboardData = e.clipboardData;
+            if (clipboardData) {
+              const files = clipboardData.files;
+              if (files) {
+                const newAttachments = Array.from(files).map((file) => ({
+                  file,
+                  url: URL.createObjectURL(file),
+                })) as Attachment[];
+                setAttachments?.((prev) => [
+                  ...(prev ?? []),
+                  ...newAttachments,
+                ]);
+              }
+            }
+          }}
         />
         {!editing && (
           <Button

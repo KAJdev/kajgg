@@ -8,13 +8,14 @@ import { Status as StatusType } from "src/types/models/status";
 import { Page } from "src/layout/page";
 import { createMessage, fetchMessages } from "src/lib/api";
 import {
+  cache,
   useAuthors,
   useChannel,
   useChannelMessages,
   useChannels,
 } from "src/lib/cache";
 import { useKeybind } from "src/lib/keybind";
-import type { Author } from "@schemas/index";
+import { MessageType, type Author } from "@schemas/index";
 import type { Attachment } from "src/components/ChatInput";
 
 const statusOrder = [
@@ -107,7 +108,28 @@ export function Channel() {
     if (editingMessageId) {
       return;
     }
-    const lastMessage = messages.at(-1);
+
+    const user = cache.getState().user;
+
+    if (!user) {
+      return;
+    }
+
+    // find the last message that is not sending, that you sent, that is a default type
+    const lastMessage = messages
+      .filter((message) => {
+        return (
+          message.client?.status !== "sending" &&
+          message.author_id === user.id &&
+          message.type === MessageType.DEFAULT
+        );
+      })
+      .sort(
+        (a, b) =>
+          new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      )
+      .at(-1);
+
     if (lastMessage) {
       setEditingMessageId(lastMessage.id);
     }
