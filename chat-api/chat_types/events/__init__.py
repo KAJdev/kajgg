@@ -5,3 +5,4 @@ from .event_type import EventType
 from .message_created import MessageCreated
 from .message_deleted import MessageDeleted
 from .message_updated import MessageUpdated
+from .typing_started import TypingStarted

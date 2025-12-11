@@ -5,6 +5,7 @@ export const EventType = {
   HEARTBEAT: "HEARTBEAT",
   AUTHOR_UPDATED: "AUTHOR_UPDATED",
   MESSAGE_DELETED: "MESSAGE_DELETED",
+  TYPING_STARTED: "TYPING_STARTED",
 } as const;
 
 export type EventType = (typeof EventType)[keyof typeof EventType];

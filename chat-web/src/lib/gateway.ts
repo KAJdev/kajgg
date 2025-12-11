@@ -5,6 +5,7 @@ import {
   cache,
   getToken,
   removeMessage,
+  startTyping,
   tokenCache,
   updateAuthor,
   updateMessage,
@@ -84,6 +85,8 @@ function handleEvent(event: Event) {
       return removeMessage(event.d.message_id, event.d.channel_id);
     case EventType.AUTHOR_UPDATED:
       return updateAuthor(event.d.author);
+    case EventType.TYPING_STARTED:
+      return startTyping(event.d.channel_id, event.d.user_id);
   }
 }
 

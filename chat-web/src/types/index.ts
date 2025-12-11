@@ -8,6 +8,7 @@ export type { Message } from "./models/message";
 export type { MessageCreated } from "./events/messagecreated";
 export type { MessageDeleted } from "./events/messagedeleted";
 export type { MessageUpdated } from "./events/messageupdated";
+export type { TypingStarted } from "./events/typingstarted";
 export type { User } from "./models/user";
 export { EventType } from "./events/eventtype";
 export { Status } from "./models/status";

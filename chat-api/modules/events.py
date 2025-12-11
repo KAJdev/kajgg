@@ -13,6 +13,7 @@ from chat_types.events import (
     ChannelCreated,
     AuthorUpdated,
     MessageDeleted,
+    TypingStarted,
 )
 from chat_types.models.author import Author as ApiAuthor
 from modules.db import Channel, User
@@ -44,6 +45,7 @@ class UserEntitlements:
             | ChannelCreated
             | MessageDeleted
             | AuthorUpdated
+            | TypingStarted
         ),
     ):
         if isinstance(event, (MessageCreated, MessageUpdated)):
@@ -51,6 +53,8 @@ class UserEntitlements:
         elif isinstance(event, ChannelCreated):
             return event.channel.id in self.channels
         elif isinstance(event, MessageDeleted):
+            return event.channel_id in self.channels
+        elif isinstance(event, TypingStarted) and event.user_id != self.user_id:
             return event.channel_id in self.channels
         elif isinstance(event, AuthorUpdated):
             return True
@@ -84,6 +88,7 @@ EVENT_TYPES = {
     ChannelCreated: EventType.CHANNEL_CREATED,
     MessageDeleted: EventType.MESSAGE_DELETED,
     AuthorUpdated: EventType.AUTHOR_UPDATED,
+    TypingStarted: EventType.TYPING_STARTED,
 }
 
 EVENT_CLASSES = {v: k for k, v in EVENT_TYPES.items()}
@@ -99,6 +104,7 @@ def format_event(
         | ChannelCreated
         | MessageDeleted
         | AuthorUpdated
+        | TypingStarted
     ),
 ):
     return {
@@ -115,6 +121,7 @@ def publish_event(
         | ChannelCreated
         | MessageDeleted
         | AuthorUpdated
+        | TypingStarted
     ),
 ):
     """

@@ -2,6 +2,7 @@ import { Link, useParams } from "react-router";
 import { ChatInput } from "src/components/ChatInput";
 import { ListAuthor } from "src/components/ListAuthor";
 import { Message } from "src/components/Message";
+import { TypingIndicator } from "src/components/TypingIndicator";
 import { User } from "src/components/User";
 import { Page } from "src/layout/page";
 import { createMessage, fetchMessages } from "src/lib/api";
@@ -10,6 +11,7 @@ import {
   useChannel,
   useChannelMessages,
   useChannels,
+  useTypingAuthors,
 } from "src/lib/cache";
 import { useKeybind } from "src/lib/keybind";
 
@@ -162,6 +164,8 @@ export function Channel() {
               )}
             </div>
           </div>
+
+          <TypingIndicator channelId={channelId} />
 
           <ChatInput
             content={content}

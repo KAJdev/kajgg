@@ -7,6 +7,7 @@ enum = [
   "HEARTBEAT",
   "AUTHOR_UPDATED",
   "MESSAGE_DELETED",
+  "TYPING_STARTED",
 ]
 
 [MessageCreated]
@@ -47,6 +48,14 @@ required = ["author"]
 [AuthorUpdated.properties]
 author = { ref = "Author" }
 
+[TypingStarted]
+type = "object"
+required = ["channel_id", "user_id"]
+
+[TypingStarted.properties]
+channel_id = { type = "string", doc = "Unique identifier for the channel" }
+user_id = { type = "string", doc = "Unique identifier for the user" }
+
 [Union.Event]
 types = [
   "MessageCreated",
@@ -54,5 +63,6 @@ types = [
   "ChannelCreated",
   "AuthorUpdated",
   "MessageDeleted",
+  "TypingStarted",
 ]
 discriminator = { field = "t", enum = "EventType", data_field = "d" }

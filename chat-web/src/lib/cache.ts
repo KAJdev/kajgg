@@ -6,11 +6,14 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { useShallow } from "zustand/shallow";
 
+type TimeoutId = ReturnType<typeof setTimeout>;
+
 export type Cache = {
   user?: User;
   channels: Record<string, Channel>;
   messages: Record<string, Record<string, Message>>;
   authors: Record<string, Author>;
+  typing: Record<string, Record<string, TimeoutId>>;
   last_event_ts?: number;
 };
 
@@ -19,6 +22,7 @@ export const cache = create<Cache>()(() => ({
   channels: {},
   messages: {},
   authors: {},
+  typing: {},
   last_event_ts: undefined,
 }));
 
@@ -49,6 +53,41 @@ export function useToken() {
 
 export function setLastEventTs(last_event_ts: number) {
   cache.setState({ last_event_ts });
+}
+
+export function startTyping(channelId: string, userId: string) {
+  const currentRoutine = cache.getState().typing[channelId]?.[userId];
+  if (currentRoutine) {
+    clearTimeout(currentRoutine);
+  }
+
+  const timeoutId = setTimeout(() => {
+    cache.setState((state) => ({
+      typing: {
+        ...state.typing,
+        [channelId]: Object.fromEntries(
+          Object.entries(state.typing[channelId]).filter(
+            ([id]) => id !== userId
+          )
+        ),
+      },
+    }));
+  }, 10_000);
+
+  cache.setState((state) => ({
+    typing: {
+      ...state.typing,
+      [channelId]: { ...state.typing[channelId], [userId]: timeoutId },
+    },
+  }));
+}
+
+export function useTypingAuthors(channelId: string) {
+  const ids = cache(
+    useShallow((state) => Object.keys(state.typing[channelId] ?? {}))
+  );
+  const authors = useAuthors();
+  return Object.values(authors).filter((author) => ids.includes(author.id));
 }
 
 export function addChannel(channel: Channel) {
