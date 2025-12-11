@@ -45,8 +45,8 @@ export function Message({
 
   // Time since previous message in milliseconds
   const timeSincePreviousMessage = previousMessage
-    ? new Date(previousMessage.created_at).getTime() -
-      new Date(message.created_at).getTime()
+    ? new Date(message.created_at).getTime() -
+      new Date(previousMessage.created_at).getTime()
     : 0;
 
   function handleSubmit() {
@@ -61,10 +61,14 @@ export function Message({
     }
   }
 
+  const showAuthorName =
+    !previousMessage ||
+    previousMessage.author_id !== message.author_id ||
+    timeSincePreviousMessage > 1000 * 60 * 5;
+
   return (
     <div className="flex flex-col w-full items-start gap-2 py-[2px] text-emerald-100 group">
-      {(previousMessage?.author_id !== message.author_id ||
-        timeSincePreviousMessage > 1000 * 60 * 5) && (
+      {showAuthorName && (
         <div className="flex items-center gap-2 mt-4">
           <span className={classes(color, "font-black px-1 text-black")}>
             {author?.username ?? "anon"}
