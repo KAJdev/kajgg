@@ -8,6 +8,8 @@ from chat_types.models.user import User as ApiUser
 
 bp = Blueprint("auth")
 
+dummy_pass = bcrypt.hashpw(b"password", bcrypt.gensalt())
+
 
 @bp.route("/v1/signup", methods=["POST"])
 @openapi.exclude()
@@ -64,8 +66,7 @@ async def signin(request: Request):
     )
 
     if not user:
-        # prevent timing attacks
-        bcrypt.checkpw(b"password", b"password")
+        bcrypt.checkpw(b"password", dummy_pass)
         raise exceptions.Unauthorized("Unauthorized")
 
     if not bcrypt.checkpw(
