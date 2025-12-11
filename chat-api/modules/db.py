@@ -70,10 +70,18 @@ class User(Document):
         return convert_dates_to_iso(d)
 
     async def fetch_status(self):
-        connections = await get_client().smembers(
-            f"{getenv('ENV')}-gateway-connections:{self.id}"
+        # v2: zset member=conn id, score=last seen ms
+        key = f"{getenv('ENV')}-gateway-connections-v2:{self.id}"
+        stale_sec = int(getenv("GATEWAY_CONN_STALE_SEC", "600"))
+        cutoff = int(datetime.now(UTC).timestamp() * 1000) - (stale_sec * 1000)
+
+        # clean up stale conns so users don't get stuck "online" forever
+        await get_client().zremrangebyscore(key, 0, cutoff)
+        count = await get_client().zcard(key)
+
+        self.status = (
+            self.default_status if count and int(count) > 0 else Status.OFFLINE
         )
-        self.status = self.default_status if connections else Status.OFFLINE
         return self.status
 
     async def start_verification(self):

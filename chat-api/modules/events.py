@@ -98,6 +98,20 @@ user_entitlements: dict[str, UserEntitlements] = {}
 connections: dict[str, set[GatewayConnection]] = defaultdict(set)
 
 
+def _conn_key(user_id: str) -> str:
+    # v2 key: zset member=conn id, score=last seen ms
+    return f"{getenv('ENV')}-gateway-connections-v2:{user_id}"
+
+
+def _now_ms() -> int:
+    return int(time.time() * 1000)
+
+
+def _stale_before_ms() -> int:
+    stale_sec = int(getenv("GATEWAY_CONN_STALE_SEC", "600"))
+    return _now_ms() - (stale_sec * 1000)
+
+
 def format_event(
     event: (
         MessageCreated
@@ -168,14 +182,49 @@ async def update_user_entitlements(user: User):
 
 async def add_connection(user_id: str, conn: GatewayConnection):
     connections[user_id].add(conn)
-    await get_client().sadd(f"{getenv('ENV')}-gateway-connections:{user_id}", conn.id)
+    await get_client().zadd(_conn_key(user_id), {conn.id: _now_ms()})
 
 
 async def remove_connection(user_id: str, conn: GatewayConnection):
     connections[user_id].discard(conn)
-    await get_client().srem(f"{getenv('ENV')}-gateway-connections:{user_id}", conn.id)
+    await get_client().zrem(_conn_key(user_id), conn.id)
     if not connections[user_id] and user_id in user_entitlements:
         del user_entitlements[user_id]
+
+
+async def _connection_heartbeat_loop():
+    # keep redis in sync so stale conns can be cleaned up even if a node dies
+    heartbeat_sec = int(getenv("GATEWAY_CONN_HEARTBEAT_SEC", "60"))
+
+    while True:
+        try:
+            now = _now_ms()
+            cutoff = _stale_before_ms()
+
+            for user_id, conns in list(connections.items()):
+                if not conns:
+                    continue
+
+                # bump all active conns for this user
+                mapping = {c.id: now for c in conns}
+                await get_client().zadd(_conn_key(user_id), mapping)
+
+                # opportunistic cleanup for this user's zset
+                await get_client().zremrangebyscore(_conn_key(user_id), 0, cutoff)
+
+                remaining = await get_client().zcard(_conn_key(user_id))
+                if int(remaining) == 0:
+                    user = await User.find_one(User.id == user_id)
+                    if user:
+                        await user.fetch_status()
+                        publish_event(AuthorUpdated(author=dtoa(ApiAuthor, user)))
+
+                        logging.info(f" ---> USER {user.id} IS OFFLINE")
+
+        except Exception as e:
+            logging.error(f"[Gateway] connection heartbeat error: {e}")
+
+        await asyncio.sleep(heartbeat_sec)
 
 
 def _format_sse(evt: dict) -> str:
@@ -282,3 +331,4 @@ async def event_listener():
 
 def init():
     asyncio.create_task(event_listener())
+    asyncio.create_task(_connection_heartbeat_loop())

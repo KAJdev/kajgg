@@ -128,7 +128,7 @@ export function Channel() {
         (a, b) =>
           new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
       )
-      .at(-1);
+      .at(0);
 
     if (lastMessage) {
       setEditingMessageId(lastMessage.id);
