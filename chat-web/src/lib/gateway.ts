@@ -6,6 +6,7 @@ import {
   getToken,
   removeMessage,
   startTyping,
+  stopTyping,
   tokenCache,
   updateAuthor,
   updateMessage,
@@ -78,9 +79,15 @@ function handleEvent(event: Event) {
     case EventType.CHANNEL_CREATED:
       return addChannel(event.d.channel);
     case EventType.MESSAGE_CREATED:
-      return addMessage(event.d.channel.id, event.d.message);
+      return (
+        addMessage(event.d.channel.id, event.d.message),
+        stopTyping(event.d.channel.id, event.d.author.id)
+      );
     case EventType.MESSAGE_UPDATED:
-      return updateMessage(event.d.message.channel_id, event.d.message);
+      return (
+        updateMessage(event.d.message.channel_id, event.d.message),
+        stopTyping(event.d.message.channel_id, event.d.message.author_id)
+      );
     case EventType.MESSAGE_DELETED:
       return removeMessage(event.d.message_id, event.d.channel_id);
     case EventType.AUTHOR_UPDATED:

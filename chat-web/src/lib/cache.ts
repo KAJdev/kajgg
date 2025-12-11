@@ -82,6 +82,23 @@ export function startTyping(channelId: string, userId: string) {
   }));
 }
 
+export function stopTyping(channelId: string, userId: string) {
+  const currentRoutine = cache.getState().typing[channelId]?.[userId];
+  if (currentRoutine) {
+    clearTimeout(currentRoutine);
+    cache.setState((state) => ({
+      typing: {
+        ...state.typing,
+        [channelId]: Object.fromEntries(
+          Object.entries(state.typing[channelId]).filter(
+            ([id]) => id !== userId
+          )
+        ),
+      },
+    }));
+  }
+}
+
 export function useTypingAuthors(channelId: string) {
   const ids = cache(
     useShallow((state) => Object.keys(state.typing[channelId] ?? {}))
