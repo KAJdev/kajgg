@@ -2,7 +2,7 @@ import { RouterProvider } from "react-router";
 import { useGateway } from "./lib/gateway";
 import { router } from "./routes";
 import { useToken } from "./lib/cache";
-import { createChannel, fetchChannels, fetchMe } from "./lib/api";
+import { fetchChannels, fetchMe } from "./lib/api";
 
 export function Index() {
   useGateway();
@@ -11,12 +11,7 @@ export function Index() {
     fetchMe();
 
     const channels = await fetchChannels();
-    let channelId = channels[0]?.id;
-    if (channels.length === 0) {
-      const channel = await createChannel("general", "General channel", false);
-      channelId = channel.id;
-    }
-
+    const channelId = channels[0]?.id;
     router.navigate(`/channels/${channelId}`);
   }
 
