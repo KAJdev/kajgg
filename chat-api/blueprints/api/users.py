@@ -1,3 +1,4 @@
+import re
 from sanic import Blueprint, Request, json, exceptions
 from sanic_ext import openapi
 from modules.db import User
@@ -50,6 +51,16 @@ async def update_user(request: Request, user_id: str):
         if await User.find_one(User.username == data["username"]):
             raise exceptions.BadRequest("Username must be unique")
 
+        if len(data["username"]) < 3 or len(data["username"]) > 32:
+            raise exceptions.BadRequest("Username must be between 3 and 32 characters")
+
+        if not re.match(r"^[a-zA-Z0-9_-]+$", data["username"]):
+            raise exceptions.BadRequest(
+                "Username must only contain letters, numbers, underscores, and hyphens"
+            )
+
+        user.username = data["username"]
+
     if data.get("default_status") and user.default_status != data["default_status"]:
         try:
             # accept enum values like "away" (not enum member names like "AWAY")
@@ -57,12 +68,13 @@ async def update_user(request: Request, user_id: str):
         except Exception:
             raise exceptions.BadRequest("Invalid default status")
 
+        user.default_status = data["default_status"]
+
     if data.get("bio") and user.bio != data["bio"]:
         if len(data["bio"]) > 1000:
             raise exceptions.BadRequest("Bio must be less than 1000 characters")
 
-    for key, value in data.items():
-        setattr(user, key, value)
+        user.bio = data["bio"]
 
     await user.save()
 
