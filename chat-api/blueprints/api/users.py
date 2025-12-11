@@ -34,9 +34,12 @@ async def get_user(request: Request, user_id: str):
     return json(utils.dtoa(ApiAuthor, user))
 
 
-@bp.route("/v1/users/@me", methods=["PATCH"])
+@bp.route("/v1/users/<user_id>", methods=["PATCH"])
 @authorized()
-async def update_user(request: Request):
+async def update_user(request: Request, user_id: str):
+    if user_id != "@me":
+        raise exceptions.Forbidden("You can only edit your own profile")
+
     user = request.ctx.user
 
     data = request.json
@@ -48,7 +51,10 @@ async def update_user(request: Request):
             raise exceptions.BadRequest("Username must be unique")
 
     if data.get("default_status") and user.default_status != data["default_status"]:
-        if data["default_status"] not in Status.__members__:
+        try:
+            # accept enum values like "away" (not enum member names like "AWAY")
+            Status(data["default_status"])
+        except Exception:
             raise exceptions.BadRequest("Invalid default status")
 
     if data.get("bio") and user.bio != data["bio"]:
