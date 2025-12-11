@@ -13,6 +13,10 @@ async def authenticate(request: Request, override_token: str = None) -> User | N
     if not tok:
         return None
 
+    if not hasattr(User, "token"):
+        # we arent initialized yet
+        return None
+
     user = await User.find_one(User.token == tok)
     return user
 
