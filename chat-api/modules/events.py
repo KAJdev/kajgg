@@ -153,6 +153,15 @@ def publish_event(
     used by an API server to fan out events to gateway nodes
     """
 
+    if isinstance(event, MessageCreated):
+
+        async def update_chan():
+            await Channel.find_one(Channel.id == event.message.channel_id).update(
+                {"$set": {"last_message_at": event.message.created_at}}
+            )
+
+        asyncio.create_task(update_chan())
+
     asyncio.create_task(
         publish(
             {
