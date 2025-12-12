@@ -176,11 +176,14 @@ async def create_message(request: Request, channel_id: str):
         )
     )
 
-    asyncio.create_task(
-        Channel.find_one(Channel.id == channel_id).update(
+    # we kinda have to do this because beanie doesnt
+    # return actual coroutines
+    async def update_chan():
+        await Channel.find_one(Channel.id == channel_id).update(
             {"$set": {"last_message_at": message.created_at}}
         )
-    )
+
+    asyncio.create_task(update_chan())
 
     return json(message_api)
 
