@@ -71,7 +71,7 @@ Most notably, You will see the base Event payload looks like:
 }
 ```
 
-`t` is the `EventType`. You can see a full list in the events type definition https://github.com/KAJdev/kajgg/blob/main/typegen/types/events.toml
+`t` is the `EventType`. You can see a full list in the events type definition [`typegen/types/events.toml`](https://github.com/KAJdev/kajgg/blob/main/typegen/types/events.toml)
 
 `d` is an event object, which holds various other nested data types. see the definition above for an exhaustive list
 
