@@ -49,12 +49,8 @@ async def signup(request: Request):
     data["username"] = data["username"].lower()
     data["email"] = data["email"].lower()
 
-    # make sure username and email is unique
-    if await User.find_one(User.username == data["username"]):
-        raise exceptions.BadRequest("Username must be unique")
-
-    if await User.find_one(User.email == data["email"]):
-        raise exceptions.BadRequest("Email must be unique")
+    if not await User.validate_update(data):
+        raise exceptions.BadRequest("Invalid request")
 
     hashed = bcrypt.hashpw(data["password"].encode("utf-8"), bcrypt.gensalt())
 

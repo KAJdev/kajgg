@@ -35,6 +35,9 @@ async def get_user(request: Request, user_id: str):
     return json(utils.dtoa(ApiAuthor, user))
 
 
+EDITABLE_FIELDS = ["username", "default_status", "bio", "email"]
+
+
 @bp.route("/v1/users/<user_id>", methods=["PATCH"])
 @authorized()
 async def update_user(request: Request, user_id: str):
@@ -47,34 +50,12 @@ async def update_user(request: Request, user_id: str):
     if not data:
         raise exceptions.BadRequest("Bad Request")
 
-    if data.get("username") and user.username != data["username"]:
-        if await User.find_one(User.username == data["username"]):
-            raise exceptions.BadRequest("Username must be unique")
+    if not await User.validate_update(data):
+        raise exceptions.BadRequest("Invalid request")
 
-        if len(data["username"]) < 3 or len(data["username"]) > 32:
-            raise exceptions.BadRequest("Username must be between 3 and 32 characters")
-
-        if not re.match(r"^[a-zA-Z0-9_-]+$", data["username"]):
-            raise exceptions.BadRequest(
-                "Username must only contain letters, numbers, underscores, and hyphens"
-            )
-
-        user.username = data["username"]
-
-    if data.get("default_status") and user.default_status != data["default_status"]:
-        try:
-            # accept enum values like "away" (not enum member names like "AWAY")
-            Status(data["default_status"])
-        except Exception:
-            raise exceptions.BadRequest("Invalid default status")
-
-        user.default_status = data["default_status"]
-
-    if data.get("bio") and user.bio != data["bio"]:
-        if len(data["bio"]) > 1000:
-            raise exceptions.BadRequest("Bio must be less than 1000 characters")
-
-        user.bio = data["bio"]
+    for key, value in data.items():
+        if key in EDITABLE_FIELDS:
+            setattr(user, key, value)
 
     await user.save()
 

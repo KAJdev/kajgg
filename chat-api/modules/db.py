@@ -7,6 +7,8 @@ from modules.utils import generate_id
 from modules.resend import send_verification_email
 import logging
 from modules.kv import get_client
+import re
+from sanic import exceptions
 
 load_dotenv()
 
@@ -96,6 +98,44 @@ class User(Document):
             await self.save()
             return True
         return False
+
+    @classmethod
+    async def validate_update(cls, data: dict) -> bool:
+        if data.get("username"):
+            if await User.find_one(User.username == data["username"]):
+                raise exceptions.BadRequest("Username must be unique")
+
+            if len(data["username"]) < 3 or len(data["username"]) > 32:
+                raise exceptions.BadRequest(
+                    "Username must be between 3 and 32 characters"
+                )
+
+            if not re.match(r"^[a-zA-Z0-9_-]+$", data["username"]):
+                raise exceptions.BadRequest(
+                    "Username must only contain letters, numbers, underscores, and hyphens"
+                )
+
+        if data.get("default_status"):
+            try:
+                # accept enum values like "away" (not enum member names like "AWAY")
+                Status(data["default_status"])
+            except Exception:
+                raise exceptions.BadRequest("Invalid default status")
+
+        if data.get("bio"):
+            if len(data["bio"]) > 1000:
+                raise exceptions.BadRequest("Bio must be less than 1000 characters")
+
+        if data.get("email"):
+            if await User.find_one(User.email == data["email"]):
+                raise exceptions.BadRequest("Email must be unique")
+
+            if not re.match(
+                r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$", data["email"]
+            ):
+                raise exceptions.BadRequest("Invalid email address")
+
+        return True
 
     class Settings:
         name = "users"
