@@ -6,6 +6,7 @@ import { MessageType as MessageTypeEnum } from "@schemas/index";
 import { hashString } from "src/lib/utils";
 import { Username } from "./Username";
 import type { File as ApiFile } from "@schemas/models/file";
+import { Modal } from "@theme/Modal";
 
 const leaveMessages = [
   "has dissapeared",
@@ -46,6 +47,7 @@ function MessageFile({
   /** local preview url while uploading */
   previewUrl?: string;
 }) {
+  const [open, setOpen] = useState(false);
   const showProgress =
     typeof progress === "number" &&
     progress >= 0 &&
@@ -61,40 +63,47 @@ function MessageFile({
   if (file.mime_type.startsWith("image/")) {
     return (
       <div className="flex flex-col gap-1">
-        <a href={file.url} target="_blank" rel="noreferrer" className="block">
-          <div
-            className="max-h-72 max-w-88 border border-neutral-800 bg-black/10 relative overflow-hidden"
-            style={
-              hasPreview && !remoteLoaded
-                ? {
-                    backgroundImage: `url(${previewSrc})`,
-                    backgroundRepeat: "no-repeat",
-                    backgroundPosition: "center",
-                    backgroundSize: "contain",
-                  }
-                : undefined
-            }
-          >
-            <img
-              src={remoteSrc}
-              alt={file.name}
-              onLoad={() => setRemoteLoaded(true)}
-              className={classes(
-                "max-h-72 max-w-88 transition-opacity",
-                hasPreview && !remoteLoaded ? "opacity-0" : "opacity-100"
-              )}
-            />
-
-            {showProgress && (
-              <div
-                className="bg-background/50 absolute top-0 left-0 w-full"
-                style={{
-                  height: `${Math.floor((1 / progress) * 100)}%`,
-                }}
-              />
+        <div
+          className="max-h-72 max-w-88 cursor-pointer border border-neutral-800 bg-black/10 relative overflow-hidden"
+          style={
+            hasPreview && !remoteLoaded
+              ? {
+                  backgroundImage: `url(${previewSrc})`,
+                  backgroundRepeat: "no-repeat",
+                  backgroundPosition: "center",
+                  backgroundSize: "contain",
+                }
+              : undefined
+          }
+          onClick={() => setOpen(true)}
+        >
+          <img
+            src={remoteSrc}
+            alt={file.name}
+            onLoad={() => setRemoteLoaded(true)}
+            className={classes(
+              "max-h-72 max-w-88 transition-opacity",
+              hasPreview && !remoteLoaded ? "opacity-0" : "opacity-100"
             )}
+          />
+
+          {showProgress && (
+            <div
+              className="bg-background/50 absolute top-0 left-0 w-full"
+              style={{
+                height: `${Math.floor((1 / progress) * 100)}%`,
+              }}
+            />
+          )}
+        </div>
+
+        <Modal title={file.name} open={open} onClose={() => setOpen(false)}>
+          <img src={remoteSrc} alt={file.name} />
+          <div className="flex gap-2 items-center justify-between mt-4">
+            <p className="text-secondary/70">{file.size} bytes</p>
+            <p className="text-secondary/70">{file.mime_type}</p>
           </div>
-        </a>
+        </Modal>
       </div>
     );
   }

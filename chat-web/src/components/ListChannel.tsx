@@ -19,7 +19,7 @@ export function ListChannel({
       key={channel.id}
       className={classes(
         "w-full group text-left transition cursor-pointer flex items-center gap-2 whitespace-pre truncate text-ellipsis",
-        active ? "text-primary" : "text-tertiary hover:text-primary"
+        active ? "text-primary" : "text-secondary/70 hover:text-primary"
       )}
       to={`/channels/${channel.id}`}
     >

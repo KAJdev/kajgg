@@ -8,6 +8,7 @@ import { Status as StatusType } from "src/types/models/status";
 import { createMessage, fetchMessages } from "src/lib/api";
 import {
   cache,
+  setLastSeenChannel,
   useAuthors,
   useChannel,
   useChannelMessages,
@@ -75,6 +76,7 @@ export function Channel() {
 
   useEffect(() => {
     if (channelId) {
+      setLastSeenChannel(channelId);
       fetchMessages(channelId);
     }
   }, [channelId]);

@@ -135,14 +135,12 @@ function Open({
           (!bare ? (
             <div>
               <Panel>
-                <TopBar onClose={onClose}>
-                  <Title>{title}</Title>
-                </TopBar>
+                <TopBar onClose={onClose}>{title}</TopBar>
                 {children}
               </Panel>
               <div className="text-left text-sm text-neutral-500 mt-2">
                 <button
-                  className="text-blue-500 hover:underline"
+                  className="text-blue-500 hover:underline cursor-pointer"
                   onClick={onClose}
                 >
                   [ escape ]
