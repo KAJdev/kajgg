@@ -182,6 +182,9 @@ class Message(Document):
     @classmethod
     async def validate_dict(cls, data: dict) -> bool:
         if data.get("content"):
+            data["content"] = data["content"].strip()
+            if len(data["content"]) < 1:
+                raise exceptions.BadRequest("Content must be at least 1 character")
             if len(data["content"]) > 4000:
                 raise exceptions.BadRequest("Content must be less than 1000 characters")
 

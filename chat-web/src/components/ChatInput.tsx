@@ -42,8 +42,15 @@ export function ChatInput({
   autofocus?: boolean;
 }) {
   const { channelId } = useParams();
-  const inputRef = useRef<HTMLInputElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
   const lastTypedRef = useRef<number>(0);
+
+  function autosize() {
+    const el = inputRef.current;
+    if (!el) return;
+    el.style.height = "0px";
+    el.style.height = `${el.scrollHeight}px`;
+  }
 
   useEffect(() => {
     if (
@@ -63,6 +70,10 @@ export function ChatInput({
       inputRef.current?.setSelectionRange(content.length, content.length);
     }
   });
+
+  useEffect(() => {
+    autosize();
+  }, [content]);
 
   return (
     <div className="flex flex-col px-2 border border-neutral-800 min-w-0">
@@ -102,10 +113,11 @@ export function ChatInput({
           ))}
         </div>
       )}
-      <div className="flex items-center gap-2 h-12 w-full">
+      <div className="flex items-start gap-2 min-h-12 w-full">
         {!editing && (
           <Button
             icon={PlusIcon}
+            className="h-12 pl-2 pr-1"
             onClick={() => {
               const fileInput = document.createElement("input");
               fileInput.type = "file";
@@ -130,15 +142,23 @@ export function ChatInput({
             }}
           />
         )}
-        <input
+        <textarea
           ref={inputRef}
-          className="flex-1 bg-transparent py-2 px-1 text-neutral-100 placeholder:text-neutral-600 outline-none ring-0 transition focus:border-neutral-500/70"
-          type="text"
+          className="flex-1 bg-transparent py-3 px-1 min-h-12 text-neutral-100 placeholder:text-neutral-600 outline-none ring-0 transition focus:border-neutral-500/70 resize-none overflow-y-auto max-h-48 leading-6"
           placeholder={placeholder}
           value={content}
-          onChange={(e) => setContent((e.target as HTMLInputElement).value)}
+          rows={1}
+          onChange={(e) => {
+            setContent((e.target as HTMLTextAreaElement).value);
+            autosize();
+          }}
           onKeyDown={(e) => {
             if (e.key === "Enter") {
+              if (e.shiftKey) {
+                // ctrl+shift => newline
+                return;
+              }
+              e.preventDefault();
               onSubmit();
             }
           }}
@@ -163,7 +183,7 @@ export function ChatInput({
         {!editing && (
           <Button
             className={classes(
-              "px-3 py-2 text-neutral-200 transition",
+              "px-3 text-neutral-200 transition h-12",
               content.length > 0 || (attachments?.length ?? 0) > 0
                 ? "opacity-100"
                 : "opacity-50"

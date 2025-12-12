@@ -228,7 +228,7 @@ function DefaultMessage({
         <>
           {message.content && (
             <span>
-              <span className="flex-1 wrap-break-word opacity-80">
+              <span className="flex-1 wrap-break-word whitespace-pre-wrap opacity-80">
                 {message.content}
               </span>
               {message.updated_at && (
