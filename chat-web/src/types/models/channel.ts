@@ -11,6 +11,8 @@ export type Channel = {
     created_at: Date;
     /** When the channel was last updated */
     updated_at: Date;
+    /** When the channel had its last message */
+    last_message_at?: Date;
     /** ID of the user who created the channel */
     author_id: string;
     author?: Author;

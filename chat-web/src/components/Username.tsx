@@ -47,7 +47,10 @@ export function Username({
   noColor?: boolean;
 }) {
   return (
-    <span style={{ color: noColor ? undefined : getColor(id) }}>
+    <span
+      className="overflow-hidden text-ellipsis whitespace-nowrap"
+      style={{ color: noColor ? undefined : getColor(id) }}
+    >
       {username}
     </span>
   );

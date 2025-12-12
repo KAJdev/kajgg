@@ -11,6 +11,12 @@ type TimeoutId = ReturnType<typeof setTimeout>;
 const MAX_MESSAGES_PER_CHANNEL = 100;
 const MESSAGE_QUEUE_COMPACT_AT = 500;
 
+function cssVar(name: string, fallback = ""): string {
+  if (typeof document === "undefined") return fallback;
+  const v = getComputedStyle(document.documentElement).getPropertyValue(name);
+  return (v || fallback).trim();
+}
+
 export type ClientUploadProgress = {
   /** 0..1 */
   progress: number;
@@ -47,7 +53,17 @@ export type Cache = {
 
 export type PersistentCache = {
   lastSeenChannel: string | null;
-  lastSeenMessages: Record<string, number>; // message id -> timestamp
+  lastSeenChannelAt: Record<string, number>; // channel id -> timestamp
+  userSettings: {
+    theme: {
+      colors: {
+        background: string;
+        primary: string;
+        secondary: string;
+        tertiary: string;
+      };
+    };
+  };
 };
 
 export const cache = create<Cache>()(() => ({
@@ -77,7 +93,17 @@ export const persistentCache = create<PersistentCache>()(
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     (_set) => ({
       lastSeenChannel: null,
-      lastSeenMessages: {},
+      lastSeenChannelAt: {},
+      userSettings: {
+        theme: {
+          colors: {
+            background: cssVar("--color-background"),
+            primary: cssVar("--color-primary"),
+            secondary: cssVar("--color-secondary"),
+            tertiary: cssVar("--color-tertiary"),
+          },
+        },
+      },
     }),
     {
       name: "persistent",
@@ -92,6 +118,38 @@ export function setUser(user: User) {
 
 export function setLastSeenChannel(channelId: string) {
   persistentCache.setState({ lastSeenChannel: channelId });
+}
+
+export function setLastSeenChannelAt(channelId: string, timestamp: number) {
+  persistentCache.setState({
+    lastSeenChannelAt: {
+      ...persistentCache.getState().lastSeenChannelAt,
+      [channelId]: timestamp,
+    },
+  });
+}
+
+export function useIsChannelUnread(channelId: string) {
+  const channel = cache(useShallow((state) => state.channels[channelId]));
+  const lastSeenChannelAt = persistentCache(
+    useShallow((state) => state.lastSeenChannelAt[channelId])
+  );
+  if (!channel || !lastSeenChannelAt) {
+    return false;
+  }
+  return (
+    channel.last_message_at &&
+    channel.last_message_at.getTime() > lastSeenChannelAt
+  );
+}
+
+export function updateChannelLastMessageAt(channelId: string, timestamp: Date) {
+  cache.setState((state) => ({
+    channels: {
+      ...state.channels,
+      [channelId]: { ...state.channels[channelId], last_message_at: timestamp },
+    },
+  }));
 }
 
 export function getLastSeenChannel() {
@@ -225,6 +283,10 @@ export function addMessage(channelId: string, message: Message) {
       message as CachedMessage
     );
   });
+
+  if (message.author_id !== cache.getState().user?.id) {
+    updateChannelLastMessageAt(channelId, message.created_at);
+  }
 }
 
 export function addOptimisticMessage(

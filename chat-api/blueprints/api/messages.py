@@ -1,3 +1,4 @@
+import asyncio
 from datetime import UTC, datetime
 from chat_types.models import (
     Message as ApiMessage,
@@ -172,6 +173,12 @@ async def create_message(request: Request, channel_id: str):
         MessageCreated(
             message=message_api,
             author=utils.dtoa(ApiAuthor, request.ctx.user),
+        )
+    )
+
+    asyncio.create_task(
+        Channel.find_one(Channel.id == channel_id).update(
+            {"$set": {"last_message_at": message.created_at}}
         )
     )
 

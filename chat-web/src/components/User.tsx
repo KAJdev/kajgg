@@ -4,6 +4,14 @@ import { SettingsIcon } from "lucide-react";
 import { Button } from "@theme/Button";
 import { Modal } from "@theme/Modal";
 
+function UserSettings() {
+  return (
+    <div>
+      <h1>Settings</h1>
+    </div>
+  );
+}
+
 export function User() {
   const user = useUser();
   const [open, setOpen] = useState(false);
@@ -20,9 +28,7 @@ export function User() {
       </div>
 
       <Modal title="Settings" open={open} onClose={() => setOpen(false)}>
-        <div>
-          <h1>Settings</h1>
-        </div>
+        <UserSettings />
       </Modal>
     </>
   );

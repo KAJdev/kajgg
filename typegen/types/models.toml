@@ -50,6 +50,7 @@ name = { type = "string", doc = "Display name of the channel" }
 topic = { type = "string", doc = "Channel topic or description" }
 created_at = { type = "string", format = "date-time", doc = "When the channel was created" }
 updated_at = { type = "string", format = "date-time", doc = "When the channel was last updated" }
+last_message_at = { type = "string", format = "date-time", doc = "When the channel had its last message" }
 author_id = { type = "string", doc = "ID of the user who created the channel" }
 author = { ref = "Author" }
 

@@ -226,6 +226,7 @@ class Channel(Document):
     created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
     updated_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
     deleted_at: Optional[datetime] = None
+    last_message_at: Optional[datetime] = None
     private: bool = False
 
     @classmethod

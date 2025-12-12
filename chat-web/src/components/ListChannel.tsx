@@ -2,7 +2,7 @@ import { Button } from "@theme/Button";
 import { TrashIcon } from "lucide-react";
 import { Link } from "react-router";
 import { deleteChannel } from "src/lib/api";
-import { useUser } from "src/lib/cache";
+import { useIsChannelUnread, useUser } from "src/lib/cache";
 import type { Channel as ChannelType } from "src/types/models/channel";
 
 export function ListChannel({
@@ -14,6 +14,7 @@ export function ListChannel({
 }) {
   const self = useUser();
   const ownsChannel = self?.id == channel.author_id;
+  const isUnread = useIsChannelUnread(channel.id);
   return (
     <Link
       key={channel.id}
@@ -24,7 +25,7 @@ export function ListChannel({
       to={`/channels/${channel.id}`}
     >
       <span className="overflow-hidden text-ellipsis whitespace-[pre-wrap]">
-        {active ? "> " : "  "}#{channel.name}
+        {active ? "> " : isUnread ? "! " : "  "}#{channel.name}
       </span>
       {ownsChannel && (
         <Button

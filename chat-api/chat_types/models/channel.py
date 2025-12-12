@@ -15,6 +15,8 @@ class Channel:
     created_at: datetime | None = None
     # When the channel was last updated
     updated_at: datetime | None = None
+    # When the channel had its last message
+    last_message_at: datetime | None = None
     # ID of the user who created the channel
     author_id: str | None = None
     author: Author | None = None

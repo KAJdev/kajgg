@@ -9,6 +9,7 @@ import { createMessage, fetchMessages } from "src/lib/api";
 import {
   cache,
   setLastSeenChannel,
+  setLastSeenChannelAt,
   useAuthors,
   useChannel,
   useChannelMessages,
@@ -79,6 +80,32 @@ export function Channel() {
       setLastSeenChannel(channelId);
       fetchMessages(channelId);
     }
+
+    return () => {
+      if (channelId) {
+        setLastSeenChannelAt(channelId, Date.now());
+      }
+    };
+  }, [channelId]);
+
+  useEffect(() => {
+    if (!channelId) return;
+
+    const markSeen = () => setLastSeenChannelAt(channelId, Date.now());
+
+    const onVisibility = () => {
+      if (document.visibilityState === "hidden") {
+        markSeen();
+      }
+    };
+
+    window.addEventListener("pagehide", markSeen);
+    document.addEventListener("visibilitychange", onVisibility);
+
+    return () => {
+      window.removeEventListener("pagehide", markSeen);
+      document.removeEventListener("visibilitychange", onVisibility);
+    };
   }, [channelId]);
 
   const messages = useMemo(() => {
