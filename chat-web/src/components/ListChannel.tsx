@@ -19,8 +19,11 @@ export function ListChannel({
     <Link
       key={channel.id}
       className={classes(
-        "w-full group text-left transition cursor-pointer flex items-center gap-2 whitespace-pre truncate text-ellipsis",
-        active ? "text-primary" : "text-secondary/70 hover:text-primary"
+        "w-full group text-left cursor-pointer flex items-center gap-2 whitespace-pre truncate text-ellipsis",
+        active
+          ? "text-primary bg-tertiary"
+          : "text-secondary/70 hover:text-primary",
+        isUnread && "text-primary"
       )}
       to={`/channels/${channel.id}`}
     >
@@ -31,7 +34,6 @@ export function ListChannel({
         <Button
           icon={TrashIcon}
           className="ml-auto hidden group-hover:block"
-          variant="danger"
           onClick={() => deleteChannel(channel.id)}
         />
       )}

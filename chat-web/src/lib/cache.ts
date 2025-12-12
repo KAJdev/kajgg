@@ -134,8 +134,11 @@ export function useIsChannelUnread(channelId: string) {
   const lastSeenChannelAt = persistentCache(
     useShallow((state) => state.lastSeenChannelAt[channelId])
   );
-  if (!channel || !lastSeenChannelAt) {
+  if (!channel) {
     return false;
+  }
+  if (!lastSeenChannelAt) {
+    return true;
   }
   return (
     channel.last_message_at &&
