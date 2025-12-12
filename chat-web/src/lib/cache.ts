@@ -139,7 +139,7 @@ export function useIsChannelUnread(channelId: string) {
   }
   return (
     channel.last_message_at &&
-    channel.last_message_at.getTime() > lastSeenChannelAt
+    new Date(channel.last_message_at).getTime() > lastSeenChannelAt
   );
 }
 
