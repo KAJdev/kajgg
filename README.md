@@ -72,5 +72,7 @@ Most notably, You will see the base Event payload looks like:
 ```
 
 `t` is the `EventType`. You can see a full list in the events type definition https://github.com/KAJdev/kajgg/blob/main/typegen/types/events.toml
+
 `d` is an event object, which holds various other nested data types. see the definition above for an exhaustive list
+
 `ts` is the timestamp of the event. This is important, since the connection is not very durable for any number of reasons (gateway node going poof, cloudflare proxy deciding it doesn't like you, etc.) clients will have to reconnect periodically. This means there's a few milliseconds where the client no longer will recieve events. This isn't an issue though, since you can provide this timestamp when you do reconnect (`/gateway?last_event_ts=...`) and that gateway node will replay the events you missed.
