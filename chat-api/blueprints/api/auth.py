@@ -6,7 +6,6 @@ from modules import utils
 from beanie.operators import Or
 import bcrypt
 from chat_types.models.user import User as ApiUser
-from chat_types.models.channel import Channel as ApiChannel
 from chat_types.models.message import Message as ApiMessage
 from chat_types.models.message_type import MessageType
 from chat_types.events.message_created import MessageCreated
@@ -30,7 +29,6 @@ async def join_all_public_channels(user: User):
         publish_event(
             MessageCreated(
                 message=utils.dtoa(ApiMessage, m),
-                channel=utils.dtoa(ApiChannel, channel),
                 author=utils.dtoa(ApiUser, user),
             )
         )
