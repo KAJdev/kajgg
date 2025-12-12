@@ -25,7 +25,7 @@ async def create_channel(request: Request):
     if not data:
         raise exceptions.BadRequest("Bad Request")
 
-    if not await Channel.validate_update(data):
+    if not await Channel.validate_dict(data):
         raise exceptions.BadRequest("Invalid request")
 
     channel = Channel(
@@ -57,7 +57,7 @@ async def update_channel(request: Request, channel_id: str):
     if not data:
         raise exceptions.BadRequest("Bad Request")
 
-    if not await Channel.validate(data):
+    if not await Channel.validate_dict(data):
         raise exceptions.BadRequest("Invalid request")
 
     for key, value in data.items():

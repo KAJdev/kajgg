@@ -49,7 +49,7 @@ async def signup(request: Request):
     data["username"] = data["username"].lower()
     data["email"] = data["email"].lower()
 
-    if not await User.validate_update(data):
+    if not await User.validate_dict(data):
         raise exceptions.BadRequest("Invalid request")
 
     hashed = bcrypt.hashpw(data["password"].encode("utf-8"), bcrypt.gensalt())

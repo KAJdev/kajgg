@@ -130,7 +130,7 @@ async def create_message(request: Request, channel_id: str):
     file_ids = data.get("file_ids", [])
     nonce = data.get("nonce", None)
 
-    if not await Message.validate_update(data):
+    if not await Message.validate_dict(data):
         raise exceptions.BadRequest("Invalid request")
 
     content = content.strip()
@@ -195,7 +195,7 @@ async def update_message(request: Request, channel_id: str, message_id: str):
     if not data:
         raise exceptions.BadRequest("Bad Request")
 
-    if not await Message.validate_update(data):
+    if not await Message.validate_dict(data):
         raise exceptions.BadRequest("Bad Request")
 
     for key, value in data.items():

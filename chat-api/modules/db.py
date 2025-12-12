@@ -100,7 +100,7 @@ class User(Document):
         return False
 
     @classmethod
-    async def validate_update(cls, data: dict) -> bool:
+    async def validate_dict(cls, data: dict) -> bool:
         if data.get("username"):
             if await User.find_one(User.username == data["username"]):
                 raise exceptions.BadRequest("Username must be unique")
@@ -154,6 +154,14 @@ class StoredFile(Document):
     created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
     uploaded_at: Optional[datetime] = None
 
+    @classmethod
+    async def validate_dict(cls, data: dict) -> bool:
+        if data.get("name"):
+            if len(data["name"]) > 200:
+                raise exceptions.BadRequest("Name must be less than 200 characters")
+
+        return True
+
     class Settings:
         name = "files"
         use_state_management = True
@@ -172,7 +180,7 @@ class Message(Document):
     deleted_at: Optional[datetime] = None
 
     @classmethod
-    async def validate_update(cls, data: dict) -> bool:
+    async def validate_dict(cls, data: dict) -> bool:
         if data.get("content"):
             if len(data["content"]) > 4000:
                 raise exceptions.BadRequest("Content must be less than 1000 characters")
@@ -243,7 +251,7 @@ class Channel(Document):
         return list(channels.values())
 
     @classmethod
-    async def validate_update(cls, data: dict) -> bool:
+    async def validate_dict(cls, data: dict) -> bool:
         if data.get("name"):
             if len(data["name"]) < 3 or len(data["name"]) > 32:
                 raise exceptions.BadRequest("Name must be between 3 and 32 characters")
