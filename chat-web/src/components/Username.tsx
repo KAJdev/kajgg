@@ -1,36 +1,36 @@
 import { hashString } from "src/lib/utils";
 
 const colors = [
-  "#f3e8ff", // bg-purple-100
-  "#e9d5ff", // bg-purple-200
-  "#f5d0fe", // bg-fuchsia-200
-  "#ede9fe", // bg-violet-100
-  "#ddd6fe", // bg-violet-200
-  "#e0e7ff", // bg-indigo-100
-  "#c7d2fe", // bg-indigo-200
-  "#dbeafe", // bg-blue-100
-  "#bae6fd", // bg-sky-200
-  "#a7f3d0", // bg-emerald-200
-  "#a5f3fc", // bg-cyan-200
-  "#cffafe", // bg-cyan-100
-  "#adfa1d", // pastel lime-green
-  "#fef9c3", // bg-yellow-100
-  "#fef3c7", // bg-amber-100
-  "#ffe4e6", // bg-rose-100
-  "#fde68a", // bg-yellow-200
-  "#fed7aa", // bg-orange-200
-  "#fecaca", // bg-red-200
-  "#fad5ec", // pastel pink
-  "#fde7e7", // pastel red-pink
-  "#fdf6b2", // pastel yellow
-  "#dbf4ff", // pastel light-blue
-  "#d1fae5", // bg-green-100
-  "#bbf7d0", // bg-green-200
-  "#fecdd3", // bg-pink-200
-  "#fbcfe8", // bg-pink-100
-  "#fcd8e4", // pastel light-pink
-  "#ffedd5", // bg-orange-100
-  "#fff0f6", // pastel white-pink
+  "#c084fc", // vibrant purple
+  "#a21caf", // deep purple
+  "#f472b6", // vibrant fuchsia
+  "#7c3aed", // intense violet
+  "#6d28d9", // rich violet
+  "#6366f1", // vivid indigo
+  "#2563eb", // strong blue
+  "#0ea5e9", // sky blue
+  "#06b6d4", // cyan
+  "#10b981", // vibrant emerald
+  "#22d3ee", // strong cyan
+  "#2dd4bf", // teal
+  "#a3e635", // lime green
+  "#fde047", // bold yellow
+  "#fbbf24", // strong amber
+  "#fb7185", // hot rose
+  "#facc15", // strong yellow
+  "#fd8e23", // orange
+  "#f43f5e", // strong red
+  "#e879f9", // vibrant pink
+  "#f87171", // vivid red-pink
+  "#fcd34d", // bright yellow
+  "#38bdf8", // vivid blue
+  "#4ade80", // strong green
+  "#22c55e", // emerald green
+  "#f472b6", // strong pink
+  "#fb7185", // hot pink
+  "#fbb6ce", // high-contrast light pink
+  "#fb923c", // vibrant orange
+  "#ffe0f7", // vibrant white-pink
 ];
 
 function getColor(authorId: string) {

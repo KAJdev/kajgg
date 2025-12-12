@@ -5,7 +5,6 @@ import { Message } from "src/components/Message";
 import { TypingIndicator } from "src/components/TypingIndicator";
 import { User } from "src/components/User";
 import { Status as StatusType } from "src/types/models/status";
-import { Page } from "src/layout/page";
 import { createMessage, fetchMessages } from "src/lib/api";
 import {
   cache,
@@ -36,7 +35,7 @@ function Label({
   return (
     <div
       className={classes(
-        "uppercase tracking-[0.08em] text-neutral-400/50",
+        "uppercase tracking-[0.08em] text-secondary/60",
         className
       )}
     >
@@ -152,94 +151,92 @@ export function Channel() {
   }, [messages]);
 
   return (
-    <Page>
-      <div className="grid h-full min-h-0 w-full grid-cols-1 gap-3 md:grid-cols-[18ch_1fr_18ch]">
-        <div className="flex-col gap-2 overflow-hidden p-3 hidden md:flex">
-          <Label>channels</Label>
-          <div className="flex-1 flex-col">
-            {channelList.length ? (
-              channelList.map((ch) => {
-                const active = ch.id === channelId;
-                return <ListChannel key={ch.id} channel={ch} active={active} />;
-              })
-            ) : (
-              <div className="text-neutral-600">no channels</div>
-            )}
-          </div>
-          <User />
-        </div>
-
-        <div className="grid h-full grid-rows-[auto_1fr_auto] p-3 min-h-0">
-          <div className="flex flex-wrap items-center gap-3 pb-2 border-b border-neutral-800">
-            <span className="text-neutral-200">{`#${
-              channel?.name ?? "loading"
-            }`}</span>
-            <span className="truncate text-neutral-400/90">
-              {channel?.topic || "no topic yet"}
-            </span>
-            <span className="text-neutral-500/30">{channelId ?? "--"}</span>
-          </div>
-
-          <div className="flex flex-col gap-2 min-h-0">
-            <div className="flex-1 overflow-y-auto pr-1 min-h-0 flex flex-col-reverse pb-4">
-              {messages?.length > 0 ? (
-                tupledMessages
-                  .slice()
-                  .reverse()
-                  .map(([message, previousMessage]) => (
-                    <Message
-                      key={message.id}
-                      message={message}
-                      previousMessage={previousMessage ?? null}
-                      editing={editingMessageId === message?.id}
-                      onCancelEdit={() => setEditingMessageId(null)}
-                    />
-                  ))
-              ) : (
-                <div className="text-neutral-600">no messages yet</div>
-              )}
-            </div>
-          </div>
-
-          <TypingIndicator channelId={channelId} />
-
-          <ChatInput
-            content={content}
-            attachments={attachments}
-            setAttachments={setAttachments}
-            setContent={setContent}
-            onSubmit={handleSubmit}
-            placeholder={`> message #${channel?.name ?? ""}`}
-            autofocus={!editingMessageId}
-          />
-        </div>
-
-        <div className="flex-col gap-6 overflow-hidden p-3 overflow-y-auto min-h-0 hidden md:flex">
-          {Object.entries(authorList)
-            .sort(
-              (a, b) =>
-                statusOrder.indexOf(a[0] as StatusType) -
-                statusOrder.indexOf(b[0] as StatusType)
-            )
-            .map(([status, authors]) => (
-              <div key={status} className="flex flex-col gap-2">
-                <Label className="flex items-center gap-2 justify-between">
-                  {status}{" "}
-                  <span className="text-neutral-400/50">{authors.length}</span>
-                </Label>
-                <div className="flex flex-col">
-                  {authors.map((author) => (
-                    <ListAuthor key={author.id} author={author} />
-                  ))}
-                </div>
-              </div>
-            ))}
-
-          {Object.keys(authorList).length === 0 && (
-            <div className="text-neutral-600">no authors</div>
+    <div className="grid h-full min-h-0 w-full grid-cols-1 gap-3 md:grid-cols-[18ch_1fr_18ch]">
+      <div className="flex-col gap-2 overflow-hidden p-3 hidden md:flex">
+        <Label>channels</Label>
+        <div className="flex-1 flex-col">
+          {channelList.length ? (
+            channelList.map((ch) => {
+              const active = ch.id === channelId;
+              return <ListChannel key={ch.id} channel={ch} active={active} />;
+            })
+          ) : (
+            <div className="text-tertiary">no channels</div>
           )}
         </div>
+        <User />
       </div>
-    </Page>
+
+      <div className="grid h-full grid-rows-[auto_1fr_auto] p-3 min-h-0">
+        <div className="flex flex-wrap items-center gap-3 pb-2 border-b border-tertiary">
+          <span className="text-primary">{`#${
+            channel?.name ?? "loading"
+          }`}</span>
+          <span className="truncate text-secondary">
+            {channel?.topic || "no topic yet"}
+          </span>
+          <span className="text-tertiary">{channelId ?? "--"}</span>
+        </div>
+
+        <div className="flex flex-col gap-2 min-h-0">
+          <div className="flex-1 overflow-y-auto pr-1 min-h-0 flex flex-col-reverse pb-4">
+            {messages?.length > 0 ? (
+              tupledMessages
+                .slice()
+                .reverse()
+                .map(([message, previousMessage]) => (
+                  <Message
+                    key={message.id}
+                    message={message}
+                    previousMessage={previousMessage ?? null}
+                    editing={editingMessageId === message?.id}
+                    onCancelEdit={() => setEditingMessageId(null)}
+                  />
+                ))
+            ) : (
+              <div className="text-tertiary">no messages yet</div>
+            )}
+          </div>
+        </div>
+
+        <TypingIndicator channelId={channelId} />
+
+        <ChatInput
+          content={content}
+          attachments={attachments}
+          setAttachments={setAttachments}
+          setContent={setContent}
+          onSubmit={handleSubmit}
+          placeholder={`> message #${channel?.name ?? ""}`}
+          autofocus={!editingMessageId}
+        />
+      </div>
+
+      <div className="flex-col gap-6 overflow-hidden p-3 overflow-y-auto min-h-0 hidden md:flex">
+        {Object.entries(authorList)
+          .sort(
+            (a, b) =>
+              statusOrder.indexOf(a[0] as StatusType) -
+              statusOrder.indexOf(b[0] as StatusType)
+          )
+          .map(([status, authors]) => (
+            <div key={status} className="flex flex-col gap-2">
+              <Label className="flex items-center gap-2 justify-between">
+                {status}{" "}
+                <span className="text-secondary/60">{authors.length}</span>
+              </Label>
+              <div className="flex flex-col">
+                {authors.map((author) => (
+                  <ListAuthor key={author.id} author={author} />
+                ))}
+              </div>
+            </div>
+          ))}
+
+        {Object.keys(authorList).length === 0 && (
+          <div className="text-tertiary">no authors</div>
+        )}
+      </div>
+    </div>
   );
 }

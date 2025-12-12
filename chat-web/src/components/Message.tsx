@@ -63,7 +63,7 @@ function MessageFile({
       <div className="flex flex-col gap-1">
         <a href={file.url} target="_blank" rel="noreferrer" className="block">
           <div
-            className="max-h-72 max-w-88 border border-neutral-800 bg-black/10"
+            className="max-h-72 max-w-88 border border-neutral-800 bg-black/10 relative overflow-hidden"
             style={
               hasPreview && !remoteLoaded
                 ? {
@@ -84,16 +84,17 @@ function MessageFile({
                 hasPreview && !remoteLoaded ? "opacity-0" : "opacity-100"
               )}
             />
+
+            {showProgress && (
+              <div
+                className="bg-background/50 absolute top-0 left-0 w-full"
+                style={{
+                  height: `${Math.floor((1 / progress) * 100)}%`,
+                }}
+              />
+            )}
           </div>
         </a>
-        {showProgress && (
-          <div className="h-1 w-full max-w-88 bg-neutral-800">
-            <div
-              className="h-1 bg-emerald-400 transition-[width]"
-              style={{ width: `${Math.floor(progress * 100)}%` }}
-            />
-          </div>
-        )}
       </div>
     );
   }
@@ -185,7 +186,7 @@ function DefaultMessage({
   return (
     <div
       className={classes(
-        "flex flex-col w-full items-start gap-2 py-[2px] text-emerald-100",
+        "flex flex-col w-full items-start gap-2 py-[2px]",
         isSending && "opacity-50",
         isFailed && "opacity-70 text-red-400"
       )}
@@ -233,7 +234,7 @@ function DefaultMessage({
                 {message.content}
               </span>
               {message.updated_at && (
-                <span className="opacity-10 ml-2">(edited)</span>
+                <span className="opacity-30 ml-2">(edited)</span>
               )}
             </span>
           )}
@@ -271,8 +272,8 @@ function JoinLeaveMessage({ message }: MessageProps) {
   );
 
   return (
-    <div className="flex w-full items-center gap-2 mt-4 py-2 text-emerald-100">
-      <p className="text-neutral-500">
+    <div className="flex w-full items-center gap-2 mt-4 py-2">
+      <p className="text-tertiary">
         {message.type === MessageTypeEnum.JOIN ? (
           <>
             [<span className="text-green-500">+</span>]

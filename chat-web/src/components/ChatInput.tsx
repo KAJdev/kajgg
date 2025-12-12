@@ -89,7 +89,7 @@ export function ChatInput({
   }, [content]);
 
   return (
-    <div className="flex flex-col px-2 border border-neutral-800 min-w-0">
+    <div className="flex flex-col px-2 border border-tertiary min-w-0">
       {attachments && attachments.length > 0 && (
         <div className="flex items-center gap-2 pt-2 min-w-0 overflow-x-auto scrollbar-hide">
           {attachments.map((attachment) => (
@@ -157,7 +157,7 @@ export function ChatInput({
         )}
         <textarea
           ref={inputRef}
-          className="flex-1 bg-transparent py-3 px-1 min-h-12 text-neutral-100 placeholder:text-neutral-600 outline-none ring-0 transition focus:border-neutral-500/70 resize-none overflow-y-auto max-h-48 leading-6"
+          className="flex-1 bg-transparent py-3 px-1 min-h-12 placeholder:text-tertiary outline-none resize-none overflow-y-auto max-h-48 leading-6"
           placeholder={placeholder}
           value={content}
           rows={1}

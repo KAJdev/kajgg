@@ -14,6 +14,8 @@ from chat_types.events import (
     AuthorUpdated,
     MessageDeleted,
     TypingStarted,
+    ChannelDeleted,
+    ChannelUpdated,
 )
 from chat_types.models.author import Author as ApiAuthor
 from modules.db import Channel, User
@@ -47,13 +49,15 @@ class UserEntitlements:
             | MessageDeleted
             | AuthorUpdated
             | TypingStarted
+            | ChannelDeleted
+            | ChannelUpdated
         ),
     ):
         if isinstance(event, (MessageCreated, MessageUpdated)):
             return event.message.channel_id in self.channels
-        elif isinstance(event, ChannelCreated):
+        elif isinstance(event, (ChannelCreated, ChannelUpdated)):
             return event.channel.id in self.channels
-        elif isinstance(event, MessageDeleted):
+        elif isinstance(event, (MessageDeleted, ChannelDeleted)):
             return event.channel_id in self.channels
         elif isinstance(event, TypingStarted) and event.user_id != self.user.id:
             return event.channel_id in self.channels
@@ -90,6 +94,8 @@ EVENT_TYPES = {
     MessageDeleted: EventType.MESSAGE_DELETED,
     AuthorUpdated: EventType.AUTHOR_UPDATED,
     TypingStarted: EventType.TYPING_STARTED,
+    ChannelDeleted: EventType.CHANNEL_DELETED,
+    ChannelUpdated: EventType.CHANNEL_UPDATED,
 }
 
 EVENT_CLASSES = {v: k for k, v in EVENT_TYPES.items()}
@@ -120,6 +126,8 @@ def format_event(
         | MessageDeleted
         | AuthorUpdated
         | TypingStarted
+        | ChannelDeleted
+        | ChannelUpdated
     ),
 ):
     return {
@@ -137,6 +145,8 @@ def publish_event(
         | MessageDeleted
         | AuthorUpdated
         | TypingStarted
+        | ChannelDeleted
+        | ChannelUpdated
     ),
 ):
     """
@@ -301,8 +311,14 @@ def handle_channel_created(event: ChannelCreated):
         user_entitlements[event.channel.author_id].channels.add(event.channel.id)
 
 
+def handle_channel_deleted(event: ChannelDeleted):
+    if event.channel_id in user_entitlements:
+        user_entitlements[event.channel_id].channels.discard(event.channel_id)
+
+
 EVENT_HANDLERS = {
     EventType.CHANNEL_CREATED: handle_channel_created,
+    EventType.CHANNEL_DELETED: handle_channel_deleted,
 }
 
 

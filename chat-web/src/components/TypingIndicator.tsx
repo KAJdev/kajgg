@@ -57,7 +57,7 @@ export function TypingIndicator({ channelId }: { readonly channelId: string }) {
   }
 
   return (
-    <div className="bg-neutral-800 px-1 text-neutral-400 w-full">
+    <div className="bg-tertiary px-1 text-secondary w-full">
       <Typing authors={typingAuthors} />
     </div>
   );

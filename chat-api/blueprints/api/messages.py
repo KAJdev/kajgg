@@ -133,7 +133,8 @@ async def create_message(request: Request, channel_id: str):
     if not await Message.validate_dict(data):
         raise exceptions.BadRequest("Invalid request")
 
-    content = content.strip()
+    if content:
+        content = content.strip()  # this is already validated
 
     files: list[StoredFile] = []
     if file_ids:

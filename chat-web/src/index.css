@@ -1,8 +1,8 @@
 @import "tailwindcss";
 
 :root {
-  background-color: #05070b;
-  color: #d3f9d8;
+  background-color: var(--color-background);
+  color: var(--color-primary);
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
     "Liberation Mono", "Courier New", monospace;
   font-size: 16px;
@@ -16,16 +16,12 @@
   -moz-text-size-adjust: 100%;
 }
 
-@theme {
-  --color-background: #05070b;
-  --color-primary: #6ef57a;
-  --color-secondary: #0f1724;
-}
 
-@theme .dark {
-  --color-background: #05070b;
-  --color-primary: #ffa432;
-  --color-secondary: #1a1a1a;
+@theme {
+  --color-background: #101010;
+  --color-primary: #d3f9d8;
+  --color-secondary: #a3a3a3;
+  --color-tertiary: #3f3f3f;
 }
 
 /* chill scrollbar vibes */
@@ -44,5 +40,10 @@
 
 *::-webkit-scrollbar-thumb {
   background: #3f3f3f;
-  border-radius: 9999px;
+  border-radius: 0;
+}
+
+*::selection {
+  background: var(--color-primary);
+  color: var(--color-background);
 }
