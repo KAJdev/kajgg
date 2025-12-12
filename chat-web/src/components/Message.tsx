@@ -1,4 +1,8 @@
-import { useAuthor, type CachedMessage } from "src/lib/cache";
+import {
+  useAuthor,
+  useLastSeenChannelAt,
+  type CachedMessage,
+} from "src/lib/cache";
 import { memo } from "react";
 import { ChatInput } from "./ChatInput";
 import { deleteMessage, editMessage } from "src/lib/api";
@@ -307,7 +311,7 @@ function UnknownMessage() {
   );
 }
 
-export const Message = memo(
+export const MessageComponent = memo(
   function Message(props: MessageProps) {
     switch (props.message.type) {
       case MessageTypeEnum.DEFAULT:
@@ -325,3 +329,37 @@ export const Message = memo(
     prev.previousMessage === next.previousMessage &&
     prev.editing === next.editing
 );
+
+export function Message(props: MessageProps) {
+  const channelLastSeenAt = useLastSeenChannelAt(props.message.channel_id);
+
+  // we want to check the following
+  // - lastSeenChannelAt is set
+  // - message.created_at is after lastSeenChannelAt
+  // - either there is no previous message or the previous message is before the message.created_at
+  const isUnread =
+    channelLastSeenAt &&
+    new Date(channelLastSeenAt).getTime() <
+      new Date(props.message.created_at).getTime() &&
+    (!props.previousMessage ||
+      new Date(props.previousMessage.created_at).getTime() <
+        new Date(channelLastSeenAt).getTime());
+
+  return (
+    <>
+      <MessageComponent
+        {...{
+          ...props,
+          // kinda a hack to force the author name to be shown
+          previousMessage: isUnread ? null : props.previousMessage,
+        }}
+      />
+      {isUnread && (
+        <div className="flex items-center gap-2 mt-4">
+          <span className="text-red-500">unread</span>
+          <div className="h-px bg-red-500 w-full" />
+        </div>
+      )}
+    </>
+  );
+}

@@ -5,3 +5,36 @@ export function hashString(str: string): number {
   }
   return hash;
 }
+
+export function usePageFocused() {
+  const [isFocused, setIsFocused] = useState(
+    typeof document !== "undefined"
+      ? document.visibilityState === "visible"
+      : true
+  );
+
+  useEffect(() => {
+    const onVisibilityChange = () => {
+      setIsFocused(document.visibilityState === "visible");
+    };
+    const onPageHide = () => {
+      setIsFocused(false);
+    };
+
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    window.addEventListener("pagehide", onPageHide);
+
+    return () => {
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+      window.removeEventListener("pagehide", onPageHide);
+    };
+  }, []);
+
+  return isFocused;
+}
+
+export function getIsPageFocused() {
+  return typeof document !== "undefined"
+    ? document.visibilityState === "visible"
+    : true;
+}

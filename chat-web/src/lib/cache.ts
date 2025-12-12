@@ -5,6 +5,7 @@ import type { User } from "@schemas/models/user";
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { useShallow } from "zustand/shallow";
+import { getIsPageFocused } from "./utils";
 
 type TimeoutId = ReturnType<typeof setTimeout>;
 
@@ -127,6 +128,12 @@ export function setLastSeenChannelAt(channelId: string, timestamp: number) {
       [channelId]: timestamp,
     },
   });
+}
+
+export function useLastSeenChannelAt(channelId: string) {
+  return persistentCache(
+    useShallow((state) => state.lastSeenChannelAt[channelId])
+  );
 }
 
 export function useIsChannelUnread(channelId: string) {
@@ -287,7 +294,7 @@ export function addMessage(channelId: string, message: Message) {
     );
   });
 
-  if (message.author_id !== cache.getState().user?.id) {
+  if (message.author_id !== cache.getState().user?.id && !getIsPageFocused()) {
     updateChannelLastMessageAt(channelId, message.created_at);
   }
 }
