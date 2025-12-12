@@ -156,9 +156,9 @@ def publish_event(
     if isinstance(event, MessageCreated):
 
         async def update_chan():
-            await Channel.find_one(Channel.id == event.message.channel_id).update(
-                {"$set": {"last_message_at": event.message.created_at}}
-            )
+            await Channel.find_one(
+                Channel.id == event.message.get("channel_id")
+            ).update({"$set": {"last_message_at": event.message.get("created_at")}})
 
         asyncio.create_task(update_chan())
 
