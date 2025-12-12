@@ -50,7 +50,7 @@ async def update_user(request: Request, user_id: str):
     if not data:
         raise exceptions.BadRequest("Bad Request")
 
-    if not await User.validate_update(data):
+    if not await User.validate_dict(data):
         raise exceptions.BadRequest("Invalid request")
 
     for key, value in data.items():

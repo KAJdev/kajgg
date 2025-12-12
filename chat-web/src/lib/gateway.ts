@@ -212,12 +212,17 @@ function handleEvent(event: Event) {
       return updateAuthor(event.d.author);
     case EventType.TYPING_STARTED:
       return startTyping(event.d.channel_id, event.d.user_id);
-    default:
+    default: {
+      if ((event as unknown as { t: string }).t === EventType.HEARTBEAT) {
+        return;
+      }
+
       logFancy(
         "warn",
         "[gateway]",
         `unknown event type: ${(event as unknown as { t: string }).t}`
       );
+    }
   }
 }
 
