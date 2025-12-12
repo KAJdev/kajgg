@@ -8,6 +8,9 @@ import { useShallow } from "zustand/shallow";
 
 type TimeoutId = ReturnType<typeof setTimeout>;
 
+const MAX_MESSAGES_PER_CHANNEL = 100;
+const MESSAGE_QUEUE_COMPACT_AT = 500;
+
 export type ClientUploadProgress = {
   /** 0..1 */
   progress: number;
@@ -24,12 +27,19 @@ export type ClientMessageMeta = {
 export type CachedMessage = Message & {
   /** client-only metadata for optimistic ui */
   client?: ClientMessageMeta;
+  cachedAt?: number;
+};
+
+type ChannelMessageQueue = {
+  ids: string[];
+  head: number;
 };
 
 export type Cache = {
   user?: User;
   channels: Record<string, Channel>;
   messages: Record<string, Record<string, CachedMessage>>;
+  messageQueues: Record<string, ChannelMessageQueue>;
   authors: Record<string, Author>;
   typing: Record<string, Record<string, TimeoutId>>;
   last_event_ts?: number;
@@ -44,6 +54,7 @@ export const cache = create<Cache>()(() => ({
   user: undefined,
   channels: {},
   messages: {},
+  messageQueues: {},
   authors: {},
   typing: {},
   last_event_ts: undefined,
@@ -157,31 +168,72 @@ export function addChannel(channel: Channel) {
   }));
 }
 
-export function addMessage(channelId: string, message: Message) {
-  cache.setState((state) => ({
+function _upsertQueuedMessage(
+  state: Cache,
+  channelId: string,
+  messageId: string,
+  nextMessage: CachedMessage
+) {
+  const currentChannel = state.messages[channelId] ?? {};
+  const alreadyHad = !!currentChannel[messageId];
+
+  const nextChannel: Record<string, CachedMessage> = {
+    ...currentChannel,
+    [messageId]: {
+      ...nextMessage,
+      cachedAt: alreadyHad ? currentChannel[messageId]?.cachedAt : Date.now(),
+    },
+  };
+
+  const queue = state.messageQueues[channelId] ?? { ids: [], head: 0 };
+  const nextQueue: ChannelMessageQueue = alreadyHad
+    ? queue
+    : { ids: [...queue.ids, messageId], head: queue.head };
+
+  // fast cap: evict oldest in arrival order, no sorting
+  let qIds = nextQueue.ids;
+  let qHead = nextQueue.head;
+  while (qIds.length - qHead > MAX_MESSAGES_PER_CHANNEL) {
+    const evictId = qIds[qHead++];
+    delete nextChannel[evictId];
+  }
+
+  // compact occasionally so the array doesn't grow forever
+  if (qHead > MESSAGE_QUEUE_COMPACT_AT) {
+    qIds = qIds.slice(qHead);
+    qHead = 0;
+  }
+
+  return {
     messages: {
       ...state.messages,
-      [channelId]: {
-        ...state.messages[channelId],
-        [message.id]: message as CachedMessage,
-      },
+      [channelId]: nextChannel,
     },
-  }));
+    messageQueues: {
+      ...state.messageQueues,
+      [channelId]: { ids: qIds, head: qHead },
+    },
+  };
+}
+
+export function addMessage(channelId: string, message: Message) {
+  cache.setState((state) => {
+    return _upsertQueuedMessage(
+      state,
+      channelId,
+      message.id,
+      message as CachedMessage
+    );
+  });
 }
 
 export function addOptimisticMessage(
   channelId: string,
   message: CachedMessage
 ) {
-  cache.setState((state) => ({
-    messages: {
-      ...state.messages,
-      [channelId]: {
-        ...state.messages[channelId],
-        [message.id]: message,
-      },
-    },
-  }));
+  cache.setState((state) => {
+    return _upsertQueuedMessage(state, channelId, message.id, message);
+  });
 }
 
 export function updateMessageById(
@@ -189,18 +241,16 @@ export function updateMessageById(
   messageId: string,
   patch: Partial<CachedMessage>
 ) {
-  cache.setState((state) => ({
-    messages: {
-      ...state.messages,
-      [channelId]: {
-        ...state.messages[channelId],
-        [messageId]: {
-          ...(state.messages[channelId]?.[messageId] as CachedMessage),
-          ...patch,
-        },
-      },
-    },
-  }));
+  cache.setState((state) => {
+    const currentChannel = state.messages[channelId] ?? {};
+    const existing = currentChannel[messageId];
+
+    return _upsertQueuedMessage(state, channelId, messageId, {
+      ...(existing as CachedMessage),
+      ...patch,
+      cachedAt: existing?.cachedAt ?? Date.now(),
+    });
+  });
 }
 
 export function reconcileMessageByNonce(
@@ -227,7 +277,7 @@ export function reconcileMessageByNonce(
 
   // keep client previews so image/video doesn't flash when swapping blob -> r2 url
   const merged: CachedMessage = {
-    ...(serverMessage as CachedMessage),
+    ...serverMessage,
     client: optimistic?.client
       ? {
           ...optimistic.client,
@@ -283,15 +333,14 @@ export function updateChannel(channel: Channel) {
 }
 
 export function updateMessage(channelId: string, message: Message) {
-  cache.setState((state) => ({
-    messages: {
-      ...state.messages,
-      [channelId]: {
-        ...state.messages[channelId],
-        [message.id]: message as CachedMessage,
-      },
-    },
-  }));
+  cache.setState((state) => {
+    return _upsertQueuedMessage(
+      state,
+      channelId,
+      message.id,
+      message as CachedMessage
+    );
+  });
 }
 
 export function updateAuthor(author: Author) {
