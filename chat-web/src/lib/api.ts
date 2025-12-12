@@ -21,17 +21,10 @@ import {
 } from "./cache";
 
 export async function login(username: string, password: string) {
-  const [user, error] = await request<User>("login", {
+  return await request<User>("login", {
     method: "POST",
     body: { username, password },
   });
-
-  if (error) {
-    throw error;
-  }
-
-  setUser(user);
-  return user;
 }
 
 export async function signup(
@@ -39,17 +32,10 @@ export async function signup(
   password: string,
   email: string
 ) {
-  const [user, error] = await request<User>("signup", {
+  return await request<User>("signup", {
     method: "POST",
     body: { username, password, email },
   });
-
-  if (error) {
-    throw error;
-  }
-
-  setUser(user);
-  return user;
 }
 
 export async function createChannel(

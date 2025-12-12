@@ -2,17 +2,25 @@ import { Input } from "@theme/Input";
 import { Link } from "react-router";
 import { login, signup } from "src/lib/api";
 import { Button } from "@theme/Button";
+import type { ApiError } from "src/lib/request";
 
 export function Auth({ mode }: { mode: "login" | "signup" }) {
   const [username, setUsername] = useState<string>("");
   const [email, setEmail] = useState<string>("");
   const [password, setPassword] = useState<string>("");
+  const [error, setError] = useState<ApiError | null>(null);
 
   async function handleSubmit() {
+    setError(null);
+    let error: ApiError | null = null;
     if (mode === "login") {
-      await login(username, password);
+      [, error] = await login(username, password);
     } else {
-      await signup(username, password, email);
+      [, error] = await signup(username, password, email);
+    }
+
+    if (error) {
+      setError(error);
     }
   }
 
@@ -42,6 +50,7 @@ export function Auth({ mode }: { mode: "login" | "signup" }) {
         onChange={setPassword}
         className="w-64"
       />
+      {error && <p className="text-red-500 text-left w-64">{error.message}</p>}
       <div className="flex items-center gap-2 justify-between w-64">
         <Button onClick={handleSubmit}>
           {mode === "login" ? "Login" : "Sign up"}

@@ -41,8 +41,10 @@ async def signup(request: Request):
     if not data:
         raise exceptions.BadRequest("Bad Request")
 
-    if not all(data.get(k) for k in ("username", "password", "email")):
-        raise exceptions.BadRequest("Bad Request")
+    required_fields = ["username", "password", "email"]
+    missing = [f for f in required_fields if f not in data]
+    if missing:
+        raise exceptions.BadRequest(f"Missing required fields: {', '.join(missing)}")
 
     data["username"] = data["username"].lower()
     data["email"] = data["email"].lower()
@@ -77,8 +79,10 @@ async def signin(request: Request):
     if not data:
         raise exceptions.BadRequest("Bad Request")
 
-    if not all(data.get(k) for k in ("username", "password")):
-        raise exceptions.BadRequest("Bad Request")
+    required_fields = ["username", "password"]
+    missing = [f for f in required_fields if f not in data]
+    if missing:
+        raise exceptions.BadRequest(f"Missing required fields: {', '.join(missing)}")
 
     user: User = await User.find_one(
         Or(
@@ -89,12 +93,12 @@ async def signin(request: Request):
 
     if not user:
         bcrypt.checkpw(b"password", dummy_pass)
-        raise exceptions.Unauthorized("Unauthorized")
+        raise exceptions.Unauthorized("Invalid username or password")
 
     if not bcrypt.checkpw(
         data["password"].encode("utf-8"), user.password.encode("utf-8")
     ):
-        raise exceptions.Unauthorized("Unauthorized")
+        raise exceptions.Unauthorized("Invalid username or password")
 
     await user.fetch_status()
 

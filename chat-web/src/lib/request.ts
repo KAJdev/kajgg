@@ -2,7 +2,7 @@ import { getToken, tokenCache } from "./cache";
 
 const API_URL = import.meta.env.VITE_API_URL;
 
-type RequestOptions = {
+export type RequestOptions = {
   method: "GET" | "POST" | "PUT" | "DELETE" | "PATCH";
   body?: Record<string, unknown>;
   headers?: Record<string, string>;
@@ -10,7 +10,7 @@ type RequestOptions = {
   version?: "v1";
 };
 
-type ApiError = {
+export type ApiError = {
   message: string;
   status: number;
 };
