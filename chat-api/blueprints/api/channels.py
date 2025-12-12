@@ -6,7 +6,7 @@ from modules.db import Channel
 from modules import utils
 from modules.auth import authorized
 from modules.events import publish_event
-from chat_types.events import ChannelCreated, ChannelUpdated
+from chat_types.events import ChannelCreated, ChannelUpdated, ChannelDeleted
 
 bp = Blueprint("channels")
 
@@ -69,3 +69,19 @@ async def update_channel(request: Request, channel_id: str):
     publish_event(ChannelUpdated(channel=utils.dtoa(ApiChannel, channel)))
 
     return json(utils.dtoa(ApiChannel, channel))
+
+
+@bp.route("/v1/channels/<channel_id>", methods=["DELETE"])
+@authorized()
+async def delete_channel(request: Request, channel_id: str):
+    channel = await Channel.find_one(
+        Channel.id == channel_id, Channel.author_id == request.ctx.user.id
+    )
+    if not channel:
+        raise exceptions.NotFound("Channel not found")
+
+    await channel.delete()
+
+    publish_event(ChannelDeleted(channel_id=channel_id))
+
+    return json(None)

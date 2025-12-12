@@ -1,4 +1,4 @@
-import { Link, useParams } from "react-router";
+import { useParams } from "react-router";
 import { ChatInput } from "src/components/ChatInput";
 import { ListAuthor } from "src/components/ListAuthor";
 import { Message } from "src/components/Message";
@@ -17,6 +17,7 @@ import {
 import { useKeybind } from "src/lib/keybind";
 import { MessageType, type Author } from "@schemas/index";
 import type { Attachment } from "src/components/ChatInput";
+import { ListChannel } from "src/components/ListChannel";
 
 const statusOrder = [
   StatusType.ONLINE,
@@ -155,26 +156,11 @@ export function Channel() {
       <div className="grid h-full min-h-0 w-full grid-cols-1 gap-3 md:grid-cols-[18ch_1fr_18ch]">
         <div className="flex-col gap-2 overflow-hidden p-3 hidden md:flex">
           <Label>channels</Label>
-          <div className="flex-1 overflow-y-auto flex-col">
+          <div className="flex-1 flex-col">
             {channelList.length ? (
               channelList.map((ch) => {
                 const active = ch.id === channelId;
-                return (
-                  <Link
-                    key={ch.id}
-                    className={classes(
-                      "w-full text-left transition cursor-pointer flex items-center gap-2 whitespace-pre",
-                      active
-                        ? "text-neutral-200"
-                        : "text-neutral-500 hover:text-neutral-200"
-                    )}
-                    to={`/channels/${ch.id}`}
-                  >
-                    <span>
-                      {active ? "> " : "  "}#{ch.name}
-                    </span>
-                  </Link>
-                );
+                return <ListChannel key={ch.id} channel={ch} active={active} />;
               })
             ) : (
               <div className="text-neutral-600">no channels</div>
@@ -224,6 +210,7 @@ export function Channel() {
             setContent={setContent}
             onSubmit={handleSubmit}
             placeholder={`> message #${channel?.name ?? ""}`}
+            autofocus={!editingMessageId}
           />
         </div>
 

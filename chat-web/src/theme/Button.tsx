@@ -14,7 +14,7 @@ function Icon({ icon }: { icon: Icon }) {
     return <span className="font-bold px-1">{icon}</span>;
   } else {
     const Lucide = icon;
-    return <Lucide className="h-4 w-4" />;
+    return <Lucide className="h-4 w-4" size={16} />;
   }
 }
 

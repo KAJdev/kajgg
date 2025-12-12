@@ -44,6 +44,7 @@ export function ChatInput({
   const { channelId } = useParams();
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const lastTypedRef = useRef<number>(0);
+  const didAutofocusRef = useRef(false);
 
   function autosize() {
     const el = inputRef.current;
@@ -63,13 +64,25 @@ export function ChatInput({
     }
   }, [content, channelId]);
 
-  useEffect(() => {
-    if (autofocus && editing && inputRef.current) {
-      // cursor to end of input
-      inputRef.current?.focus();
-      inputRef.current?.setSelectionRange(content.length, content.length);
+  useLayoutEffect(() => {
+    if (!autofocus) {
+      didAutofocusRef.current = false;
+      return;
     }
-  });
+
+    const el = inputRef.current;
+    if (!el) return;
+
+    // only do this once per autofocus "arm" so we don't fight the user's cursor
+    if (didAutofocusRef.current) return;
+    didAutofocusRef.current = true;
+
+    // run after the element is fully laid out so selection sticks
+    requestAnimationFrame(() => {
+      el.focus();
+      el.setSelectionRange(content.length, content.length);
+    });
+  }, [autofocus, content.length]);
 
   useEffect(() => {
     autosize();

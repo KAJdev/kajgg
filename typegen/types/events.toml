@@ -9,6 +9,7 @@ enum = [
   "AUTHOR_UPDATED",
   "MESSAGE_DELETED",
   "TYPING_STARTED",
+  "CHANNEL_DELETED",
 ]
 
 [MessageCreated]
@@ -48,6 +49,13 @@ required = ["channel"]
 [ChannelUpdated.properties]
 channel = { ref = "Channel" }
 
+[ChannelDeleted]
+type = "object"
+required = ["channel_id"]
+
+[ChannelDeleted.properties]
+channel_id = { type = "string", doc = "Unique identifier for the channel" }
+
 [AuthorUpdated]
 type = "object"
 required = ["author"]
@@ -72,5 +80,6 @@ types = [
   "AuthorUpdated",
   "MessageDeleted",
   "TypingStarted",
+  "ChannelDeleted",
 ]
 discriminator = { field = "t", enum = "EventType", data_field = "d" }

@@ -1,4 +1,5 @@
 import { useAuthor, type CachedMessage } from "src/lib/cache";
+import { memo } from "react";
 import { ChatInput } from "./ChatInput";
 import { deleteMessage, editMessage } from "src/lib/api";
 import { MessageType as MessageTypeEnum } from "@schemas/index";
@@ -296,15 +297,21 @@ function UnknownMessage() {
   );
 }
 
-export function Message(props: MessageProps) {
-  switch (props.message.type) {
-    case MessageTypeEnum.DEFAULT:
-      return <DefaultMessage {...props} />;
-    case MessageTypeEnum.JOIN:
-      return <JoinLeaveMessage {...props} />;
-    case MessageTypeEnum.LEAVE:
-      return <JoinLeaveMessage {...props} />;
-    default:
-      return <UnknownMessage />;
-  }
-}
+export const Message = memo(
+  function Message(props: MessageProps) {
+    switch (props.message.type) {
+      case MessageTypeEnum.DEFAULT:
+        return <DefaultMessage {...props} />;
+      case MessageTypeEnum.JOIN:
+        return <JoinLeaveMessage {...props} />;
+      case MessageTypeEnum.LEAVE:
+        return <JoinLeaveMessage {...props} />;
+      default:
+        return <UnknownMessage />;
+    }
+  },
+  (prev, next) =>
+    prev.message === next.message &&
+    prev.previousMessage === next.previousMessage &&
+    prev.editing === next.editing
+);

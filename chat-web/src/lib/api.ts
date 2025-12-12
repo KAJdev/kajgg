@@ -281,6 +281,16 @@ export async function editMessage(
   return message;
 }
 
+export async function deleteChannel(channelId: string) {
+  const [, error] = await request<Channel>(`channels/${channelId}`, {
+    method: "DELETE",
+  });
+
+  if (error) {
+    throw error;
+  }
+}
+
 export async function deleteMessage(channelId: string, messageId: string) {
   const [message, error] = await request<Message>(
     `channels/${channelId}/messages/${messageId}`,

@@ -7,6 +7,7 @@ export const EventType = {
   AUTHOR_UPDATED: "AUTHOR_UPDATED",
   MESSAGE_DELETED: "MESSAGE_DELETED",
   TYPING_STARTED: "TYPING_STARTED",
+  CHANNEL_DELETED: "CHANNEL_DELETED",
 } as const;
 
 export type EventType = (typeof EventType)[keyof typeof EventType];

@@ -1,5 +1,6 @@
 from .author_updated import AuthorUpdated
 from .channel_created import ChannelCreated
+from .channel_deleted import ChannelDeleted
 from .channel_updated import ChannelUpdated
 from .event import Event
 from .event_type import EventType
