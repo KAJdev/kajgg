@@ -56,7 +56,7 @@ error: {...}
 
 So, for something like a `MESSAGE_CREATED` event, it would look something like this:
 
-```json
+```
 data: {"t":"MESSAGE_CREATED","d":{"message":{"id":"ah37oko1se","type":"default","author_id":"a4o8qlcjv1","channel_id":"sly8lpn7ro","created_at":"2025-12-12T09:05:05.344000Z","content":"test","nonce":"9b084170-d899-48d3-a257-1911ca59a99c","updated_at":null,"files":[]},"author":{"id":"a4o8qlcjv1","username":"kaj","status":"online","avatar_url":null,"bio":null,"created_at":"2025-12-11T03:23:04.445000Z","updated_at":"2025-12-11T03:23:04.445000Z"}},"ts":"1765530305366"}
 
 ```
