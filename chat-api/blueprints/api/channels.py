@@ -6,7 +6,7 @@ from modules.db import Channel
 from modules import utils
 from modules.auth import authorized
 from modules.events import publish_event
-from chat_types.events import ChannelCreated
+from chat_types.events import ChannelCreated, ChannelUpdated
 
 bp = Blueprint("channels")
 
@@ -25,8 +25,8 @@ async def create_channel(request: Request):
     if not data:
         raise exceptions.BadRequest("Bad Request")
 
-    if not all(data.get(k) for k in ("name",)):
-        raise exceptions.BadRequest("Bad Request")
+    if not await Channel.validate_update(data):
+        raise exceptions.BadRequest("Invalid request")
 
     channel = Channel(
         name=data.get("name"),
@@ -37,5 +37,35 @@ async def create_channel(request: Request):
     await channel.save()
 
     publish_event(ChannelCreated(channel=utils.dtoa(ApiChannel, channel)))
+
+    return json(utils.dtoa(ApiChannel, channel))
+
+
+EDITABLE_FIELDS = ["name", "topic", "private"]
+
+
+@bp.route("/v1/channels/<channel_id>", methods=["PATCH"])
+@authorized()
+async def update_channel(request: Request, channel_id: str):
+    channel = await Channel.find_one(
+        Channel.id == channel_id, Channel.author_id == request.ctx.user.id
+    )
+    if not channel:
+        raise exceptions.NotFound("Channel not found")
+
+    data = request.json
+    if not data:
+        raise exceptions.BadRequest("Bad Request")
+
+    if not await Channel.validate(data):
+        raise exceptions.BadRequest("Invalid request")
+
+    for key, value in data.items():
+        if key in EDITABLE_FIELDS:
+            setattr(channel, key, value)
+
+    await channel.save()
+
+    publish_event(ChannelUpdated(channel=utils.dtoa(ApiChannel, channel)))
 
     return json(utils.dtoa(ApiChannel, channel))

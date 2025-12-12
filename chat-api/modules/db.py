@@ -171,6 +171,33 @@ class Message(Document):
     updated_at: Optional[datetime] = None
     deleted_at: Optional[datetime] = None
 
+    @classmethod
+    async def validate_update(cls, data: dict) -> bool:
+        if data.get("content"):
+            if len(data["content"]) > 4000:
+                raise exceptions.BadRequest("Content must be less than 1000 characters")
+
+        if data.get("file_ids"):
+            if not isinstance(data["file_ids"], list) or not all(
+                isinstance(x, str) for x in data["file_ids"]
+            ):
+                raise exceptions.BadRequest("Bad Request")
+            if len(data["file_ids"]) > 10:
+                raise exceptions.BadRequest(
+                    "You can only upload up to 10 files at a time"
+                )
+
+        if data.get("nonce"):
+            if not isinstance(data["nonce"], str):
+                raise exceptions.BadRequest("Bad Request")
+            if len(data["nonce"]) > 100:
+                raise exceptions.BadRequest("Nonce must be less than 100 characters")
+
+        if not data.get("content") and not data.get("file_ids"):
+            raise exceptions.BadRequest("Content or file_ids is required")
+
+        return True
+
     class Settings:
         name = "messages"
         use_state_management = True
@@ -214,6 +241,23 @@ class Channel(Document):
             channels[channel.id] = channel
 
         return list(channels.values())
+
+    @classmethod
+    async def validate_update(cls, data: dict) -> bool:
+        if data.get("name"):
+            if len(data["name"]) < 3 or len(data["name"]) > 32:
+                raise exceptions.BadRequest("Name must be between 3 and 32 characters")
+
+            if not re.match(r"^[a-zA-Z0-9_-]+$", data["name"]):
+                raise exceptions.BadRequest(
+                    "Name must only contain letters, numbers, underscores, and hyphens"
+                )
+
+        if data.get("topic"):
+            if len(data["topic"]) > 1000:
+                raise exceptions.BadRequest("Topic must be less than 1000 characters")
+
+        return True
 
     class Settings:
         name = "channels"

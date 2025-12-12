@@ -10,6 +10,7 @@ import {
   tokenCache,
   updateAuthor,
   updateMessage,
+  updateChannel,
 } from "./cache";
 import type { Event } from "@schemas/events/event";
 import { EventType } from "@schemas/events/eventtype";
@@ -193,6 +194,8 @@ function handleEvent(event: Event) {
   switch (event.t) {
     case EventType.CHANNEL_CREATED:
       return addChannel(event.d.channel);
+    case EventType.CHANNEL_UPDATED:
+      return updateChannel(event.d.channel);
     case EventType.MESSAGE_CREATED:
       return (
         reconcileMessageByNonce(event.d.message.channel_id, event.d.message),
@@ -209,6 +212,12 @@ function handleEvent(event: Event) {
       return updateAuthor(event.d.author);
     case EventType.TYPING_STARTED:
       return startTyping(event.d.channel_id, event.d.user_id);
+    default:
+      logFancy(
+        "warn",
+        "[gateway]",
+        `unknown event type: ${(event as unknown as { t: string }).t}`
+      );
   }
 }
 

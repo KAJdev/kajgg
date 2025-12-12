@@ -2,6 +2,7 @@ export type { Author } from "./models/author";
 export type { AuthorUpdated } from "./events/authorupdated";
 export type { Channel } from "./models/channel";
 export type { ChannelCreated } from "./events/channelcreated";
+export type { ChannelUpdated } from "./events/channelupdated";
 export type { Event } from "./events/event";
 export type { File } from "./models/file";
 export type { FileUpload } from "./models/fileupload";

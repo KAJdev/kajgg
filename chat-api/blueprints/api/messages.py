@@ -100,6 +100,9 @@ async def get_messages(request: Request, channel_id: str):
     return json(await _messages_to_api(messages))
 
 
+EDITABLE_FIELDS = ["content"]
+
+
 @bp.route("/v1/channels/<channel_id>/messages", methods=["POST"])
 @authorized()
 async def create_message(request: Request, channel_id: str):
@@ -127,21 +130,10 @@ async def create_message(request: Request, channel_id: str):
     file_ids = data.get("file_ids", [])
     nonce = data.get("nonce", None)
 
-    if content is not None and not isinstance(content, str):
-        raise exceptions.BadRequest("Bad Request")
-    if content is not None:
-        content = content.strip()
+    if not await Message.validate_update(data):
+        raise exceptions.BadRequest("Invalid request")
 
-    if file_ids is None:
-        file_ids = []
-    if not isinstance(file_ids, list) or not all(isinstance(x, str) for x in file_ids):
-        raise exceptions.BadRequest("Bad Request")
-
-    if nonce is not None and not isinstance(nonce, str):
-        raise exceptions.BadRequest("Bad Request")
-
-    if (not content) and len(file_ids) == 0:
-        raise exceptions.BadRequest("Bad Request")
+    content = content.strip()
 
     files: list[StoredFile] = []
     if file_ids:
@@ -203,10 +195,13 @@ async def update_message(request: Request, channel_id: str, message_id: str):
     if not data:
         raise exceptions.BadRequest("Bad Request")
 
-    if not all(data.get(k) for k in ("content",)):
+    if not await Message.validate_update(data):
         raise exceptions.BadRequest("Bad Request")
 
-    message.content = data["content"]
+    for key, value in data.items():
+        if key in EDITABLE_FIELDS:
+            setattr(message, key, value)
+
     message.updated_at = datetime.now(UTC)
     await message.save()
 
