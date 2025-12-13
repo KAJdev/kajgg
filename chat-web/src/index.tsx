@@ -12,7 +12,10 @@ export function Index() {
     fetchMe();
 
     const channels = await fetchChannels();
-    const channelId = getLastSeenChannel() ?? channels[0]?.id;
+    let channelId = getLastSeenChannel();
+    if (!channelId || !channels.find((c) => c.id === channelId)) {
+      channelId = channels[0]?.id;
+    }
     router.navigate(`/channels/${channelId}`);
   }
 

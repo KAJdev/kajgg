@@ -3,6 +3,8 @@ import { Link } from "react-router";
 import { login, signup } from "src/lib/api";
 import { Button } from "@theme/Button";
 import type { ApiError } from "src/lib/request";
+import { setUser } from "src/lib/cache";
+import type { User as UserType } from "src/types/models/user";
 
 export function Auth({ mode }: { mode: "login" | "signup" }) {
   const [username, setUsername] = useState<string>("");
@@ -13,14 +15,17 @@ export function Auth({ mode }: { mode: "login" | "signup" }) {
   async function handleSubmit() {
     setError(null);
     let error: ApiError | null = null;
+    let user: UserType | null = null;
     if (mode === "login") {
-      [, error] = await login(username, password);
+      [user, error] = await login(username, password);
     } else {
-      [, error] = await signup(username, password, email);
+      [user, error] = await signup(username, password, email);
     }
 
     if (error) {
       setError(error);
+    } else if (user) {
+      setUser(user);
     }
   }
 

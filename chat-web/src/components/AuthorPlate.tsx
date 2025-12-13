@@ -27,13 +27,15 @@ export function AuthorPlate({ author }: { author: Author }) {
         <span className="opacity-60" style={{ color: colors.secondary }}>
           {formatBytes(author.bytes ?? 0)}
         </span>
-        <p
-          className="w-full whitespace-pre-wrap break-words"
-          style={{ color: colors.secondary }}
-        >
-          {author.bio?.slice(0, 1000)}
-          {author.bio && author.bio.length > 1000 && "..."}
-        </p>
+        {author.bio && (
+          <p
+            className="w-full whitespace-pre-wrap break-words"
+            style={{ color: colors.secondary }}
+          >
+            {author.bio?.slice(0, 1000)}
+            {author.bio && author.bio.length > 1000 && "..."}
+          </p>
+        )}
       </div>
     </div>
   );
