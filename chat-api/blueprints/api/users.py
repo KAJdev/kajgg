@@ -70,7 +70,7 @@ async def update_user(request: Request, user_id: str):
     if after_bytes != before_bytes:
         user.inc_bytes(after_bytes - before_bytes)
 
-    await user.save()
+    await user.save_changes()
 
     await user.fetch_status()
 

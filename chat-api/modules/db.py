@@ -108,14 +108,14 @@ class User(Document):
 
     async def start_verification(self):
         self.verification_code = generate_id()
-        await self.save()
+        await self.save_changes()
         await send_verification_email(self.email, self.verification_code)
 
     async def verify(self, code: str):
         if code == self.verification_code:
             self.verified = True
             self.verification_code = None
-            await self.save()
+            await self.save_changes()
             return True
         return False
 

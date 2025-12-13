@@ -119,7 +119,7 @@ async def complete_files(request: Request):
     for f in stored_files:
         if f.uploaded:
             f.url = _versioned_url(f)
-            await f.save()
+            await f.save_changes()
             completed.append(_file_to_api(f))
             continue
 
@@ -138,7 +138,7 @@ async def complete_files(request: Request):
 
         f.uploaded_at = datetime.now(UTC)
         f.url = _versioned_url(f)
-        await f.save()
+        await f.save_changes()
         completed.append(_file_to_api(f))
 
     return json(completed)

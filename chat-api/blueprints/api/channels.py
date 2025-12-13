@@ -64,7 +64,7 @@ async def update_channel(request: Request, channel_id: str):
         if key in EDITABLE_FIELDS:
             setattr(channel, key, value)
 
-    await channel.save()
+    await channel.save_changes()
 
     publish_event(ChannelUpdated(channel=utils.dtoa(ApiChannel, channel)))
 

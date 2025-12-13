@@ -219,7 +219,7 @@ async def update_message(request: Request, channel_id: str, message_id: str):
             setattr(message, key, value)
 
     message.updated_at = datetime.now(UTC)
-    await message.save()
+    await message.save_changes()
 
     await request.ctx.user.fetch_status()
 
@@ -242,7 +242,7 @@ async def delete_message(request: Request, channel_id: str, message_id: str):
         raise exceptions.NotFound("Message not found")
 
     message.deleted_at = datetime.now(UTC)
-    await message.save()
+    await message.save_changes()
 
     if message.content:
         request.ctx.user.inc_bytes(-len(message.content))
