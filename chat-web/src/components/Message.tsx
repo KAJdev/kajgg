@@ -7,7 +7,7 @@ import { memo } from "react";
 import { ChatInput } from "./ChatInput";
 import { deleteMessage, editMessage } from "src/lib/api";
 import { MessageType as MessageTypeEnum } from "@schemas/index";
-import { hashString } from "src/lib/utils";
+import { getIsPageFocused, hashString } from "src/lib/utils";
 import { Username } from "./Username";
 import type { File as ApiFile } from "@schemas/models/file";
 import { Modal } from "@theme/Modal";
@@ -338,12 +338,15 @@ export const MessageComponent = memo(
 
 export function Message(props: MessageProps) {
   const channelLastSeenAt = useLastSeenChannelAt(props.message.channel_id);
+  const pageFocused = getIsPageFocused();
 
   // we want to check the following
   // - lastSeenChannelAt is set
   // - message.created_at is after lastSeenChannelAt
   // - either there is no previous message or the previous message is before the message.created_at
   const isUnread =
+    // if you're focused, nothing is "unread" in the active channel
+    !pageFocused &&
     channelLastSeenAt &&
     new Date(channelLastSeenAt).getTime() <
       new Date(props.message.created_at).getTime() &&

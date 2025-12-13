@@ -20,6 +20,7 @@ import { MessageType, type Author } from "@schemas/index";
 import type { Attachment } from "src/components/ChatInput";
 import { ListChannel } from "src/components/ListChannel";
 import { Label } from "@theme/Label";
+import { getIsPageFocused } from "src/lib/utils";
 
 const statusOrder = [
   StatusType.ONLINE,
@@ -97,6 +98,17 @@ export function Channel() {
         new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
     );
   }, [messageMap]);
+
+  // while you're actively viewing the channel, keep lastSeen fresh so unread markers don't appear for your own sends
+  const lastMessageId = messages.length
+    ? messages[messages.length - 1]?.id
+    : null;
+  useEffect(() => {
+    if (!channelId) return;
+    if (!getIsPageFocused()) return;
+    if (!lastMessageId) return;
+    setLastSeenChannelAt(channelId, Date.now());
+  }, [channelId, lastMessageId, messages.length]);
 
   const channelList = useMemo(
     () =>
@@ -190,17 +202,18 @@ export function Channel() {
           />
         </div>
 
-        <TypingIndicator channelId={channelId} />
-
-        <ChatInput
-          content={content}
-          attachments={attachments}
-          setAttachments={setAttachments}
-          setContent={setContent}
-          onSubmit={handleSubmit}
-          placeholder={`> message #${channel?.name ?? ""}`}
-          autofocus={!editingMessageId}
-        />
+        <div className="flex flex-col">
+          <TypingIndicator channelId={channelId} />
+          <ChatInput
+            content={content}
+            attachments={attachments}
+            setAttachments={setAttachments}
+            setContent={setContent}
+            onSubmit={handleSubmit}
+            placeholder={`> message #${channel?.name ?? ""}`}
+            autofocus={!editingMessageId}
+          />
+        </div>
       </div>
 
       <div className="flex-col gap-6 overflow-hidden p-3 overflow-y-auto min-h-0 hidden md:flex">
