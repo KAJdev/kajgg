@@ -12,6 +12,7 @@ import { Username } from "./Username";
 import type { File as ApiFile } from "@schemas/models/file";
 import { Modal } from "@theme/Modal";
 import { Embed } from "./Embed";
+import { MessageMarkdown } from "./MessageMarkdown";
 
 const leaveMessages = [
   "has dissapeared",
@@ -241,8 +242,8 @@ function DefaultMessage({
         <>
           {message.content && (
             <span>
-              <span className="flex-1 wrap-break-word whitespace-pre-wrap opacity-80">
-                {message.content}
+              <span className="flex-1">
+                <MessageMarkdown content={message.content} />
               </span>
               {message.updated_at && (
                 <span className="opacity-30 ml-2">(edited)</span>
@@ -265,7 +266,7 @@ function DefaultMessage({
       )}
 
       {message.embeds && message.embeds.length > 0 && (
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-col flex-wrap gap-2">
           {message.embeds.map((e) => (
             <Embed embed={e} key={hashString(JSON.stringify(e))} />
           ))}

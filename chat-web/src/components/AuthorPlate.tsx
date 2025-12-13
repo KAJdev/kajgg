@@ -1,6 +1,7 @@
 import type { Author } from "@schemas/models/author";
 import { ListAuthor } from "./ListAuthor";
 import { useFlippedColors } from "src/lib/cache";
+import { MessageMarkdown } from "./MessageMarkdown";
 
 function formatBytes(bytes: number) {
   if (bytes < 1024) {
@@ -32,8 +33,12 @@ export function AuthorPlate({ author }: { author: Author }) {
             className="w-full whitespace-pre-wrap break-words"
             style={{ color: colors.secondary }}
           >
-            {author.bio?.slice(0, 1000)}
-            {author.bio && author.bio.length > 1000 && "..."}
+            <MessageMarkdown
+              content={
+                (author.bio?.slice(0, 1000) ?? "") +
+                (author.bio?.length > 1000 ? "..." : "")
+              }
+            />
           </p>
         )}
       </div>

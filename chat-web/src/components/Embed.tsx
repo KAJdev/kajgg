@@ -1,17 +1,42 @@
 import type { Embed } from "@schemas/models/embed";
+import { MessageMarkdown } from "./MessageMarkdown";
 
 export function Embed({ embed }: { embed: Embed }) {
   return (
-    <div className="flex flex-col gap-2">
+    <div
+      className="flex flex-col gap-2 max-w-[40rem] border p-2 border-tertiary/50 bg-tertiary/10"
+      style={{
+        borderColor: embed.color + "80",
+        backgroundColor: embed.color + "10",
+      }}
+    >
       <div className="flex items-center gap-2">
-        <img src={embed.image_url} alt={embed.title} className="w-10 h-10" />
         <div className="flex flex-col gap-1">
-          <h3 className="text-sm font-medium">{embed.title}</h3>
-          <p className="text-sm text-neutral-400">{embed.description}</p>
+          {embed.title && (
+            <h3 className="font-medium text-primary">
+              <MessageMarkdown content={embed.title} />
+            </h3>
+          )}
+          {embed.description && (
+            <p className="text-secondary">
+              {" "}
+              <MessageMarkdown content={embed.description} />
+            </p>
+          )}
+          {embed.footer && (
+            <p className="text-secondary/50">
+              <MessageMarkdown content={embed.footer} />
+            </p>
+          )}
         </div>
-        <div className="flex items-center gap-2">
-          <p className="text-sm text-neutral-400">{embed.footer}</p>
-        </div>
+
+        {embed.image_url && (
+          <img
+            src={embed.image_url}
+            alt={embed.title}
+            className="max-w-48 max-h-48 object-cover"
+          />
+        )}
       </div>
     </div>
   );
