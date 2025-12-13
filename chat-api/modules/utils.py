@@ -64,6 +64,10 @@ def dtoa(cls: Type[T], data: dict | Any) -> T:
         data = asdict(data)
     if "model_dump" in dir(data):
         data = data.model_dump()
+    # get any @property fields
+    for k, v in data.items():
+        if hasattr(cls, k) and isinstance(getattr(cls, k), property):
+            data[k] = getattr(cls, k).fget(data)
     data = {k: v for k, v in data.items() if k in field_names}
 
     # make sure any datetime objects are converted to ISO strings
