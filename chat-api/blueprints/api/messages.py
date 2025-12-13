@@ -102,7 +102,7 @@ async def get_messages(request: Request, channel_id: str):
     return json(await _messages_to_api(messages))
 
 
-EDITABLE_FIELDS = ["content", "embeds"]
+EDITABLE_FIELDS = ["content"]
 
 
 @bp.route("/v1/channels/<channel_id>/messages", methods=["POST"])
@@ -154,6 +154,7 @@ async def create_message(request: Request, channel_id: str):
         content=content,
         file_ids=file_ids,
         nonce=nonce,
+        user_embeds=data.get("embeds", []),
     )
     await message.save()
 
@@ -221,6 +222,9 @@ async def update_message(request: Request, channel_id: str, message_id: str):
     for key, value in data.items():
         if key in EDITABLE_FIELDS:
             setattr(message, key, value)
+
+    if data.get("embeds"):
+        message.user_embeds = data["embeds"]
 
     message.updated_at = datetime.now(UTC)
     await message.save_changes()

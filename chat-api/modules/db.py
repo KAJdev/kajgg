@@ -1,6 +1,6 @@
 import asyncio
 from datetime import datetime, UTC
-from chat_types.models import Status, MessageType
+from chat_types.models import Status, MessageType, Embed as ApiEmbed
 from dotenv import load_dotenv
 from os import getenv
 from modules.utils import generate_id
@@ -195,6 +195,15 @@ class StoredFile(Document):
         use_state_management = True
 
 
+class Embed(BaseModel):
+    title: Optional[str] = Field(default=None)
+    description: Optional[str] = Field(default=None)
+    image_url: Optional[str] = Field(default=None)
+    url: Optional[str] = Field(default=None)
+    footer: Optional[str] = Field(default=None)
+    color: Optional[str] = Field(default=None)
+
+
 class Message(Document):
     id: str = Field(default_factory=generate_id)
     type: MessageType = Field(default=MessageType.DEFAULT)
@@ -206,6 +215,12 @@ class Message(Document):
     nonce: Optional[str] = Field(default=None)
     updated_at: Optional[datetime] = None
     deleted_at: Optional[datetime] = None
+    user_embeds: list[Embed] = Field(default_factory=list)
+    system_embeds: list[Embed] = Field(default_factory=list)
+
+    @property
+    def embeds(self) -> list[Embed]:
+        return self.user_embeds + self.system_embeds
 
     @classmethod
     async def validate_dict(cls, data: dict) -> bool:
@@ -280,9 +295,6 @@ class Message(Document):
     class Settings:
         name = "messages"
         use_state_management = True
-
-    def dict(self):
-        return convert_dates_to_iso(super().model_dump(exclude={"deleted_at"}))
 
 
 class Channel(Document):

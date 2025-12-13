@@ -11,6 +11,7 @@ import { hashString } from "src/lib/utils";
 import { Username } from "./Username";
 import type { File as ApiFile } from "@schemas/models/file";
 import { Modal } from "@theme/Modal";
+import { Embed } from "./Embed";
 
 const leaveMessages = [
   "has dissapeared",
@@ -259,6 +260,14 @@ function DefaultMessage({
               progress={message.client?.uploads?.[f.id]?.progress}
               previewUrl={message.client?.uploads?.[f.id]?.preview_url}
             />
+          ))}
+        </div>
+      )}
+
+      {message.embeds && message.embeds.length > 0 && (
+        <div className="flex flex-wrap gap-2">
+          {message.embeds.map((e) => (
+            <Embed embed={e} key={hashString(JSON.stringify(e))} />
           ))}
         </div>
       )}
