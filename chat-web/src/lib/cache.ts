@@ -9,8 +9,8 @@ import { flipColor, getIsPageFocused } from "./utils";
 
 type TimeoutId = ReturnType<typeof setTimeout>;
 
-const MAX_MESSAGES_PER_CHANNEL = 100;
-const MESSAGE_QUEUE_COMPACT_AT = 500;
+// keep more so infinite scroll doesn't immediately evict history
+const MAX_MESSAGES_PER_CHANNEL = 2000;
 
 export type ClientUploadProgress = {
   /** 0..1 */
@@ -333,24 +333,25 @@ function _upsertQueuedMessage(
     },
   };
 
-  const queue = state.messageQueues[channelId] ?? { ids: [], head: 0 };
-  const nextQueue: ChannelMessageQueue = alreadyHad
-    ? queue
-    : { ids: [...queue.ids, messageId], head: queue.head };
-
-  // fast cap: evict oldest in arrival order, no sorting
-  let qIds = nextQueue.ids;
-  let qHead = nextQueue.head;
-  while (qIds.length - qHead > MAX_MESSAGES_PER_CHANNEL) {
-    const evictId = qIds[qHead++];
-    delete nextChannel[evictId];
+  // note: we used to evict by arrival order, but that breaks once you page in older messages.
+  // this keeps memory bounded while preserving newest-by-created_at.
+  if (Object.keys(nextChannel).length > MAX_MESSAGES_PER_CHANNEL) {
+    const sorted = Object.values(nextChannel).sort((a, b) => {
+      const at = new Date(a.created_at).getTime();
+      const bt = new Date(b.created_at).getTime();
+      return at - bt;
+    });
+    const toEvict = sorted.length - MAX_MESSAGES_PER_CHANNEL;
+    for (let i = 0; i < toEvict; i++) {
+      const id = sorted[i]?.id;
+      if (id) delete nextChannel[id];
+    }
   }
 
-  // compact occasionally so the array doesn't grow forever
-  if (qHead > MESSAGE_QUEUE_COMPACT_AT) {
-    qIds = qIds.slice(qHead);
-    qHead = 0;
-  }
+  // keep the queue around for backwards compat / persistence but rebuild it from current keys
+  // (otherwise it grows without bound once we stop using arrival-order eviction)
+  const qIds = Object.keys(nextChannel);
+  const qHead = 0;
 
   return {
     messages: {

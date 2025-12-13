@@ -11,11 +11,12 @@
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.1.17",
+    "@tanstack/react-virtual": "^3.13.13",
     "lucide-react": "^0.556.0",
     "motion": "^12.23.26",
-    "react-markdown": "^10.1.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
+    "react-markdown": "^10.1.0",
     "react-router": "^7.10.1",
     "react-tiny-popover": "^8.1.6",
     "rehype-raw": "^7.0.0",

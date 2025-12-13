@@ -1,7 +1,7 @@
 import { useParams } from "react-router";
 import { ChatInput } from "src/components/ChatInput";
 import { ListAuthor } from "src/components/ListAuthor";
-import { Message } from "src/components/Message";
+import { MessageList } from "src/components/MessageList";
 import { TypingIndicator } from "src/components/TypingIndicator";
 import { User } from "src/components/User";
 import { Status as StatusType } from "src/types/models/status";
@@ -60,7 +60,8 @@ export function Channel() {
   useEffect(() => {
     if (channelId) {
       setLastSeenChannel(channelId);
-      fetchMessages(channelId);
+      // initial page: load latest messages (server defaults to 50, but we make it explicit)
+      void fetchMessages(channelId, undefined, undefined, 50);
     }
 
     return () => {
@@ -152,15 +153,6 @@ export function Channel() {
     }
   });
 
-  // we want tuples of messages like
-  // [(null, 0), (0, 1), (1, 2), (2, null)]
-  // where its [message, previousMessage]
-  const tupledMessages = useMemo(() => {
-    return messages.map((message, index) => {
-      return [message, messages[index - 1] ?? null];
-    });
-  }, [messages]);
-
   return (
     <div className="grid h-full min-h-0 w-full grid-cols-1 gap-3 md:grid-cols-[18ch_1fr_18ch]">
       <div className="flex-col gap-2 overflow-hidden p-3 hidden md:flex">
@@ -190,24 +182,12 @@ export function Channel() {
         </div>
 
         <div className="flex flex-col gap-2 min-h-0">
-          <div className="flex-1 overflow-y-auto pr-1 min-h-0 flex flex-col-reverse pb-4">
-            {messages?.length > 0 ? (
-              tupledMessages
-                .slice()
-                .reverse()
-                .map(([message, previousMessage]) => (
-                  <Message
-                    key={message.id}
-                    message={message}
-                    previousMessage={previousMessage ?? null}
-                    editing={editingMessageId === message?.id}
-                    onCancelEdit={() => setEditingMessageId(null)}
-                  />
-                ))
-            ) : (
-              <div className="text-tertiary">no messages yet</div>
-            )}
-          </div>
+          <MessageList
+            channelId={channelId}
+            messages={messages}
+            editingMessageId={editingMessageId}
+            setEditingMessageId={setEditingMessageId}
+          />
         </div>
 
         <TypingIndicator channelId={channelId} />

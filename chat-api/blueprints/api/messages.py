@@ -36,6 +36,24 @@ async def _messages_to_api(messages: list[Message]) -> list[dict]:
     return await messages_to_api(messages)
 
 
+def try_int(value: str) -> int:
+    if value is None:
+        return 50
+    try:
+        return int(value)
+    except ValueError:
+        raise exceptions.BadRequest("Value is not an integer")
+
+
+def try_datetime(value: str) -> datetime:
+    if value is None:
+        return None
+    try:
+        return datetime.fromisoformat(value)
+    except ValueError:
+        raise exceptions.BadRequest("Value is not a valid ISO date")
+
+
 @bp.route("/v1/channels/<channel_id>/messages", methods=["GET"])
 @authorized()
 async def get_messages(request: Request, channel_id: str):
@@ -56,9 +74,9 @@ async def get_messages(request: Request, channel_id: str):
         raise exceptions.Forbidden("You are not a member of this channel")
 
     args = request.args
-    after = args.get("after", None)
-    before = args.get("before", None)
-    limit = args.get("limit", 50)
+    after = try_datetime(args.get("after", None))
+    before = try_datetime(args.get("before", None))
+    limit = try_int(args.get("limit", "50"))
     author_id = args.get("author_id", None)
     contains = args.get("contains", None)
 
