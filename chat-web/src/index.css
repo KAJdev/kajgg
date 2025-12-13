@@ -27,7 +27,7 @@
 /* chill scrollbar vibes */
 * {
   scrollbar-width: thin;
-  scrollbar-color: #3f3f3f transparent;
+  scrollbar-color: var(--color-tertiary) transparent;
 }
 
 *::-webkit-scrollbar {
@@ -39,7 +39,7 @@
 }
 
 *::-webkit-scrollbar-thumb {
-  background: #3f3f3f;
+  background: var(--color-tertiary);
   border-radius: 0;
 }
 

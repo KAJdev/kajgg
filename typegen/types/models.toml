@@ -6,6 +6,12 @@ enum = ["online", "offline", "away", "do_not_disturb"]
 type = "string"
 enum = ["default", "join", "leave"]
 
+[Flags]
+type = "object"
+
+[Flags.properties]
+admin = { type = "boolean", doc = "Whether the user is an admin" }
+
 [Author]
 type = "object"
 required = ["id", "username", "created_at", "updated_at"]
@@ -18,6 +24,9 @@ bio = { type = "string", doc = "Biography or description of the author" }
 created_at = { type = "string", format = "date-time", doc = "When the author was created" }
 updated_at = { type = "string", format = "date-time", doc = "When the author was last updated" }
 status = { ref = "Status", doc = "Current online status of the author" }
+color = { type = "string", doc = "Color of the author" }
+background_color = { type = "string", doc = "Background color of the author's plate" }
+bytes = { type = "integer", doc = "The author's total bytes" }
 
 [User]
 type = "object"
@@ -28,6 +37,7 @@ allOf = [{ ref = "Author" }]
 email = { type = "string", doc = "Email address of the user" }
 token = { type = "string", doc = "Token for the user" }
 verified = { type = "boolean", doc = "Whether the user is verified" }
+default_status = { ref = "Status", doc = "Default online status of the user" }
 
 [File]
 type = "object"

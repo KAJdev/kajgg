@@ -1,11 +1,12 @@
 import { RouterProvider } from "react-router";
 import { useGateway } from "./lib/gateway";
 import { router } from "./routes";
-import { getLastSeenChannel, useToken } from "./lib/cache";
+import { getLastSeenChannel, useAppliedTheme, useToken } from "./lib/cache";
 import { fetchChannels, fetchMe } from "./lib/api";
 
 export function Index() {
   useGateway();
+  useAppliedTheme();
 
   async function init() {
     fetchMe();

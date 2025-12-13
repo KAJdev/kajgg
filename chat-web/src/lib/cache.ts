@@ -12,12 +12,6 @@ type TimeoutId = ReturnType<typeof setTimeout>;
 const MAX_MESSAGES_PER_CHANNEL = 100;
 const MESSAGE_QUEUE_COMPACT_AT = 500;
 
-function cssVar(name: string, fallback = ""): string {
-  if (typeof document === "undefined") return fallback;
-  const v = getComputedStyle(document.documentElement).getPropertyValue(name);
-  return (v || fallback).trim();
-}
-
 export type ClientUploadProgress = {
   /** 0..1 */
   progress: number;
@@ -89,6 +83,13 @@ export const tokenCache = create<{ token: string | null }>()(
   )
 );
 
+export const defaultTheme = {
+  background: "#101010",
+  primary: "#d3f9d8",
+  secondary: "#a3a3a3",
+  tertiary: "#3f3f3f",
+};
+
 export const persistentCache = create<PersistentCache>()(
   persist(
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -97,12 +98,7 @@ export const persistentCache = create<PersistentCache>()(
       lastSeenChannelAt: {},
       userSettings: {
         theme: {
-          colors: {
-            background: cssVar("--color-background"),
-            primary: cssVar("--color-primary"),
-            secondary: cssVar("--color-secondary"),
-            tertiary: cssVar("--color-tertiary"),
-          },
+          colors: defaultTheme,
         },
       },
     }),
@@ -111,6 +107,67 @@ export const persistentCache = create<PersistentCache>()(
     }
   )
 );
+
+export function useAppliedTheme() {
+  const theme = persistentCache(
+    useShallow((state) => state.userSettings.theme)
+  );
+
+  useEffect(() => {
+    document.documentElement.style.setProperty(
+      "--color-background",
+      theme.colors.background
+    );
+    document.documentElement.style.setProperty(
+      "--color-primary",
+      theme.colors.primary
+    );
+    document.documentElement.style.setProperty(
+      "--color-secondary",
+      theme.colors.secondary
+    );
+    document.documentElement.style.setProperty(
+      "--color-tertiary",
+      theme.colors.tertiary
+    );
+  }, [theme]);
+}
+
+export function useUserSettings() {
+  const settings = persistentCache(useShallow((state) => state.userSettings));
+
+  return {
+    theme: settings.theme,
+    resetColor: (color: keyof typeof defaultTheme) => {
+      persistentCache.setState((state) => ({
+        userSettings: {
+          ...state.userSettings,
+          theme: {
+            ...state.userSettings.theme,
+            colors: {
+              ...state.userSettings.theme.colors,
+              [color]: defaultTheme[color],
+            },
+          },
+        },
+      }));
+    },
+    setThemeColor: (
+      color: keyof typeof settings.theme.colors,
+      value: string
+    ) => {
+      persistentCache.setState({
+        userSettings: {
+          ...settings,
+          theme: {
+            ...settings.theme,
+            colors: { ...settings.theme.colors, [color]: value },
+          },
+        },
+      });
+    },
+  } as const;
+}
 
 export function setUser(user: User) {
   cache.setState({ user });

@@ -156,6 +156,13 @@ async def create_message(request: Request, channel_id: str):
     )
     await message.save()
 
+    total_bytes = len(content) if content else 0
+    for file in files:
+        total_bytes += file.size
+
+    if total_bytes > 0:
+        request.ctx.user.inc_bytes(total_bytes)
+
     await request.ctx.user.fetch_status()
 
     api_files = {f.id: f for f in files}
@@ -198,7 +205,14 @@ async def update_message(request: Request, channel_id: str, message_id: str):
         raise exceptions.BadRequest("Bad Request")
 
     if not await Message.validate_dict(data):
-        raise exceptions.BadRequest("Bad Request")
+        raise exceptions.BadRequest("Invalid request")
+
+    if data.get("content"):
+        data["content"] = data["content"].strip()  # this is already validated
+
+    byte_diff = len(data.get("content", "")) - len(message.content or "")
+    if byte_diff != 0:
+        request.ctx.user.inc_bytes(byte_diff)
 
     for key, value in data.items():
         if key in EDITABLE_FIELDS:
@@ -229,6 +243,9 @@ async def delete_message(request: Request, channel_id: str, message_id: str):
 
     message.deleted_at = datetime.now(UTC)
     await message.save()
+
+    if message.content:
+        request.ctx.user.inc_bytes(-len(message.content))
 
     publish_event(MessageDeleted(message_id=message_id, channel_id=channel_id))
 

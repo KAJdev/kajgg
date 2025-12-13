@@ -19,3 +19,9 @@ class Author:
     updated_at: datetime | None = None
     # Current online status of the author
     status: Status | None = None
+    # Color of the author
+    color: str | None = None
+    # Background color of the author's plate
+    background_color: str | None = None
+    # The author's total bytes
+    bytes: int | None = None

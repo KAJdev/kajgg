@@ -19,6 +19,7 @@ import { useKeybind } from "src/lib/keybind";
 import { MessageType, type Author } from "@schemas/index";
 import type { Attachment } from "src/components/ChatInput";
 import { ListChannel } from "src/components/ListChannel";
+import { Label } from "@theme/Label";
 
 const statusOrder = [
   StatusType.ONLINE,
@@ -26,25 +27,6 @@ const statusOrder = [
   StatusType.DO_NOT_DISTURB,
   StatusType.OFFLINE,
 ];
-
-function Label({
-  children,
-  className,
-}: {
-  readonly children: React.ReactNode;
-  className?: string;
-}) {
-  return (
-    <div
-      className={classes(
-        "uppercase tracking-[0.08em] text-secondary/60",
-        className
-      )}
-    >
-      {children}
-    </div>
-  );
-}
 
 export function Channel() {
   const { channelId = "" } = useParams();

@@ -19,6 +19,7 @@ import {
   updateMessageById,
   reconcileMessageByNonce,
 } from "./cache";
+import type { User as UserType } from "src/types/models/user";
 
 export async function login(username: string, password: string) {
   return await request<User>("login", {
@@ -35,6 +36,13 @@ export async function signup(
   return await request<User>("signup", {
     method: "POST",
     body: { username, password, email },
+  });
+}
+
+export async function updateUser(user: Partial<UserType>) {
+  return await request<User>("users/@me", {
+    method: "PATCH",
+    body: user,
   });
 }
 

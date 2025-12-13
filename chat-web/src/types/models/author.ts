@@ -15,4 +15,10 @@ export type Author = {
     updated_at: Date;
     /** Current online status of the author */
     status?: Status;
+    /** Color of the author */
+    color?: string;
+    /** Background color of the author's plate */
+    background_color?: string;
+    /** The author's total bytes */
+    bytes?: number;
 }

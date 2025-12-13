@@ -63,6 +63,8 @@ async def signup(request: Request):
         token=utils.generate_token(user_id),
     )
 
+    user.bytes = user.self_bytes()
+
     await user.save()
     await user.start_verification()
     await user.fetch_status()

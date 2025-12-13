@@ -1,4 +1,4 @@
-import type { LucideIcon } from "lucide-react";
+import { Loader2Icon, type LucideIcon } from "lucide-react";
 
 export type Icon = string | LucideIcon;
 
@@ -7,6 +7,8 @@ type ButtonProps = Styleable &
     onClick?: (() => void) | React.MouseEventHandler<HTMLButtonElement>;
     variant?: "primary" | "danger";
     icon?: Icon;
+    loading?: boolean;
+    disabled?: boolean;
   };
 
 function Icon({ icon }: { icon: Icon }) {
@@ -24,17 +26,27 @@ export function Button({
   children,
   icon,
   variant = "primary",
+  loading = false,
+  disabled = false,
   ...props
 }: ButtonProps) {
+  if (loading) {
+    disabled = true;
+  }
+
   return (
     <button
       className={classes(
         "active:outline-none flex items-center cursor-pointer justify-between gap-2 focus:outline-none transition-colors opacity-70 hover:opacity-100",
         variant === "danger" && "text-red-500",
         !children && icon && "gap-0.5",
+        disabled && "opacity-25 pointer-events-none",
         className
       )}
       onClick={(e) => {
+        if (disabled) {
+          return;
+        }
         if (typeof onClick === "function") {
           if (onClick.length === 0) {
             // If provided as a () => void, call directly:
@@ -45,9 +57,14 @@ export function Button({
           }
         }
       }}
+      disabled={disabled}
       {...props}
     >
-      {icon && <Icon icon={icon} />}
+      {loading ? (
+        <Loader2Icon className="h-4 w-4 animate-spin" size={16} />
+      ) : (
+        icon && <Icon icon={icon} />
+      )}
       {children && (
         <>
           <span>[</span>

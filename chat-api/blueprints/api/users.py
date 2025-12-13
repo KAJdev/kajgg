@@ -35,7 +35,14 @@ async def get_user(request: Request, user_id: str):
     return json(utils.dtoa(ApiAuthor, user))
 
 
-EDITABLE_FIELDS = ["username", "default_status", "bio", "email"]
+EDITABLE_FIELDS = [
+    "username",
+    "default_status",
+    "bio",
+    "email",
+    "color",
+    "background_color",
+]
 
 
 @bp.route("/v1/users/<user_id>", methods=["PATCH"])
@@ -53,9 +60,15 @@ async def update_user(request: Request, user_id: str):
     if not await User.validate_dict(data):
         raise exceptions.BadRequest("Invalid request")
 
+    before_bytes = user.self_bytes()
+
     for key, value in data.items():
         if key in EDITABLE_FIELDS:
             setattr(user, key, value)
+
+    after_bytes = user.self_bytes()
+    if after_bytes != before_bytes:
+        user.inc_bytes(after_bytes - before_bytes)
 
     await user.save()
 

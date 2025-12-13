@@ -1,16 +1,24 @@
-import type { Status as StatusType } from "src/types";
+import { Status as StatusType } from "src/types";
+
+const CHARACTERS = {
+  [StatusType.ONLINE]: "+",
+  [StatusType.AWAY]: "-",
+  [StatusType.DO_NOT_DISTURB]: "DND",
+  [StatusType.OFFLINE]: "x",
+};
 
 export function Status({ status }: { status?: StatusType }) {
   return (
     <span
       className={classes(
-        status === "online" && "text-green-500",
-        status === "away" && "text-yellow-500",
-        status === "do_not_disturb" && "text-red-500",
-        status === "offline" && "text-tertiary"
+        "shrink-0",
+        status === StatusType.ONLINE && "text-green-500",
+        status === StatusType.AWAY && "text-yellow-500",
+        status === StatusType.DO_NOT_DISTURB && "text-red-500",
+        status === StatusType.OFFLINE && "text-tertiary"
       )}
     >
-      {status === "online" ? "+" : "-"}
+      {CHARACTERS[status ?? StatusType.ONLINE]}
     </span>
   );
 }

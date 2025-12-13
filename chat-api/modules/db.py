@@ -48,6 +48,8 @@ class User(Document):
 
     # default status when a user is connected to the gateway
     default_status: Status = Field(default=Status.ONLINE)
+    color: Optional[str] = Field(default=None)
+    background_color: Optional[str] = Field(default=None)
 
     # current status of the user
     status: Optional[Status] = Field(default=None)
@@ -60,6 +62,7 @@ class User(Document):
     flags: UserFlags = Field(default_factory=UserFlags)
     verified: bool = Field(default=False)
     verification_code: Optional[str] = Field(default=None)
+    bytes: int = Field(default=0)
 
     def dict(self, keep_token: bool = False):
         d = super().model_dump(
@@ -85,6 +88,25 @@ class User(Document):
             self.default_status if count and int(count) > 0 else Status.OFFLINE
         )
         return self.status
+
+    def inc_bytes(self, amount: int):
+        self.bytes += amount
+
+        async def _inc_bytes():
+            await User.find_one(User.id == self.id).inc(User.bytes, amount)
+            self.bytes += amount
+            await self.save()
+
+        asyncio.create_task(_inc_bytes())
+
+    def self_bytes(self) -> int:
+        return (
+            len(self.username)
+            + len(self.id)
+            + len(self.bio or "")
+            + len(self.background_color or "")
+            + len(self.color or "")
+        )
 
     async def start_verification(self):
         self.verification_code = generate_id()
@@ -134,6 +156,14 @@ class User(Document):
                 r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$", data["email"]
             ):
                 raise exceptions.BadRequest("Invalid email address")
+
+        if data.get("color"):
+            if not re.match(r"^#([0-9a-fA-F]{6})$", data["color"]):
+                raise exceptions.BadRequest("Invalid color")
+
+        if data.get("background_color"):
+            if not re.match(r"^#([0-9a-fA-F]{6})$", data["background_color"]):
+                raise exceptions.BadRequest("Invalid background color")
 
         return True
 

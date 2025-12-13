@@ -7,6 +7,7 @@ export type { ChannelUpdated } from "./events/channelupdated";
 export type { Event } from "./events/event";
 export type { File } from "./models/file";
 export type { FileUpload } from "./models/fileupload";
+export type { Flags } from "./models/flags";
 export type { Message } from "./models/message";
 export type { MessageCreated } from "./events/messagecreated";
 export type { MessageDeleted } from "./events/messagedeleted";

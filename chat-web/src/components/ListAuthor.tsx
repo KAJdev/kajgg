@@ -1,4 +1,4 @@
-import type { Author as AuthorType } from "src/types";
+import type { Author as AuthorType } from "@schemas/models/author";
 import { Status } from "./Status";
 import { Status as StatusType } from "src/types/models/status";
 import { Username } from "./Username";
@@ -12,12 +12,13 @@ export function ListAuthor({ author }: { author: AuthorType }) {
         author.status === StatusType.OFFLINE && "opacity-75"
       )}
     >
-      <Status status={author.status} />
       <Username
         id={author.id}
         username={author.username}
-        noColor={author.status !== StatusType.ONLINE}
+        color={author.color}
+        noColor={author.status === StatusType.OFFLINE}
       />
+      <Status status={author.status} />
     </div>
   );
 }
