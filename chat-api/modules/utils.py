@@ -25,24 +25,28 @@ def generate_id():
 
 
 def convert_dates_to_iso(d):
+    if isinstance(d, datetime):
+        return d.isoformat() + "Z"
+    if isinstance(d, list):
+        return [convert_dates_to_iso(item) for item in d]
+    if not isinstance(d, dict):
+        return d
+
     for k, v in d.items():
-        if isinstance(v, datetime):
-            d[k] = v.isoformat() + "Z"
-        elif isinstance(v, dict):
-            d[k] = convert_dates_to_iso(v)
-        elif isinstance(v, list):
-            d[k] = [convert_dates_to_iso(item) for item in v]
+        d[k] = convert_dates_to_iso(v)
     return d
 
 
 def convert_enums_to_strings(d):
+    if isinstance(d, Enum):
+        return d.value
+    if isinstance(d, list):
+        return [convert_enums_to_strings(item) for item in d]
+    if not isinstance(d, dict):
+        return d
+
     for k, v in d.items():
-        if isinstance(v, Enum):
-            d[k] = v.value
-        elif isinstance(v, dict):
-            d[k] = convert_enums_to_strings(v)
-        elif isinstance(v, list):
-            d[k] = [convert_enums_to_strings(item) for item in v]
+        d[k] = convert_enums_to_strings(v)
     return d
 
 
