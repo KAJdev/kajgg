@@ -5,6 +5,7 @@ import {
   addMessage,
   removeMessage,
   setUser,
+  updateAuthor,
   updateMessage,
 } from "./cache";
 import type { Channel } from "@schemas/models/channel";
@@ -40,10 +41,18 @@ export async function signup(
 }
 
 export async function updateUser(user: Partial<UserType>) {
-  return await request<User>("users/@me", {
+  const [updatedUser, error] = await request<User>("users/@me", {
     method: "PATCH",
     body: user,
   });
+
+  if (error) {
+    return [null, error] as const;
+  }
+
+  setUser(updatedUser);
+  updateAuthor(updatedUser);
+  return [updatedUser, null] as const;
 }
 
 export async function createChannel(

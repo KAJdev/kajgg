@@ -93,9 +93,7 @@ class User(Document):
         self.bytes += amount
 
         async def _inc_bytes():
-            await User.find_one(User.id == self.id).inc(User.bytes, amount)
-            self.bytes += amount
-            await self.save()
+            await User.find_one(User.id == self.id).update({"$inc": {"bytes": amount}})
 
         asyncio.create_task(_inc_bytes())
 

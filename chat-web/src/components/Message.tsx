@@ -206,10 +206,7 @@ function DefaultMessage({
     >
       {showAuthorName && (
         <div className="flex items-center gap-2 mt-4">
-          <Username
-            id={message.author_id}
-            username={author?.username ?? "anon"}
-          />
+          <Username author={author} />
           <span className="opacity-30">{timestamp}</span>
         </div>
       )}
@@ -297,8 +294,7 @@ function JoinLeaveMessage({ message }: MessageProps) {
           </>
         )}
       </p>
-      <Username id={message.author_id} username={author?.username ?? "anon"} />{" "}
-      {supplementaryMessage}
+      <Username author={author} /> {supplementaryMessage}
     </div>
   );
 }

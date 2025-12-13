@@ -1,5 +1,6 @@
 import type { Author } from "@schemas/models/author";
 import { ListAuthor } from "./ListAuthor";
+import { useFlippedColors } from "src/lib/cache";
 
 function formatBytes(bytes: number) {
   if (bytes < 1024) {
@@ -15,17 +16,21 @@ function formatBytes(bytes: number) {
 }
 
 export function AuthorPlate({ author }: { author: Author }) {
+  const colors = useFlippedColors(author.background_color ?? "#101010");
   return (
-    <div
-      className="border border-tertiary p-2 w-[23rem] h-fit"
-      style={{ backgroundColor: author.background_color + "50" }}
-    >
-      <div className="flex flex-col gap-2">
-        <ListAuthor author={author} />
-        <span className="text-secondary/60">
+    <div className="border border-tertiary bg-background w-[18rem] h-fit">
+      <div
+        className={classes("flex flex-col gap-2 p-2")}
+        style={{ backgroundColor: author.background_color }}
+      >
+        <ListAuthor author={author} allowPlate={false} />
+        <span className="opacity-60" style={{ color: colors.secondary }}>
           {formatBytes(author.bytes ?? 0)}
         </span>
-        <p className="text-secondary w-full whitespace-pre-wrap break-words">
+        <p
+          className="w-full whitespace-pre-wrap break-words"
+          style={{ color: colors.secondary }}
+        >
           {author.bio?.slice(0, 1000)}
           {author.bio && author.bio.length > 1000 && "..."}
         </p>

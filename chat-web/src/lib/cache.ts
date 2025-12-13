@@ -5,7 +5,7 @@ import type { User } from "@schemas/models/user";
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { useShallow } from "zustand/shallow";
-import { getIsPageFocused } from "./utils";
+import { flipColor, getIsPageFocused } from "./utils";
 
 type TimeoutId = ReturnType<typeof setTimeout>;
 
@@ -169,9 +169,32 @@ export function useUserSettings() {
   } as const;
 }
 
+export function useFlippedColors(backgroundColor: string) {
+  // returns the theme colors, but flipped if the color is too light
+  const r = parseInt(backgroundColor.slice(1, 3), 16);
+  const g = parseInt(backgroundColor.slice(3, 5), 16);
+  const b = parseInt(backgroundColor.slice(5, 7), 16);
+  const shouldFlip = r * 0.299 + g * 0.587 + b * 0.114 > 146;
+
+  const theme = persistentCache(
+    useShallow((state) => state.userSettings.theme)
+  );
+  if (shouldFlip) {
+    return Object.fromEntries(
+      Object.entries(theme.colors).map(([key, color]) => [
+        key,
+        flipColor(color),
+      ])
+    );
+  }
+  return theme.colors;
+}
+
 export function setUser(user: User) {
   cache.setState({ user });
-  tokenCache.setState({ token: user.token });
+  if (user.token) {
+    tokenCache.setState({ token: user.token });
+  }
 }
 
 export function setLastSeenChannel(channelId: string) {
@@ -424,6 +447,17 @@ export function addAuthor(author: Author) {
   cache.setState((state) => ({
     authors: { ...state.authors, [author.id]: author },
   }));
+
+  if (author.id === cache.getState().user?.id) {
+    const user = { ...cache.getState().user };
+    for (const key in author) {
+      if (key in user) {
+        // @ts-expect-error - author is a subset of user
+        user[key] = author[key];
+      }
+    }
+    setUser(user as User);
+  }
 }
 
 export function removeChannel(channelId: string) {

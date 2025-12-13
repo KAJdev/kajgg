@@ -11,6 +11,7 @@ import {
   updateAuthor,
   updateMessage,
   updateChannel,
+  addAuthor,
 } from "./cache";
 import type { Event } from "@schemas/events/event";
 import { EventType } from "@schemas/events/eventtype";
@@ -199,7 +200,8 @@ function handleEvent(event: Event) {
     case EventType.MESSAGE_CREATED:
       return (
         reconcileMessageByNonce(event.d.message.channel_id, event.d.message),
-        stopTyping(event.d.message.channel_id, event.d.message.author_id)
+        stopTyping(event.d.message.channel_id, event.d.message.author_id),
+        addAuthor(event.d.author)
       );
     case EventType.MESSAGE_UPDATED:
       return (

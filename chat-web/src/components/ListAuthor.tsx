@@ -3,7 +3,13 @@ import { Status } from "./Status";
 import { Status as StatusType } from "src/types/models/status";
 import { Username } from "./Username";
 
-export function ListAuthor({ author }: { author: AuthorType }) {
+export function ListAuthor({
+  author,
+  allowPlate,
+}: {
+  author: AuthorType;
+  allowPlate?: boolean;
+}) {
   return (
     <div
       key={author.id}
@@ -13,10 +19,9 @@ export function ListAuthor({ author }: { author: AuthorType }) {
       )}
     >
       <Username
-        id={author.id}
-        username={author.username}
-        color={author.color}
+        author={author}
         noColor={author.status === StatusType.OFFLINE}
+        allowPlate={allowPlate}
       />
       <Status status={author.status} />
     </div>

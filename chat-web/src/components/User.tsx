@@ -28,8 +28,9 @@ function UserSettings() {
     const [, error] = await updateUser(form);
     if (error) {
       setError(error);
+    } else {
+      setForm({});
     }
-    setForm({});
     setLoading(false);
   }
 

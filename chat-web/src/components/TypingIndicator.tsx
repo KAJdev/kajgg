@@ -12,37 +12,32 @@ function Typing({ authors }: { authors: Author[] }) {
     return () => clearInterval(interval);
   }, []);
 
-  const usernames = authors.map((author) => author.username);
-
-  if (usernames.length === 1) {
+  if (authors.length === 1) {
     return (
       <>
-        <Username id={authors[0].id} username={authors[0].username} /> is typing
+        <Username author={authors[0]} /> is typing
         {ellipsis}
       </>
     );
   }
 
-  if (usernames.length === 2) {
+  if (authors.length === 2) {
     return (
       <>
-        <Username id={authors[0].id} username={authors[0].username} /> and{" "}
-        <Username id={authors[1].id} username={authors[1].username} /> are
-        typing{ellipsis}
+        <Username author={authors[0]} /> and <Username author={authors[1]} />{" "}
+        are typing{ellipsis}
       </>
     );
   }
 
-  if (usernames.length > 4) {
+  if (authors.length > 4) {
     return <>several people are typing{ellipsis}</>;
   }
 
   return (
     <>
-      {usernames
-        .map((username) => (
-          <Username key={username} id={username} username={username} />
-        ))
+      {authors
+        .map((author) => <Username key={author.id} author={author} />)
         .join(", ")}{" "}
       are typing{ellipsis}
     </>
