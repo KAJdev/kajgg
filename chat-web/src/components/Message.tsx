@@ -251,7 +251,7 @@ function DefaultMessage({
           )}
         </>
       )}
-      {message.files.length > 0 && (
+      {message.files && message.files.length > 0 && (
         <div className="flex flex-wrap gap-2">
           {message.files.map((f) => (
             <MessageFile

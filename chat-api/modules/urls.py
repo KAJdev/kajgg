@@ -193,4 +193,4 @@ async def embed_message_content(message: DbMessage):
     message.system_embeds = embeds
     await message.save_changes()
 
-    publish_event(MessageUpdated(message=dtoa(ApiMessage, message.dict())))
+    publish_event(MessageUpdated(message=dtoa(ApiMessage, message)))
