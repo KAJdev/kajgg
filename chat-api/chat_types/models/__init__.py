@@ -1,5 +1,6 @@
 from .author import Author
 from .channel import Channel
+from .embed import Embed
 from .file import File
 from .file_upload import FileUpload
 from .flags import Flags

@@ -1,3 +1,4 @@
+import type { Flags } from "./flags";
 import type { Status } from "./status";
 
 export type Author = {
@@ -21,4 +22,6 @@ export type Author = {
     background_color?: string;
     /** The author's total bytes */
     bytes?: number;
+    /** Flags of the author */
+    flags?: Flags;
 }

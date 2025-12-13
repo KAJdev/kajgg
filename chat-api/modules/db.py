@@ -209,6 +209,42 @@ class Message(Document):
 
     @classmethod
     async def validate_dict(cls, data: dict) -> bool:
+        if data.get("embeds"):
+            if not isinstance(data["embeds"], list) or not all(
+                isinstance(x, dict) for x in data["embeds"]
+            ):
+                raise exceptions.BadRequest("Bad Request")
+            if len(data["embeds"]) > 10:
+                raise exceptions.BadRequest(
+                    "You can only upload up to 10 embeds at a time"
+                )
+
+            for embed in data["embeds"]:
+                if len(embed.get("title", "")) > 256:
+                    raise exceptions.BadRequest(
+                        "Title must be less than 256 characters"
+                    )
+                if len(embed.get("description", "")) > 4096:
+                    raise exceptions.BadRequest(
+                        "Description must be less than 4096 characters"
+                    )
+                if len(embed.get("footer", "")) > 256:
+                    raise exceptions.BadRequest(
+                        "Footer must be less than 256 characters"
+                    )
+                if len(embed.get("color", "")) != 7 or not re.match(
+                    r"^#([0-9a-fA-F]{6})$", embed["color"]
+                ):
+                    raise exceptions.BadRequest("Invalid color")
+                if embed.get("image_url") and not re.match(
+                    r"^https?://[^\s]+$", embed["image_url"]
+                ):
+                    raise exceptions.BadRequest("Invalid image URL")
+                if embed.get("url") and not re.match(
+                    r"^https?://[^\s]+$", embed["url"]
+                ):
+                    raise exceptions.BadRequest("Invalid URL")
+
         if data.get("content"):
             data["content"] = data["content"].strip()
             if len(data["content"]) < 1:
@@ -232,8 +268,12 @@ class Message(Document):
             if len(data["nonce"]) > 100:
                 raise exceptions.BadRequest("Nonce must be less than 100 characters")
 
-        if not data.get("content") and not data.get("file_ids"):
-            raise exceptions.BadRequest("Content or file_ids is required")
+        if (
+            not data.get("content")
+            and not data.get("file_ids")
+            and not data.get("embeds")
+        ):
+            raise exceptions.BadRequest("content, file_ids, or embeds is required")
 
         return True
 

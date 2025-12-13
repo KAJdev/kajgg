@@ -2,6 +2,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from .author import Author
 from .channel import Channel
+from .embed import Embed
 from .file import File
 from .message_type import MessageType
 
@@ -16,6 +17,8 @@ class Message:
     content: str | None = None
     # List of files attached to the message
     files: list[File] | None = None
+    # List of embeds attached to the message
+    embeds: list[Embed] | None = None
     # When the message was created
     created_at: datetime | None = None
     # When the message was last updated

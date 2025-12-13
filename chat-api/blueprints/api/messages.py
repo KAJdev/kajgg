@@ -13,6 +13,7 @@ from modules.auth import authorized
 from modules.events import publish_event
 from chat_types.events import MessageCreated, MessageUpdated, MessageDeleted
 from beanie.operators import In
+from modules.urls import embed_message_content
 
 bp = Blueprint("messages")
 
@@ -101,7 +102,7 @@ async def get_messages(request: Request, channel_id: str):
     return json(await _messages_to_api(messages))
 
 
-EDITABLE_FIELDS = ["content"]
+EDITABLE_FIELDS = ["content", "embeds"]
 
 
 @bp.route("/v1/channels/<channel_id>/messages", methods=["POST"])
@@ -155,6 +156,9 @@ async def create_message(request: Request, channel_id: str):
         nonce=nonce,
     )
     await message.save()
+
+    if not data.get("embeds"):
+        asyncio.create_task(embed_message_content(message))
 
     total_bytes = len(content) if content else 0
     for file in files:
@@ -220,6 +224,9 @@ async def update_message(request: Request, channel_id: str, message_id: str):
 
     message.updated_at = datetime.now(UTC)
     await message.save_changes()
+
+    if not data.get("embeds"):
+        asyncio.create_task(embed_message_content(message))
 
     await request.ctx.user.fetch_status()
 

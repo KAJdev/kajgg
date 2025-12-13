@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from datetime import datetime
+from .flags import Flags
 from .status import Status
 
 
@@ -25,3 +26,5 @@ class Author:
     background_color: str | None = None
     # The author's total bytes
     bytes: int | None = None
+    # Flags of the author
+    flags: Flags | None = None
