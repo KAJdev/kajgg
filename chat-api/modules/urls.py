@@ -5,12 +5,12 @@ from typing import Optional
 from urllib.parse import urljoin
 
 import aiohttp
-from modules.utils import dtoa
 from chat_types.models import Message as ApiMessage
 from modules.db import Embed as DbEmbed, Message as DbMessage
 from bs4 import BeautifulSoup
 from chat_types.events import MessageUpdated
 from modules.events import publish_event
+from modules.serializers import message_to_api
 
 
 _URL_RE = re.compile(r"https?://[^\s]+", re.IGNORECASE)
@@ -193,4 +193,4 @@ async def embed_message_content(message: DbMessage):
     message.system_embeds = embeds
     await message.save_changes()
 
-    publish_event(MessageUpdated(message=dtoa(ApiMessage, message)))
+    publish_event(MessageUpdated(message=await message_to_api(message)))

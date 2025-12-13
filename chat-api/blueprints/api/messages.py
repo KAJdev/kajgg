@@ -9,6 +9,7 @@ from chat_types.models import (
 from sanic import Blueprint, Request, json, exceptions
 from modules.db import Channel, ChannelMember, Message, StoredFile
 from modules import utils
+from modules.serializers import message_to_api, messages_to_api
 from modules.auth import authorized
 from modules.events import publish_event
 from chat_types.events import MessageCreated, MessageUpdated, MessageDeleted
@@ -32,24 +33,7 @@ def _file_to_api(file: StoredFile) -> dict:
 
 
 async def _messages_to_api(messages: list[Message]) -> list[dict]:
-    file_ids: list[str] = []
-    for m in messages:
-        file_ids.extend(m.file_ids or [])
-
-    files_by_id: dict[str, StoredFile] = {}
-    if file_ids:
-        files = await StoredFile.find(In(StoredFile.id, list(set(file_ids)))).to_list()
-        files_by_id = {f.id: f for f in files}
-
-    out: list[dict] = []
-    for m in messages:
-        files = [
-            _file_to_api(files_by_id[fid])
-            for fid in (m.file_ids or [])
-            if fid in files_by_id
-        ]
-        out.append(utils.dtoa(ApiMessage, {**m.dict(), "files": files}))
-    return out
+    return await messages_to_api(messages)
 
 
 @bp.route("/v1/channels/<channel_id>/messages", methods=["GET"])
@@ -170,16 +154,7 @@ async def create_message(request: Request, channel_id: str):
 
     await request.ctx.user.fetch_status()
 
-    api_files = {f.id: f for f in files}
-    message_api = utils.dtoa(
-        ApiMessage,
-        {
-            **message.dict(),
-            "files": [
-                _file_to_api(api_files[fid]) for fid in file_ids if fid in api_files
-            ],
-        },
-    )
+    message_api = await message_to_api(message, files_by_id={f.id: f for f in files})
 
     publish_event(
         MessageCreated(
@@ -234,8 +209,7 @@ async def update_message(request: Request, channel_id: str, message_id: str):
 
     await request.ctx.user.fetch_status()
 
-    # files are static rn so we just send empty list if we can’t expand
-    api_message = (await _messages_to_api([message]))[0]
+    api_message = await message_to_api(message)
     publish_event(MessageUpdated(message=api_message))
 
     return json(api_message)
