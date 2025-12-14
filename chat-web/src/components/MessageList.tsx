@@ -62,7 +62,7 @@ function messageItemContent(
 }
 
 const listComponents = {
-  Footer: () => <div className="h-2" />,
+  Footer: () => <div className="h-4" />,
 } as const;
 
 export function MessageList({

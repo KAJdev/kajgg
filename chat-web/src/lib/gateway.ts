@@ -12,6 +12,7 @@ import {
   updateMessage,
   updateChannel,
   addAuthor,
+  removeChannel,
 } from "./cache";
 import type { Event } from "@schemas/events/event";
 import { EventType } from "@schemas/events/eventtype";
@@ -214,6 +215,8 @@ function handleEvent(event: Event) {
       return updateAuthor(event.d.author);
     case EventType.TYPING_STARTED:
       return startTyping(event.d.channel_id, event.d.user_id);
+    case EventType.CHANNEL_DELETED:
+      return removeChannel(event.d.channel_id);
     default: {
       if ((event as unknown as { t: string }).t === EventType.HEARTBEAT) {
         return;
