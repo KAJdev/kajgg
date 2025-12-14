@@ -16,6 +16,7 @@ import { createEmoji, updateUser } from "src/lib/api";
 import type { ApiError } from "src/lib/request";
 import { getColor } from "src/lib/utils";
 import { defaultTheme } from "src/lib/cache";
+import { Emoji } from "./Emoji";
 
 function UserSettings() {
   const user = useUser();
@@ -213,6 +214,15 @@ function EmojisSettings() {
         >
           Create Emoji
         </Button>
+      </div>
+
+      <div className="flex flex-col gap-2">
+        {Object.values(emojis).map((emoji) => (
+          <div key={emoji.id} className="flex items-center gap-2">
+            <Emoji emoji={emoji} />
+            {emoji.name}
+          </div>
+        ))}
       </div>
     </div>
   );

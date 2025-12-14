@@ -1,0 +1,23 @@
+export const DEFAULT_EMOJIS = {
+  thumbsup: "👍",
+  thumbsdown: "👎",
+  heart: "💖",
+  smile: "😄",
+  sad: "😢",
+  angry: "😠",
+  laugh: "😂",
+  cry: "😭",
+  sleepy: "😴",
+  surprised: "😲",
+  confused: "😕",
+  thinking: "🤔",
+  winking: "😉",
+  blushing: "😊",
+  sleeping: "😴",
+  sick: "🤒",
+  injured: "🤕",
+  dead: "💀",
+  poop: "💩",
+} as const;
+
+

@@ -424,6 +424,7 @@ async def init():
             Message,
             Channel,
             ChannelMember,
+            Emoji,
         ],
     )
     logging.info("Connected to MongoDB")

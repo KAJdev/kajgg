@@ -1,36 +1,16 @@
+import { useMemo } from "react";
 import type { Emoji as EmojiType } from "@schemas/index";
 import { searchEmojis } from "src/lib/cache";
+import { DEFAULT_EMOJIS } from "src/lib/defaultEmojis";
 import { Emoji } from "./Emoji";
-
-const DEFAULT_EMOJIS = {
-  thumbsup: "👍",
-  thumbsdown: "👎",
-  heart: "💖",
-  smile: "😄",
-  sad: "😢",
-  angry: "😠",
-  laugh: "😂",
-  cry: "😭",
-  sleepy: "😴",
-  surprised: "😲",
-  confused: "😕",
-  thinking: "🤔",
-  winking: "😉",
-  blushing: "😊",
-  sleeping: "😴",
-  sick: "🤒",
-  injured: "🤕",
-  dead: "💀",
-  poop: "💩",
-};
 
 export function EmojiSearch({
   query,
   onPick,
-}: {
+}: Readonly<{
   query: string;
   onPick: (emoji: string) => void;
-}) {
+}>) {
   const results = useMemo(() => {
     const customEmojis = searchEmojis(query).map((emoji) => ({
       name: emoji.name,

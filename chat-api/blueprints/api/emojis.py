@@ -6,7 +6,6 @@ from modules.db import User, Emoji
 from modules import utils
 from modules.auth import authorized
 from chat_types.models.emoji import Emoji as ApiEmoji
-import boto3
 from modules import r2
 
 bp = Blueprint("emojis")
@@ -53,7 +52,11 @@ async def _put_emoji_image(emoji: Emoji, base64_data: str) -> None:
 @authorized()
 @openapi.exclude()
 async def get_user_emojis(request: Request, user_id: str):
-    user = await User.find_one(User.id == user_id)
+    user = (
+        request.ctx.user
+        if user_id == "@me"
+        else await User.find_one(User.id == user_id)
+    )
     if not user:
         raise exceptions.NotFound("User not found")
 
