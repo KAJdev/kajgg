@@ -89,14 +89,21 @@ function WebhookItem({ webhook }: { webhook: WebhookType }) {
         className="w-8 h-8 bg-primary rounded-full"
         style={{ backgroundColor: color }}
       />
-      <Input
-        className="text-primary w-full"
-        value={name}
-        maxLength={32}
-        disabled={updateLoading}
-        onChange={setName}
-      />
-      <ColorPicker color={color} setColor={setColor} />
+      <div className="flex flex-col gap-2">
+        <Label>Name</Label>
+        <Input
+          className="text-primary w-full"
+          value={name}
+          maxLength={32}
+          disabled={updateLoading}
+          onChange={setName}
+        />
+      </div>
+      <div className="flex flex-col gap-2">
+        <Label>Color</Label>
+        <ColorPicker color={color} setColor={setColor} />
+      </div>
+
       <Button
         loading={updateLoading}
         disabled={name === webhook.name && color === webhook.color}

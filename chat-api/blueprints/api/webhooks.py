@@ -119,26 +119,27 @@ def parse_github_webhook(response: Request) -> dict | None:
 
         desc = ""
 
-        if (added := len(payload.get('added', []))) > 0:
+        if (added := len(payload.get("added", []))) > 0:
             desc += f"&a+{added} files added"
-        if (removed := len(payload.get('removed', []))) > 0:
+        if (removed := len(payload.get("removed", []))) > 0:
             desc += f"&c-{removed} files removed"
-        if (modified := len(payload.get('modified', []))) > 0:
+        if (modified := len(payload.get("modified", []))) > 0:
             desc += f"&e~{modified} files modified"
 
-        desc += f"\n\n{bool(desc) and "&r" or ""}{payload.get("pusher", {}).get("name")}"
+        desc += (
+            f"\n\n{bool(desc) and '&r' or ''}{payload.get('pusher', {}).get('name')}"
+        )
 
         return {
             "embeds": [
                 {
                     "url": f"https://github.com/{payload.get('repository', {}).get('full_name')}/commit/{payload.get('after')}",
-                    "title": f"{payload.get("head_commit", {}).get("message")}",
+                    "title": f"{payload.get('head_commit', {}).get('message')}",
                     "description": desc,
                     "footer": f"{payload.get('repository', {}).get('full_name')} | GitHub",
                 }
             ]
         }
-
 
 
 @bp.route("/v1/webhooks/<channel_id>/<webhook_id>/<webhook_secret>", methods=["POST"])
@@ -157,7 +158,7 @@ async def receive_webhook(
     if not data:
         raise exceptions.BadRequest("Bad Request")
 
-    if (parsed := parse_github_webhook(request)):
+    if parsed := parse_github_webhook(request):
         data = parsed
 
     if not await Message.validate_dict(data):
