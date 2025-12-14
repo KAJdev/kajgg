@@ -1,12 +1,17 @@
 import type { User } from "@schemas/models/user";
 import {
+  addOptimisticMessage,
   addAuthor,
   addChannel,
-  addMessage,
+  addMessages,
+  cache,
+  reconcileMessageByNonce,
+  prependMessages,
   removeMessage,
   setUser,
   updateAuthor,
   updateMessage,
+  updateMessageById,
 } from "./cache";
 import type { Channel } from "@schemas/models/channel";
 import type { Message } from "@schemas/models/message";
@@ -14,12 +19,6 @@ import { request } from "./request";
 import type { Author } from "@schemas/models/author";
 import type { FileUpload } from "@schemas/models/fileupload";
 import type { File as ApiFile } from "@schemas/models/file";
-import {
-  cache,
-  addOptimisticMessage,
-  updateMessageById,
-  reconcileMessageByNonce,
-} from "./cache";
 import type { User as UserType } from "src/types/models/user";
 
 export async function login(username: string, password: string) {
@@ -206,14 +205,14 @@ export async function createMessage(
           const current =
             cache.getState().messages[channelId]?.[optimisticId]?.client
               ?.uploads ?? {};
+          const prev = current[u.file.id];
           updateMessageById(channelId, optimisticId, {
             client: {
               status: "sending",
               uploads: {
                 ...current,
                 [u.file.id]: {
-                  ...(current[u.file.id] ?? {}),
-                  progress: p,
+                  ...(prev ? { ...prev, progress: p } : { progress: p }),
                 },
               },
             },
@@ -317,7 +316,8 @@ export async function fetchMessages(
   before?: Date,
   limit?: number,
   authorId?: string,
-  contains?: string
+  contains?: string,
+  options?: { mode?: "append" | "prepend" }
 ) {
   const [messages, error] = await request<Message[]>(
     `channels/${channelId}/messages`,
@@ -337,8 +337,10 @@ export async function fetchMessages(
     throw error;
   }
 
-  for (const message of messages) {
-    addMessage(channelId, message);
+  if (options?.mode === "prepend") {
+    prependMessages(channelId, messages);
+  } else {
+    addMessages(channelId, messages);
   }
 
   return messages;

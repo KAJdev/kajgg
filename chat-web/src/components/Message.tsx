@@ -70,7 +70,7 @@ function MessageFile({
     return (
       <div className="flex flex-col gap-1">
         <div
-          className="max-h-72 max-w-88 cursor-pointer border border-neutral-800 bg-black/10 relative overflow-hidden"
+          className="max-h-72 max-w-88 cursor-pointer border border-tertiary bg-black/10 relative overflow-hidden"
           style={
             hasPreview && !remoteLoaded
               ? {
@@ -88,7 +88,7 @@ function MessageFile({
             alt={file.name}
             onLoad={() => setRemoteLoaded(true)}
             className={classes(
-              "max-h-72 max-w-88 transition-opacity",
+              "max-h-72 max-w-88 transition-opacity object-cover",
               hasPreview && !remoteLoaded ? "opacity-0" : "opacity-100"
             )}
           />
@@ -120,10 +120,10 @@ function MessageFile({
         <video
           src={showProgress && previewUrl ? previewSrc : remoteSrc}
           controls
-          className="max-h-72 max-w-88 border border-neutral-800"
+          className="max-h-72 max-w-88 border border-tertiary object-cover"
         />
         {showProgress && (
-          <div className="h-1 w-full max-w-88 bg-neutral-800">
+          <div className="h-1 w-full max-w-88 bg-tertiary">
             <div
               className="h-1 bg-emerald-400 transition-[width]"
               style={{ width: `${Math.floor(progress * 100)}%` }}
@@ -136,11 +136,7 @@ function MessageFile({
 
   if (file.mime_type.startsWith("audio/")) {
     return (
-      <audio
-        src={file.url}
-        controls
-        className="max-w-88 border border-neutral-800"
-      />
+      <audio src={file.url} controls className="w-88 border border-tertiary" />
     );
   }
 
@@ -149,7 +145,7 @@ function MessageFile({
       href={file.url}
       target="_blank"
       rel="noreferrer"
-      className="border border-neutral-800 px-2 py-1 text-neutral-200 hover:underline max-w-88 overflow-hidden text-ellipsis whitespace-nowrap"
+      className="border border-tertiary px-2 py-1 text-secondary hover:underline w-88 overflow-hidden text-ellipsis whitespace-nowrap"
     >
       {file.name}
     </a>
@@ -241,14 +237,11 @@ function DefaultMessage({
       ) : (
         <>
           {message.content && (
-            <span>
-              <span className="flex-1">
-                <MessageMarkdown content={message.content} />
-              </span>
-              {message.updated_at && (
-                <span className="opacity-30 ml-2">(edited)</span>
-              )}
-            </span>
+            <MessageMarkdown
+              content={
+                message.content + (message.updated_at ? ` *(edited)*` : "")
+              }
+            />
           )}
         </>
       )}
@@ -293,7 +286,7 @@ function JoinLeaveMessage({ message }: MessageProps) {
 
   return (
     <div className="flex w-full items-center gap-2 mt-4 py-2">
-      <p className="text-tertiary">
+      <div className="text-tertiary">
         {message.type === MessageTypeEnum.JOIN ? (
           <>
             [<span className="text-green-500">+</span>]
@@ -303,7 +296,7 @@ function JoinLeaveMessage({ message }: MessageProps) {
             [<span className="text-red-500">-</span>]
           </>
         )}
-      </p>
+      </div>
       <Username author={author} /> {supplementaryMessage}
     </div>
   );
@@ -355,7 +348,13 @@ export function Message(props: MessageProps) {
         new Date(channelLastSeenAt).getTime());
 
   return (
-    <>
+    <div>
+      {isUnread && (
+        <div className="flex items-center gap-2 mt-4">
+          <span className="text-red-500">! unread</span>
+          <div className="h-px bg-red-500 w-full" />
+        </div>
+      )}
       <MessageComponent
         {...{
           ...props,
@@ -363,12 +362,6 @@ export function Message(props: MessageProps) {
           previousMessage: isUnread ? null : props.previousMessage,
         }}
       />
-      {isUnread && (
-        <div className="flex items-center gap-2 mt-4">
-          <span className="text-red-500">unread</span>
-          <div className="h-px bg-red-500 w-full" />
-        </div>
-      )}
-    </>
+    </div>
   );
 }

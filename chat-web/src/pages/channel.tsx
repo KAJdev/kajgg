@@ -61,8 +61,7 @@ export function Channel() {
   useEffect(() => {
     if (channelId) {
       setLastSeenChannel(channelId);
-      // initial page: load latest messages (server defaults to 50, but we make it explicit)
-      void fetchMessages(channelId, undefined, undefined, 50);
+      void fetchMessages(channelId, undefined, undefined, 100);
     }
 
     return () => {
@@ -195,8 +194,8 @@ export function Channel() {
 
         <div className="flex flex-col gap-2 min-h-0">
           <MessageList
+            key={channelId}
             channelId={channelId}
-            messages={messages}
             editingMessageId={editingMessageId}
             setEditingMessageId={setEditingMessageId}
           />

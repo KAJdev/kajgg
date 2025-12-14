@@ -62,6 +62,8 @@ name = { type = "string", doc = "Original filename" }
 mime_type = { type = "string", doc = "MIME type of the file" }
 size = { type = "integer", doc = "File size in bytes" }
 url = { type = "string", doc = "URL to access the file" }
+height = { type = "integer", doc = "Height of the file" }
+width = { type = "integer", doc = "Width of the file" }
 
 [Channel]
 type = "object"

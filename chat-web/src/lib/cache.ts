@@ -11,6 +11,7 @@ type TimeoutId = ReturnType<typeof setTimeout>;
 
 // keep more so infinite scroll doesn't immediately evict history
 const MAX_MESSAGES_PER_CHANNEL = 2000;
+export const VIRTUOSO_FIRST_ITEM_INDEX_BASE = 1_000_000;
 
 export type ClientUploadProgress = {
   /** 0..1 */
@@ -41,6 +42,9 @@ export type Cache = {
   channels: Record<string, Channel>;
   messages: Record<string, Record<string, CachedMessage>>;
   messageQueues: Record<string, ChannelMessageQueue>;
+  // virtuoso wants this to be positive, so we keep a per-channel index here
+  // and update it atomically with message prepends to avoid 1-frame jumps
+  virtuosoFirstItemIndexByChannel: Record<string, number>;
   authors: Record<string, Author>;
   typing: Record<string, Record<string, TimeoutId>>;
   last_event_ts?: number;
@@ -66,6 +70,7 @@ export const cache = create<Cache>()(() => ({
   channels: {},
   messages: {},
   messageQueues: {},
+  virtuosoFirstItemIndexByChannel: {},
   authors: {},
   typing: {},
   last_event_ts: undefined,
@@ -171,9 +176,9 @@ export function useUserSettings() {
 
 export function useFlippedColors(backgroundColor: string) {
   // returns the theme colors, but flipped if the color is too light
-  const r = parseInt(backgroundColor.slice(1, 3), 16);
-  const g = parseInt(backgroundColor.slice(3, 5), 16);
-  const b = parseInt(backgroundColor.slice(5, 7), 16);
+  const r = Number.parseInt(backgroundColor.slice(1, 3), 16);
+  const g = Number.parseInt(backgroundColor.slice(3, 5), 16);
+  const b = Number.parseInt(backgroundColor.slice(5, 7), 16);
   const shouldFlip = r * 0.299 + g * 0.587 + b * 0.114 > 146;
 
   const theme = persistentCache(
@@ -316,22 +321,35 @@ export function addChannel(channel: Channel) {
   }));
 }
 
-function _upsertQueuedMessage(
+function _upsertQueuedMessages(
   state: Cache,
   channelId: string,
-  messageId: string,
-  nextMessage: CachedMessage
+  nextMessages: CachedMessage[]
 ) {
   const currentChannel = state.messages[channelId] ?? {};
-  const alreadyHad = !!currentChannel[messageId];
 
-  const nextChannel: Record<string, CachedMessage> = {
-    ...currentChannel,
-    [messageId]: {
+  const nextChannel: Record<string, CachedMessage> = { ...currentChannel };
+
+  for (const nextMessage of nextMessages) {
+    const messageId = nextMessage.id;
+    const existing = nextChannel[messageId];
+
+    // keep cachedAt stable so ui stuff (like animations) doesn't freak out
+    const cachedAt = existing?.cachedAt ?? Date.now();
+
+    const merged: CachedMessage = {
+      ...(existing ?? ({} as CachedMessage)),
       ...nextMessage,
-      cachedAt: alreadyHad ? currentChannel[messageId]?.cachedAt : Date.now(),
-    },
-  };
+      cachedAt,
+    };
+
+    // don't let "undefined" from server stomp client-only metadata
+    if (nextMessage.client === undefined && existing?.client !== undefined) {
+      merged.client = existing.client;
+    }
+
+    nextChannel[messageId] = merged;
+  }
 
   // note: we used to evict by arrival order, but that breaks once you page in older messages.
   // this keeps memory bounded while preserving newest-by-created_at.
@@ -365,19 +383,68 @@ function _upsertQueuedMessage(
   };
 }
 
+function _upsertQueuedMessage(
+  state: Cache,
+  channelId: string,
+  messageId: string,
+  nextMessage: CachedMessage
+) {
+  return _upsertQueuedMessages(state, channelId, [
+    { ...nextMessage, id: messageId },
+  ]);
+}
+
 export function addMessage(channelId: string, message: Message) {
   cache.setState((state) => {
-    return _upsertQueuedMessage(
-      state,
-      channelId,
-      message.id,
-      message as CachedMessage
-    );
+    return _upsertQueuedMessage(state, channelId, message.id, message);
   });
 
   if (message.author_id !== cache.getState().user?.id && !getIsPageFocused()) {
     updateChannelLastMessageAt(channelId, message.created_at);
   }
+}
+
+export function addMessages(channelId: string, messages: Message[]) {
+  cache.setState((state) => {
+    return _upsertQueuedMessages(state, channelId, messages);
+  });
+
+  if (getIsPageFocused()) return;
+
+  const me = cache.getState().user?.id;
+  let latest: Date | null = null;
+  for (const message of messages) {
+    if (message.author_id === me) continue;
+    const ts = new Date(message.created_at);
+    if (!latest || ts.getTime() > latest.getTime()) latest = ts;
+  }
+  if (latest) updateChannelLastMessageAt(channelId, latest);
+}
+
+export function prependMessages(channelId: string, messages: Message[]) {
+  cache.setState((state) => {
+    const existing = state.messages[channelId] ?? {};
+    const existingIds = new Set(Object.keys(existing));
+
+    // only count truly new messages; server can return overlap with current oldest page
+    const newCount = messages.filter((m) => !existingIds.has(m.id)).length;
+
+    const currentIndex =
+      state.virtuosoFirstItemIndexByChannel[channelId] ??
+      VIRTUOSO_FIRST_ITEM_INDEX_BASE;
+
+    const nextIndex = newCount
+      ? Math.max(0, currentIndex - newCount)
+      : currentIndex;
+
+    return {
+      ..._upsertQueuedMessages(state, channelId, messages),
+      virtuosoFirstItemIndexByChannel: {
+        ...state.virtuosoFirstItemIndexByChannel,
+        [channelId]: nextIndex,
+      },
+    };
+  });
 }
 
 export function addOptimisticMessage(
@@ -397,9 +464,10 @@ export function updateMessageById(
   cache.setState((state) => {
     const currentChannel = state.messages[channelId] ?? {};
     const existing = currentChannel[messageId];
+    if (!existing) return state;
 
     return _upsertQueuedMessage(state, channelId, messageId, {
-      ...(existing as CachedMessage),
+      ...existing,
       ...patch,
       cachedAt: existing?.cachedAt ?? Date.now(),
     });
@@ -420,9 +488,7 @@ export function reconcileMessageByNonce(
     (id) => messages[id]?.nonce === nonce
   );
 
-  const optimistic = optimisticId
-    ? (messages[optimisticId] as CachedMessage)
-    : null;
+  const optimistic = optimisticId ? messages[optimisticId] : null;
 
   if (optimisticId && optimisticId !== serverMessage.id) {
     removeMessage(channelId, optimisticId);
@@ -491,20 +557,11 @@ export function removeAuthor(authorId: string) {
 }
 
 export function updateChannel(channel: Channel) {
-  cache.setState((state) => ({
-    channels: { ...state.channels, [channel.id]: channel },
-  }));
+  addChannel(channel);
 }
 
 export function updateMessage(channelId: string, message: Message) {
-  cache.setState((state) => {
-    return _upsertQueuedMessage(
-      state,
-      channelId,
-      message.id,
-      message as CachedMessage
-    );
-  });
+  addOptimisticMessage(channelId, message);
 }
 
 export function updateAuthor(author: Author) {
@@ -519,6 +576,16 @@ export function useUser() {
 
 export function useChannels() {
   return cache(useShallow((state) => state.channels));
+}
+
+export function useVirtuosoFirstItemIndex(channelId: string) {
+  return cache(
+    useShallow(
+      (state) =>
+        state.virtuosoFirstItemIndexByChannel[channelId] ??
+        VIRTUOSO_FIRST_ITEM_INDEX_BASE
+    )
+  );
 }
 
 export function useChannel(channelId: string) {
