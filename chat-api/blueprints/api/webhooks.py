@@ -167,7 +167,7 @@ async def receive_webhook(
         raise exceptions.BadRequest("Invalid request")
 
     message = Message(
-        author_id=webhook.owner_id,
+        author_id=webhook.id,
         channel_id=channel_id,
         content=data.get("content"),
         user_embeds=data.get("embeds", []),
