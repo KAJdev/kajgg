@@ -7,6 +7,8 @@ import {
   buildMessageMarkdownSanitizeSchema,
   getMessageMarkdownComponents,
 } from "src/lib/messageMarkdownRegistry";
+import { remarkMinecraftFormatting } from "src/lib/remarkMinecraftFormatting";
+import "src/lib/minecraftSpan";
 
 function MarkdownLink({
   children,
@@ -102,7 +104,7 @@ export function MessageMarkdown({
   return (
     <div className="wrap-break-word whitespace-pre-wrap">
       <ReactMarkdown
-        remarkPlugins={[remarkGfm]}
+        remarkPlugins={[remarkGfm, remarkMinecraftFormatting]}
         rehypePlugins={[
           rehypeRaw,
           [rehypeSanitize, buildMessageMarkdownSanitizeSchema()],
