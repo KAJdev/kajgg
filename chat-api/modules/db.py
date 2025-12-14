@@ -2,6 +2,7 @@ import asyncio
 from datetime import datetime, UTC
 from chat_types.models import Status, MessageType, Embed as ApiEmbed
 from chat_types.models.author import Author as ApiAuthor
+from chat_types.models.flags import Flags as ApiUserFlags
 from dotenv import load_dotenv
 from os import getenv
 from modules.utils import generate_id, generate_secret
@@ -17,7 +18,7 @@ load_dotenv()
 from typing import Optional
 
 from motor.motor_asyncio import AsyncIOMotorClient
-from pydantic import BaseModel, Field
+from pydantic import Field
 
 from beanie import Document, init_beanie
 from beanie.operators import In, Or
@@ -38,8 +39,9 @@ def normalize_title(title: str):
     return title.lower()
 
 
-class UserFlags(BaseModel):
-    admin: bool = False
+Embed = pydantic_model_from_dataclass(ApiEmbed, name="Embed")
+Author = pydantic_model_from_dataclass(ApiAuthor, name="Author")
+UserFlags = pydantic_model_from_dataclass(ApiUserFlags, name="UserFlags")
 
 
 class User(Document):
@@ -195,10 +197,6 @@ class StoredFile(Document):
     class Settings:
         name = "files"
         use_state_management = True
-
-
-Embed = pydantic_model_from_dataclass(ApiEmbed, name="Embed")
-Author = pydantic_model_from_dataclass(ApiAuthor, name="Author")
 
 
 class Message(Document):

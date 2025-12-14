@@ -1,11 +1,10 @@
 import re
 from sanic import Blueprint, Request, json, exceptions
 from sanic_ext import openapi
-from modules.db import Author, Channel, Message, User, Webhook
+from modules.db import Author, Channel, Message, User, UserFlags, Webhook
 from modules import utils
 from modules.auth import authorized
 from chat_types.models.webhook import Webhook as ApiWebhook
-from chat_types.models.flags import Flags
 from chat_types.models.status import Status
 from modules.events import publish_event
 from chat_types.events import MessageCreated
@@ -195,7 +194,7 @@ async def receive_webhook(
             status=Status.ONLINE,
             color=custom_author["color"],
             background_color=custom_author["background_color"],
-            flags=Flags(webhook=True),
+            flags=UserFlags(webhook=True),
         ),
     )
     await message.save()
