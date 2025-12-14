@@ -31,6 +31,7 @@ export function ChatInput({
   placeholder,
   editing,
   autofocus,
+  emojiQuery,
 }: {
   content: string;
   attachments?: Attachment[];
@@ -40,6 +41,7 @@ export function ChatInput({
   placeholder?: string;
   editing?: boolean;
   autofocus?: boolean;
+  emojiQuery?: string | null;
 }) {
   const { channelId } = useParams();
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -166,7 +168,20 @@ export function ChatInput({
             autosize();
           }}
           onKeyDown={(e) => {
-            if (e.key === "Enter") {
+            const key = e.key.toLowerCase();
+            if (
+              emojiQuery &&
+              (key === "arrowup" ||
+                key === "arrowdown" ||
+                key === "tab" ||
+                key === "enter" ||
+                key === "escape")
+            ) {
+              e.preventDefault();
+              return;
+            }
+
+            if (key === "enter") {
               if (e.shiftKey) {
                 // ctrl+shift => newline
                 return;

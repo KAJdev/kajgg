@@ -251,6 +251,7 @@ export function Channel() {
               onSubmit={handleSubmit}
               placeholder={`> message #${channel?.name ?? ""}`}
               autofocus={!editingMessageId}
+              emojiQuery={emojiQuery}
             />
           </div>
         </div>

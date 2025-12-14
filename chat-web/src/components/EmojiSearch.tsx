@@ -4,6 +4,7 @@ import { searchEmojis } from "src/lib/cache";
 import { DEFAULT_EMOJIS } from "src/lib/defaultEmojis";
 import { Emoji } from "./Emoji";
 import { useKeybind } from "src/lib/keybind";
+import { Label } from "@theme/Label";
 
 export function EmojiSearch({
   query,
@@ -12,9 +13,7 @@ export function EmojiSearch({
   query: string;
   onPick: (emoji: string) => void;
 }>) {
-  const [hoveredEmojiIndex, setHoveredEmojiIndex] = useState<number | null>(
-    null
-  );
+  const [hoveredEmojiIndex, setHoveredEmojiIndex] = useState<number | null>(0);
 
   const results = useMemo(() => {
     const customEmojis = searchEmojis(query).map((emoji) => ({
@@ -37,12 +36,15 @@ export function EmojiSearch({
 
   useKeybind("arrowup", () => {
     if (hoveredEmojiIndex === null) setHoveredEmojiIndex(0);
-    else setHoveredEmojiIndex(hoveredEmojiIndex - 1);
+    else
+      setHoveredEmojiIndex(
+        (hoveredEmojiIndex - 1 + results.length) % results.length
+      );
   });
 
   useKeybind("arrowdown", () => {
     if (hoveredEmojiIndex === null) setHoveredEmojiIndex(0);
-    else setHoveredEmojiIndex(hoveredEmojiIndex + 1);
+    else setHoveredEmojiIndex((hoveredEmojiIndex + 1) % results.length);
   });
 
   useKeybind("enter", () => {
@@ -56,13 +58,13 @@ export function EmojiSearch({
 
   useKeybind("tab", () => {
     if (hoveredEmojiIndex === null) setHoveredEmojiIndex(0);
-    else setHoveredEmojiIndex(hoveredEmojiIndex + 1);
+    else setHoveredEmojiIndex((hoveredEmojiIndex + 1) % results.length);
   });
 
   return (
-    <div className="bg-tertiary p-2 text-primary w-full flex flex-col gap-2">
-      <p>emojis</p>
-      {results.map((result) => (
+    <div className="bg-tertiary text-primary w-full flex flex-col">
+      <Label className="p-2">emojis matching :{query}:</Label>
+      {results.map((result, index) => (
         <div
           key={result.name}
           onClick={() => {
@@ -72,7 +74,13 @@ export function EmojiSearch({
               onPick(`:${(result.emoji as EmojiType).id}:`);
             }
           }}
-          className="flex items-center gap-2 hover:bg-secondary cursor-pointer"
+          onMouseEnter={() => {
+            setHoveredEmojiIndex(index);
+          }}
+          className={classes(
+            "flex items-center gap-2 hover:bg-secondary/25 cursor-pointer p-2",
+            hoveredEmojiIndex === index && "bg-secondary/25"
+          )}
         >
           <Emoji emoji={result.emoji} />:{result.name}:
         </div>
