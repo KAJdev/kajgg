@@ -479,11 +479,16 @@ export function updateMessageById(
 
 export function reconcileMessageByNonce(
   channelId: string,
-  serverMessage: Message
+  serverMessage: Message,
+  mode: "add" | "update"
 ) {
   const nonce = serverMessage.nonce;
   if (!nonce) {
-    return addMessage(channelId, serverMessage);
+    if (mode === "add") {
+      return addMessage(channelId, serverMessage);
+    } else if (mode === "update") {
+      return updateMessageById(channelId, serverMessage.id, serverMessage);
+    }
   }
 
   cache.setState((state) => {

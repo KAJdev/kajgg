@@ -5,7 +5,6 @@ import {
   addChannel,
   addMessages,
   cache,
-  reconcileMessageByNonce,
   prependMessages,
   removeMessage,
   setUser,
@@ -311,9 +310,6 @@ export async function createMessage(
     });
     throw error;
   }
-
-  // reconcile by nonce so we keep local previews + avoid image flash
-  reconcileMessageByNonce(channelId, message);
 
   return message;
 }

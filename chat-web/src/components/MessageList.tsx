@@ -127,7 +127,7 @@ export function MessageList({
         if (atTop) fetchPreviousMessages();
       }}
       atTopThreshold={500}
-      computeItemKey={(_index, item) => item[0].id}
+      computeItemKey={(_index, item) => item[0].nonce ?? item[0].id}
       itemContent={messageItemContent(
         editingMessageId,
         setEditingMessageId,

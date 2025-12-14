@@ -190,6 +190,9 @@ async def collect_message_embeds(content: Optional[str]) -> list[DbEmbed]:
 
 async def embed_message_content(message: DbMessage):
     embeds = await collect_message_embeds(message.content)
+    # shirt circuit if the embeds are the same
+    if message.system_embeds == embeds:
+        return
     message.system_embeds = embeds
     await message.save_changes()
 

@@ -9,7 +9,6 @@ import {
   stopTyping,
   tokenCache,
   updateAuthor,
-  updateMessage,
   updateChannel,
   addAuthor,
   removeChannel,
@@ -200,13 +199,21 @@ function handleEvent(event: Event) {
       return updateChannel(event.d.channel);
     case EventType.MESSAGE_CREATED:
       return (
-        reconcileMessageByNonce(event.d.message.channel_id, event.d.message),
+        reconcileMessageByNonce(
+          event.d.message.channel_id,
+          event.d.message,
+          "add"
+        ),
         stopTyping(event.d.message.channel_id, event.d.message.author_id),
         addAuthor(event.d.author)
       );
     case EventType.MESSAGE_UPDATED:
       return (
-        updateMessage(event.d.message.channel_id, event.d.message),
+        reconcileMessageByNonce(
+          event.d.message.channel_id,
+          event.d.message,
+          "update"
+        ),
         stopTyping(event.d.message.channel_id, event.d.message.author_id)
       );
     case EventType.MESSAGE_DELETED:
