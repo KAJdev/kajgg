@@ -44,7 +44,7 @@ async def create_webhook(request: Request, channel_id: str):
     webhook = Webhook(
         owner_id=request.ctx.user.id,
         name=data.get("name"),
-        color=data.get("color"),
+        color=data.get("color", "#000000"),
         channel_id=channel_id,
     )
 

@@ -146,13 +146,13 @@ function WebhooksSettings({ channelId }: { channelId: string }) {
         webhooks can send messages directly to this channel
       </p>
       <div>
-        <Button onClick={() => createWebhook(channelId, "New Webhook")}>
+        <Button onClick={() => createWebhook(channelId, "new_webhookk")}>
           Create Webhook
         </Button>
       </div>
 
       <div className="flex flex-col gap-2 border-t border-tertiary/30 pt-4">
-        {webhooks?.length === 0 && (
+        {webhooks?.length === 0 && !loading && (
           <div className="flex items-center gap-2 text-secondary/50">
             <p>no webhooks yet. Try creating one!</p>
           </div>
