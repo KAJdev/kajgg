@@ -31,7 +31,6 @@ export function Embed({ embed }: { embed: Embed }) {
       mediaOnlyFields[key as keyof typeof mediaOnlyFields][0]
     }/${ext}`;
 
-    console.log(mime_type);
     return (
       <MessageFile
         file={{

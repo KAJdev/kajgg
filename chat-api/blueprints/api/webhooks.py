@@ -155,32 +155,30 @@ def parse_railway_webhook(response: Request) -> dict | None:
 
     event = payload.get("type")
 
-    if event.lower() == "deployment.created":
+    if event.lower().startswith("deployment."):
+        state = event.lower().split(".")[1]
+        color = (
+            {
+                "deploying": "#f7c266",
+                "deployed": "#22e08a",
+                "failed": "#ff5f52",
+                "removed": "#ff5f52",
+                "unknown": "#8fa3b0",
+            }
+        ).get(state)
+
+        description = f"{payload.get('resource', {}).get('project', {}).get('name')} - {state.capitalize()} on &dRailway\n\npushed by {payload.get('details', {}).get('commitAuthor', 'somebody?')}"
+
         return {
             "embeds": [
                 {
-                    "title": f"{payload.get('details', {}).get('id')}",
+                    "title": "Railway",
+                    "description": description,
+                    "color": color,
+                    "footer": f"{payload.get('details', {}).get('id')}",
                 }
             ]
         }
-    elif event.lower() == "deployment.updated":
-        return {
-            "embeds": [
-                {
-                    "title": f"{payload.get('details', {}).get('id')}",
-                }
-            ]
-        }
-    elif event.lower() == "deployment.removed":
-        return {
-            "embeds": [
-                {
-                    "title": f"{payload.get('details', {}).get('id')}",
-                }
-            ]
-        }
-    else:
-        return None
 
 
 @bp.route("/v1/webhooks/<channel_id>/<webhook_id>/<webhook_secret>", methods=["POST"])
