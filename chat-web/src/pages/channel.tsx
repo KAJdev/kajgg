@@ -27,6 +27,7 @@ import { CreateChannel } from "src/components/CreateChannel";
 import { Modal } from "@theme/Modal";
 import { EmojiSearch } from "src/components/EmojiSearch";
 import { EditChannel } from "src/components/EditChannel";
+import { router } from "src/routes";
 
 const statusOrder = [
   StatusType.ONLINE,
@@ -92,6 +93,16 @@ export function Channel() {
         setLastSeenChannelAt(channelId, Date.now());
       }
     };
+  }, [channelId]);
+
+  useEffect(() => {
+    if (channelId) return;
+
+    const channelIds = Object.keys(cache.getState().channels ?? {});
+
+    if (channelIds.length > 0) {
+      router.navigate(`/channels/${channelIds[0]}`);
+    }
   }, [channelId]);
 
   useEffect(() => {

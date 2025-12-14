@@ -11,6 +11,7 @@ import { API_URL, type ApiError } from "src/lib/request";
 import type { Channel as ChannelType } from "src/types/models/channel";
 import {
   createWebhook,
+  deleteChannel,
   deleteWebhook,
   editChannel,
   fetchWebhooks,
@@ -18,6 +19,7 @@ import {
   useWebhooks,
 } from "src/lib/api";
 import { Loader2Icon } from "lucide-react";
+import { router } from "src/routes";
 
 function ChannelSettings({ channel }: { channel: ChannelType }) {
   const [loading, setLoading] = useState(false);
@@ -42,11 +44,16 @@ function ChannelSettings({ channel }: { channel: ChannelType }) {
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-col gap-2">
-        <Label>Username</Label>
+        <Label>Channel Name</Label>
         <Input
           type="text"
           value={form.name ?? channel.name}
-          onChange={(name: string) => setForm({ ...form, name })}
+          onChange={(name: string) =>
+            setForm({
+              ...form,
+              name: name.replace(/\s+/g, "-").toLowerCase(),
+            })
+          }
         />
       </div>
       <div className="flex flex-col gap-2">
@@ -131,8 +138,8 @@ function WebhookItem({ webhook }: { webhook: WebhookType }) {
             onClick={async () => {
               setUpdateLoading(true);
               await updateWebhook(webhook.channel_id, webhook.id, {
-                name,
-                color,
+                name: name === webhook.name ? undefined : name,
+                color: color === webhook.color ? undefined : color,
               }).catch(() => {
                 setUpdateLoading(false);
               });
@@ -184,6 +191,35 @@ function WebhooksSettings({ channelId }: { channelId: string }) {
   );
 }
 
+function MembersSettings() {
+  return (
+    <div className="flex flex-col gap-6">
+      <p className="text-secondary/50">members can join this channel</p>
+    </div>
+  );
+}
+
+function DangerZoneSettings({ channelId }: { channelId: string }) {
+  const [deleteLoading, setDeleteLoading] = useState(false);
+  return (
+    <div className="flex gap-6 border border-red-500/30 p-2 justify-between">
+      <p>delete this channel</p>
+      <Button
+        variant="danger"
+        onClick={async () => {
+          setDeleteLoading(true);
+          await deleteChannel(channelId);
+          router.navigate(`/channels`);
+          setDeleteLoading(false);
+        }}
+        loading={deleteLoading}
+      >
+        Delete Channel
+      </Button>
+    </div>
+  );
+}
+
 export function EditChannel() {
   const { channelId = "" } = useParams();
   const channel = useChannel(channelId);
@@ -207,12 +243,22 @@ export function EditChannel() {
         >
           <Tab name="Channel" value="channel" />
           <Tab name="Webhooks" value="webhooks" />
+          <Tab name="Members" value="members" />
+          <Tab
+            name="Danger Zone"
+            value="danger-zone"
+            className="text-red-500"
+          />
         </Tabs>
         {channelSettingsTab === "channel" && (
           <ChannelSettings channel={channel} />
         )}
         {channelSettingsTab === "webhooks" && (
           <WebhooksSettings channelId={channelId} />
+        )}
+        {channelSettingsTab === "members" && <MembersSettings />}
+        {channelSettingsTab === "danger-zone" && (
+          <DangerZoneSettings channelId={channelId} />
         )}
       </div>
     </Modal>

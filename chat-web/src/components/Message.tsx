@@ -232,6 +232,7 @@ function DefaultMessage({
   const showAuthorName =
     !previousMessage ||
     previousMessage.author_id !== message.author_id ||
+    previousMessage.author?.username !== message.author?.username ||
     previousMessage.type !== message.type ||
     timeSincePreviousMessage > 1000 * 60 * 5;
 

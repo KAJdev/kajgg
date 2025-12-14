@@ -23,7 +23,11 @@ export function ListAuthor({
         noColor={author.status === StatusType.OFFLINE}
         allowPlate={allowPlate}
       />
-      <Status status={author.status} />
+      {author.flags?.webhook ? (
+        <span className="bg-tertiary px-1">Webhook</span>
+      ) : (
+        <Status status={author.status} />
+      )}
     </div>
   );
 }
