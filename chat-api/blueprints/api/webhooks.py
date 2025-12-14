@@ -12,6 +12,7 @@ from chat_types.models.author import Author as ApiAuthor
 from chat_types.models.status import Status
 from modules.events import publish_event
 from chat_types.events import MessageCreated
+from modules.serializers import message_to_api
 
 bp = Blueprint("webhooks")
 
@@ -174,9 +175,11 @@ async def receive_webhook(
     )
     await message.save()
 
+    payload = await message_to_api(message)
+
     publish_event(
         MessageCreated(
-            message=utils.dtoa(ApiMessage, message),
+            message=payload,
             author=utils.dtoa(
                 ApiAuthor,
                 {
@@ -193,4 +196,4 @@ async def receive_webhook(
         )
     )
 
-    return json(utils.dtoa(ApiMessage, message))
+    return json(payload)
