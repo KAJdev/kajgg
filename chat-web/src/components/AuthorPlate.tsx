@@ -29,7 +29,7 @@ export function AuthorPlate({ author }: { author: Author }) {
           {formatBytes(author.bytes ?? 0)}
         </span>
         {author.bio && (
-          <p
+          <div
             className="w-full whitespace-pre-wrap break-words"
             style={{ color: colors.secondary }}
           >
@@ -39,7 +39,7 @@ export function AuthorPlate({ author }: { author: Author }) {
                 (author.bio?.length > 1000 ? "..." : "")
               }
             />
-          </p>
+          </div>
         )}
       </div>
     </div>

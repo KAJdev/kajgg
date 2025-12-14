@@ -18,15 +18,14 @@ export function Embed({ embed }: { embed: Embed }) {
             </h3>
           )}
           {embed.description && (
-            <p className="text-secondary">
-              {" "}
+            <div className="text-secondary">
               <MessageMarkdown content={embed.description} />
-            </p>
+            </div>
           )}
           {embed.footer && (
-            <p className="text-secondary/50">
+            <div className="text-secondary/50">
               <MessageMarkdown content={embed.footer} />
-            </p>
+            </div>
           )}
         </div>
 

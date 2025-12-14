@@ -9,6 +9,8 @@ import {
 } from "src/lib/messageMarkdownRegistry";
 import { remarkMinecraftFormatting } from "src/lib/remarkMinecraftFormatting";
 import { remarkEmojis } from "src/lib/remarkEmojis";
+import { isEmojiOnlyMessage } from "src/lib/emojiOnly";
+import { MessageMarkdownContext } from "src/lib/messageMarkdownContext";
 import "src/lib/minecraftSpan";
 import "src/lib/emojiMarkdown";
 
@@ -55,6 +57,12 @@ function MarkdownPre(props: Readonly<React.HTMLAttributes<HTMLPreElement>>) {
   );
 }
 
+function MarkdownParagraph(
+  props: Readonly<React.HTMLAttributes<HTMLParagraphElement>>
+) {
+  return <div {...props} />;
+}
+
 function MarkdownCode({
   className,
   children,
@@ -94,6 +102,7 @@ const baseComponents: Components = {
   pre: MarkdownPre,
   code: MarkdownCode,
   blockquote: MarkdownBlockquote,
+  p: MarkdownParagraph,
 };
 
 export function MessageMarkdown({
@@ -102,19 +111,28 @@ export function MessageMarkdown({
   content: string;
 }>) {
   const custom = getMessageMarkdownComponents();
+  const emojiOnly = isEmojiOnlyMessage(content);
+  const ctx = useMemo(() => ({ emojiOnly }), [emojiOnly]);
 
   return (
-    <div className="wrap-break-word whitespace-pre-wrap">
-      <ReactMarkdown
-        remarkPlugins={[remarkGfm, remarkMinecraftFormatting, remarkEmojis]}
-        rehypePlugins={[
-          rehypeRaw,
-          [rehypeSanitize, buildMessageMarkdownSanitizeSchema()],
-        ]}
-        components={{ ...baseComponents, ...custom } as unknown as Components}
+    <MessageMarkdownContext.Provider value={ctx}>
+      <div
+        className={classes(
+          "wrap-break-word whitespace-pre-wrap",
+          emojiOnly && "leading-none"
+        )}
       >
-        {content}
-      </ReactMarkdown>
-    </div>
+        <ReactMarkdown
+          remarkPlugins={[remarkGfm, remarkMinecraftFormatting, remarkEmojis]}
+          rehypePlugins={[
+            rehypeRaw,
+            [rehypeSanitize, buildMessageMarkdownSanitizeSchema()],
+          ]}
+          components={{ ...baseComponents, ...custom } as unknown as Components}
+        >
+          {content}
+        </ReactMarkdown>
+      </div>
+    </MessageMarkdownContext.Provider>
   );
 }

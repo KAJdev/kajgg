@@ -1,9 +1,13 @@
 import React from "react";
-import { DEFAULT_EMOJIS } from "src/lib/defaultEmojis";
+import { getDefaultEmojiByName } from "src/lib/defaultEmojiIndex";
 import { registerMessageMarkdownComponent } from "src/lib/messageMarkdownRegistry";
+import { MessageMarkdownContext } from "src/lib/messageMarkdownContext";
 import { getEmojiUrl } from "./cache";
 
-function EmojiImage({ eid }: { eid: string }) {
+function EmojiImage({
+  eid,
+  className,
+}: Readonly<{ eid: string; className?: string }>) {
   const [failed, setFailed] = useState(false);
   const [loading, setLoading] = useState(true);
 
@@ -22,7 +26,12 @@ function EmojiImage({ eid }: { eid: string }) {
 
   if (loading) {
     return (
-      <div className="w-4 h-4 inline-block bg-tertiary/50 animate-pulse" />
+      <div
+        className={classes(
+          "inline-block bg-tertiary/50 animate-pulse",
+          className
+        )}
+      />
     );
   }
 
@@ -34,7 +43,7 @@ function EmojiImage({ eid }: { eid: string }) {
     <img
       src={getEmojiUrl(eid)}
       alt={`:${eid}:`}
-      className="w-4 h-4 inline-block"
+      className={classes("inline-block", className)}
     />
   );
 }
@@ -50,16 +59,30 @@ export function MarkdownEmoji(
 ) {
   const eid = typeof props.eid === "string" ? props.eid : undefined;
   const ename = typeof props.ename === "string" ? props.ename : undefined;
+  const { emojiOnly } = useContext(MessageMarkdownContext);
 
   if (eid) {
-    return <EmojiImage eid={eid} />;
+    return (
+      <span className="inline-flex align-[-2px]">
+        <EmojiImage eid={eid} className={emojiOnly ? "w-12 h-12" : "w-4 h-4"} />
+      </span>
+    );
   }
 
   if (ename) {
     const key = ename.toLowerCase();
-    const builtin = DEFAULT_EMOJIS[key as keyof typeof DEFAULT_EMOJIS];
+    const builtin = getDefaultEmojiByName(key);
     if (builtin) {
-      return <span className="text-2xl w-4 h-4 inline-block">{builtin}</span>;
+      return (
+        <span
+          className={classes(
+            "inline-block w-4 h-4",
+            emojiOnly ? "text-6xl" : "text-2xl"
+          )}
+        >
+          {builtin}
+        </span>
+      );
     }
     return <span className="opacity-80">{`:${ename}:`}</span>;
   }
