@@ -247,8 +247,9 @@ class Message(Document):
                     raise exceptions.BadRequest(
                         "Footer must be less than 256 characters"
                     )
-                if len(embed.get("color", "")) != 7 or not re.match(
-                    r"^#([0-9a-fA-F]{6})$", embed["color"]
+                if embed.get("color") and not (
+                    len(embed.get("color")) == 7
+                    and re.match(r"^#([0-9a-fA-F]{6})$", embed.get("color"))
                 ):
                     raise exceptions.BadRequest("Invalid color")
                 if embed.get("image_url") and not re.match(
