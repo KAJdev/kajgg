@@ -41,6 +41,15 @@ export function Channel() {
   const channels = useChannels();
   const authors = useAuthors();
 
+  function setQuote(quotedMessage: string) {
+    setContent(
+      `${quotedMessage
+        .split("\n")
+        .map((line) => `> ${line}`)
+        .join("\n")}\n\n${content ?? ""}`
+    );
+  }
+
   function afterSubmit() {
     setEditingMessageId(null);
     setContent("");
@@ -198,6 +207,7 @@ export function Channel() {
             channelId={channelId}
             editingMessageId={editingMessageId}
             setEditingMessageId={setEditingMessageId}
+            onQuote={setQuote}
           />
         </div>
 

@@ -116,6 +116,11 @@ export async function createMessage(
     url: URL.createObjectURL(f),
   }));
 
+  const localPreviewBySig = new Map<string, string>();
+  for (const lf of localFiles) {
+    localPreviewBySig.set(`${lf.name}:${lf.size}:${lf.mime_type}`, lf.url);
+  }
+
   // show the message immediately, with client-only metadata
   addOptimisticMessage(channelId, {
     id: optimisticId,
@@ -164,6 +169,8 @@ export async function createMessage(
   let fileIds: string[] = [];
 
   if (hasFiles && files) {
+    // throttle progress writes so we don't rerender 60x/sec during big uploads
+    const lastProgressByFileId = new Map<string, number>();
     const [uploads, presignError] = await request<FileUpload[]>(
       "files/presign",
       {
@@ -191,10 +198,12 @@ export async function createMessage(
       client: {
         status: "sending",
         uploads: Object.fromEntries(
-          uploads.map((u, i) => [
-            u.file.id,
-            { progress: 0, preview_url: localFiles[i]?.url },
-          ])
+          uploads.map((u, i) => {
+            const sig = `${u.file.name}:${u.file.size}:${u.file.mime_type}`;
+            const preview =
+              localPreviewBySig.get(sig) ?? localFiles[i]?.url ?? undefined;
+            return [u.file.id, { progress: 0, preview_url: preview }];
+          })
         ),
       },
     });
@@ -202,6 +211,10 @@ export async function createMessage(
     await Promise.all(
       uploads.map((u, i) =>
         uploadWithProgress(u.upload_url, u.method ?? "PUT", files[i], (p) => {
+          const last = lastProgressByFileId.get(u.file.id) ?? -1;
+          if (p !== 1 && p - last < 0.01) return;
+          lastProgressByFileId.set(u.file.id, p);
+
           const current =
             cache.getState().messages[channelId]?.[optimisticId]?.client
               ?.uploads ?? {};

@@ -1,9 +1,11 @@
 import {
+  setContextMenuState,
   useAuthor,
   useLastSeenChannelAt,
+  useUser,
   type CachedMessage,
 } from "src/lib/cache";
-import { memo } from "react";
+import { memo, useEffect, useState } from "react";
 import { ChatInput } from "./ChatInput";
 import { deleteMessage, editMessage } from "src/lib/api";
 import { MessageType as MessageTypeEnum } from "@schemas/index";
@@ -13,6 +15,8 @@ import type { File as ApiFile } from "@schemas/models/file";
 import { Modal } from "@theme/Modal";
 import { Embed } from "./Embed";
 import { MessageMarkdown } from "./MessageMarkdown";
+import { motion } from "motion/react";
+import { Button } from "@theme/Button";
 
 const leaveMessages = [
   "has dissapeared",
@@ -40,6 +44,8 @@ export type MessageProps = {
   readonly previousMessage: CachedMessage | null;
   readonly editing?: boolean;
   readonly onCancelEdit: () => void;
+  readonly onEdit: (id: string) => void;
+  readonly onQuote: (content: string) => void;
 };
 
 function MessageFile({
@@ -54,6 +60,11 @@ function MessageFile({
   previewUrl?: string;
 }) {
   const [open, setOpen] = useState(false);
+  const [showRemote, setShowRemote] = useState(() => {
+    // If there's no preview, we should just show the remote image
+    return !previewUrl || previewUrl === file.url;
+  });
+
   const showProgress =
     typeof progress === "number" &&
     progress >= 0 &&
@@ -64,7 +75,27 @@ function MessageFile({
   const hasPreview = !!previewUrl && previewUrl !== file.url;
   const previewSrc = previewUrl ?? file.url;
   const remoteSrc = file.url;
-  const [remoteLoaded, setRemoteLoaded] = useState(() => !hasPreview);
+
+  // Instead of using <img> onLoad, use Image() preloading to seamlessly swap previews
+  useEffect(() => {
+    if (!hasPreview) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setShowRemote(true);
+      return;
+    }
+    setShowRemote(false); // Start with preview shown, remote not shown
+    const img = new Image();
+    img.src = remoteSrc;
+    img.onload = () => {
+      setShowRemote(true);
+    };
+    // cleanup
+    return () => {
+      img.onload = null;
+    };
+  }, [remoteSrc, previewUrl, hasPreview]);
+
+  // note: progress is 0..1; ui reads it from message.client.uploads
 
   if (file.mime_type.startsWith("image/")) {
     return (
@@ -72,7 +103,7 @@ function MessageFile({
         <div
           className="max-h-72 max-w-88 cursor-pointer border border-tertiary bg-black/10 relative overflow-hidden"
           style={
-            hasPreview && !remoteLoaded
+            hasPreview && !showRemote
               ? {
                   backgroundImage: `url(${previewSrc})`,
                   backgroundRepeat: "no-repeat",
@@ -84,20 +115,26 @@ function MessageFile({
           onClick={() => setOpen(true)}
         >
           <img
-            src={remoteSrc}
+            src={showRemote ? remoteSrc : previewSrc}
             alt={file.name}
-            onLoad={() => setRemoteLoaded(true)}
             className={classes(
-              "max-h-72 max-w-88 transition-opacity object-cover",
-              hasPreview && !remoteLoaded ? "opacity-0" : "opacity-100"
+              "max-h-72 max-w-88 transition-opacity object-cover select-none z-10"
             )}
+            draggable={false}
           />
 
           {showProgress && (
-            <div
-              className="bg-background/50 absolute top-0 left-0 w-full"
-              style={{
-                height: `${Math.floor((1 / progress) * 100)}%`,
+            <motion.div
+              className="bg-background/60 absolute top-0 left-0 w-full select-none pointer-events-none z-100"
+              // scaley is way smoother than animating height percentages and doesn't trigger layout
+              style={{ transformOrigin: "top" }}
+              initial={{ scaleY: 1 }}
+              transition={{
+                duration: 100,
+                ease: "linear",
+              }}
+              animate={{
+                scaleY: 1 - progress,
               }}
             />
           )}
@@ -332,6 +369,11 @@ export const MessageComponent = memo(
 export function Message(props: MessageProps) {
   const channelLastSeenAt = useLastSeenChannelAt(props.message.channel_id);
   const pageFocused = getIsPageFocused();
+  const self = useUser();
+
+  const isOwnMessage = useMemo(() => {
+    return props.message.author_id === self?.id;
+  }, [props.message.author_id]);
 
   // we want to check the following
   // - lastSeenChannelAt is set
@@ -348,20 +390,62 @@ export function Message(props: MessageProps) {
         new Date(channelLastSeenAt).getTime());
 
   return (
-    <div>
+    <div
+      onContextMenu={(e) => {
+        e.preventDefault();
+        setContextMenuState(
+          { x: e.clientX, y: e.clientY },
+          <>
+            {isOwnMessage && (
+              <Button onClick={() => props.onEdit(props.message.id)}>
+                Edit
+              </Button>
+            )}
+            {isOwnMessage && (
+              <Button
+                onClick={() =>
+                  deleteMessage(props.message.channel_id, props.message.id)
+                }
+              >
+                Delete
+              </Button>
+            )}
+            <Button onClick={() => props.onQuote(props.message.content ?? "")}>
+              Quote
+            </Button>
+            <Button
+              onClick={() => {
+                navigator.clipboard.writeText(props.message.content ?? "");
+              }}
+            >
+              Copy Text
+            </Button>
+            <Button
+              onClick={() => {
+                navigator.clipboard.writeText(props.message.id ?? "");
+              }}
+            >
+              Copy ID
+            </Button>
+          </>
+        );
+      }}
+    >
       {isUnread && (
         <div className="flex items-center gap-2 mt-4">
           <span className="text-red-500">! unread</span>
           <div className="h-px bg-red-500 w-full" />
         </div>
       )}
-      <MessageComponent
-        {...{
-          ...props,
-          // kinda a hack to force the author name to be shown
-          previousMessage: isUnread ? null : props.previousMessage,
-        }}
-      />
+      <div className="hover:bg-tertiary/10">
+        <MessageComponent
+          {...{
+            ...props,
+            // kinda a hack to force the author name to be shown
+            previousMessage: isUnread ? null : props.previousMessage,
+          }}
+        />
+      </div>
     </div>
   );
 }

@@ -12,6 +12,7 @@ export type MessageListProps = {
   readonly channelId: string;
   readonly editingMessageId: string | null;
   readonly setEditingMessageId: (id: string | null) => void;
+  readonly onQuote: (content: string) => void;
 };
 
 const PAGE_SIZE = 100;
@@ -24,11 +25,13 @@ type MessageTuple = readonly [
 function MessageRow({
   item,
   editingMessageId,
+  onQuote,
   setEditingMessageId,
 }: Readonly<{
   item: MessageTuple;
   editingMessageId: string | null;
   setEditingMessageId: (id: string | null) => void;
+  onQuote: (content: string) => void;
 }>) {
   const [message, previousMessage] = item;
   return (
@@ -37,19 +40,23 @@ function MessageRow({
       previousMessage={previousMessage}
       onCancelEdit={() => setEditingMessageId(null)}
       editing={editingMessageId === message.id}
+      onEdit={setEditingMessageId}
+      onQuote={onQuote}
     />
   );
 }
 
 function messageItemContent(
   editingMessageId: string | null,
-  setEditingMessageId: (id: string | null) => void
+  setEditingMessageId: (id: string | null) => void,
+  onQuote: (content: string) => void
 ) {
   return (_index: number, item: MessageTuple) => (
     <MessageRow
       item={item}
       editingMessageId={editingMessageId}
       setEditingMessageId={setEditingMessageId}
+      onQuote={onQuote}
     />
   );
 }
@@ -62,6 +69,7 @@ export function MessageList({
   channelId,
   editingMessageId,
   setEditingMessageId,
+  onQuote,
 }: MessageListProps) {
   const firstItemIndex = useVirtuosoFirstItemIndex(channelId);
   const messages = useChannelMessages(channelId);
@@ -110,6 +118,7 @@ export function MessageList({
       data={tupledMessages as MessageTuple[]}
       style={{ height: "100%" }}
       alignToBottom
+      initialTopMostItemIndex={{ index: "LAST" }}
       skipAnimationFrameInResizeObserver
       firstItemIndex={firstItemIndex}
       followOutput={(isAtBottom) => (isAtBottom ? "auto" : false)}
@@ -119,7 +128,11 @@ export function MessageList({
       }}
       atTopThreshold={500}
       computeItemKey={(_index, item) => item[0].id}
-      itemContent={messageItemContent(editingMessageId, setEditingMessageId)}
+      itemContent={messageItemContent(
+        editingMessageId,
+        setEditingMessageId,
+        onQuote
+      )}
     />
   );
 }

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import type { Author } from "@schemas/models/author";
 import type { Channel } from "@schemas/models/channel";
 import type { Message } from "@schemas/models/message";
@@ -483,31 +484,56 @@ export function reconcileMessageByNonce(
     return addMessage(channelId, serverMessage);
   }
 
-  const messages = cache.getState().messages[channelId] ?? {};
-  const optimisticId = Object.keys(messages).find(
-    (id) => messages[id]?.nonce === nonce
-  );
+  cache.setState((state) => {
+    const channel = state.messages[channelId] ?? {};
 
-  const optimistic = optimisticId ? messages[optimisticId] : null;
+    // find the optimistic entry for this nonce (if any)
+    const optimisticId = Object.keys(channel).find(
+      (id) => channel[id]?.nonce === nonce
+    );
 
-  if (optimisticId && optimisticId !== serverMessage.id) {
-    removeMessage(channelId, optimisticId);
-  }
+    const optimistic = optimisticId ? channel[optimisticId] : undefined;
+    const existingServer = channel[serverMessage.id];
 
-  // keep client previews so image/video doesn't flash when swapping blob -> r2 url
-  const merged: CachedMessage = {
-    ...serverMessage,
-    client: optimistic?.client
+    // keep client previews so image/video doesn't flash when swapping blob -> r2 url
+    const baseClient = optimistic?.client ?? existingServer?.client;
+    const client: ClientMessageMeta | undefined = baseClient
       ? {
-          ...optimistic.client,
+          ...baseClient,
           status: "sent",
-          // keep progress as-is; ui uses preview until remote loads
-          uploads: optimistic.client.uploads,
         }
-      : undefined,
-  };
+      : undefined;
 
-  addMessage(channelId, merged);
+    const cachedAt =
+      existingServer?.cachedAt ?? optimistic?.cachedAt ?? Date.now();
+
+    const nextChannel: Record<string, CachedMessage> = {
+      ...channel,
+      [serverMessage.id]: {
+        ...(existingServer ?? ({} as CachedMessage)),
+        ...serverMessage,
+        cachedAt,
+        client,
+      },
+    };
+
+    // nuke optimistic in the same state update so we never show both in one frame
+    if (optimisticId && optimisticId !== serverMessage.id) {
+      delete nextChannel[optimisticId];
+    }
+
+    const qIds = Object.keys(nextChannel);
+    const qHead = 0;
+
+    return {
+      ...state,
+      messages: { ...state.messages, [channelId]: nextChannel },
+      messageQueues: {
+        ...state.messageQueues,
+        [channelId]: { ids: qIds, head: qHead },
+      },
+    };
+  });
 }
 
 export function addAuthor(author: Author) {
@@ -615,4 +641,23 @@ export function useAuthors() {
 
 export function useLastEventTs() {
   return cache(useShallow((state) => state.last_event_ts));
+}
+
+export const contextMenuState = create<{
+  position: { x: number; y: number } | null;
+  content: React.ReactNode | null;
+}>((_set) => ({
+  position: null,
+  content: null,
+}));
+
+export function setContextMenuState(
+  position?: { x: number; y: number } | null,
+  content?: React.ReactNode | null
+) {
+  contextMenuState.setState((state) => ({
+    ...state,
+    position: position === undefined ? state.position : position,
+    content: content === undefined ? state.content : content,
+  }));
 }
