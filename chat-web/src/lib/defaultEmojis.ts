@@ -19,5 +19,3 @@ export const DEFAULT_EMOJIS = {
   dead: "💀",
   poop: "💩",
 } as const;
-
-

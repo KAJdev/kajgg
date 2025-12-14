@@ -25,13 +25,18 @@ function isUuid(token: string) {
   );
 }
 
+function isCuidLike(token: string) {
+  // backend uses cuid2 with length 10 for ids
+  return /^[a-z0-9]{10}$/i.test(token);
+}
+
 function isValidToken(token: string) {
   // keep it simple: no spaces, no extra colons
   return /^[a-zA-Z0-9_-]{1,64}$/.test(token);
 }
 
 function tokenToHtml(token: string) {
-  if (isNumericId(token) || isUuid(token)) {
+  if (isNumericId(token) || isUuid(token) || isCuidLike(token)) {
     return `<emoji id="${escapeHtml(token)}"></emoji>`;
   }
   return `<emoji name="${escapeHtml(token)}"></emoji>`;
@@ -50,7 +55,7 @@ function parseEmojiNodes(text: string): MdastNode[] | null {
 
   let i = 0;
   while (i < text.length) {
-    const ch = text[i]!;
+    const ch = text[i];
 
     // escape: \:name: => literal :name:
     if (ch === "\\" && text[i + 1] === ":") {
@@ -89,7 +94,7 @@ function transformTextNodes(tree: MdastNode) {
     if (Array.isArray(node.children)) {
       let idx = 0;
       while (idx < node.children.length) {
-        const child = node.children[idx]!;
+        const child = node.children[idx];
 
         if (child.type === "text" && typeof child.value === "string") {
           const replacement = parseEmojiNodes(child.value);
@@ -118,5 +123,3 @@ export const remarkEmojis: Plugin = () => {
     transformTextNodes(tree as MdastNode);
   };
 };
-
-

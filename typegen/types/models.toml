@@ -81,12 +81,14 @@ author = { ref = "Author" }
 
 [Emoji]
 type = "object"
-required = ["id", "name", "animated"]
+required = ["id", "name", "animated", "mime_type", "ext"]
 
 [Emoji.properties]
 id = { type = "string", doc = "Unique identifier for the emoji" }
 name = { type = "string", doc = "Name of the emoji" }
 animated = { type = "boolean", doc = "Whether the emoji is animated" }
+mime_type = { type = "string", doc = "MIME type of the emoji image" }
+ext = { type = "string", doc = "File extension for the emoji image (e.g. png, gif, webp)" }
 
 [Message]
 type = "object"

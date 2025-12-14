@@ -11,8 +11,27 @@ from modules import r2
 bp = Blueprint("emojis")
 
 
-ANIMATED_MIME_TYPES = ["image/gif"]
-NON_ANIMATED_MIME_TYPES = ["image/png"]
+MIME_TO_EXT = {
+    "image/png": "png",
+    "image/gif": "gif",
+    "image/jpeg": "jpg",
+    "image/jpg": "jpg",
+    "image/webp": "webp",
+    "image/avif": "avif",
+    "image/bmp": "bmp",
+}
+
+
+def _mime_to_ext(mime_type: str) -> str:
+    mime = (mime_type or "").lower().strip()
+    if mime in MIME_TO_EXT:
+        return MIME_TO_EXT[mime]
+    # fallback: take whatever comes after image/ if it looks sane
+    if mime.startswith("image/"):
+        guess = mime.split("/", 1)[1]
+        if guess and guess.replace("+", "").replace("-", "").replace(".", "").isalnum():
+            return guess
+    raise exceptions.BadRequest("Invalid image mime type")
 
 
 def _split_data_url(base64_data: str) -> tuple[str, str]:
@@ -29,12 +48,18 @@ def _split_data_url(base64_data: str) -> tuple[str, str]:
 
 async def _put_emoji_image(emoji: Emoji, base64_data: str) -> None:
     mime_type, payload = _split_data_url(base64_data)
-    if (
-        mime_type not in ANIMATED_MIME_TYPES
-        and mime_type not in NON_ANIMATED_MIME_TYPES
-    ):
+    mime_type = mime_type.lower().strip()
+    if not mime_type.startswith("image/"):
         raise exceptions.BadRequest("Invalid image mime type")
-    emoji.animated = mime_type in ANIMATED_MIME_TYPES
+    if mime_type.startswith("image/svg"):
+        raise exceptions.BadRequest("Invalid image mime type")
+
+    next_ext = _mime_to_ext(mime_type)
+    prev_ext = getattr(emoji, "ext", None) or ("gif" if emoji.animated else "png")
+
+    emoji.mime_type = mime_type
+    emoji.ext = next_ext
+    emoji.animated = mime_type == "image/gif"
 
     try:
         image_bytes = base64.b64decode(payload, validate=True)
@@ -44,8 +69,16 @@ async def _put_emoji_image(emoji: Emoji, base64_data: str) -> None:
     if len(image_bytes) > 1000000:
         raise exceptions.BadRequest("Image must be less than 1MB")
 
-    key = f"emojis/{emoji.id}.{mime_type.split('/')[1]}"
-    await r2.put_object_async(key, mime_type, image_bytes)
+    # write two keys:
+    # - emojis/{id} for id-only url construction
+    # - emojis/{id}.{ext} for backwards compat + debugging
+    key_no_ext = f"emojis/{emoji.id}"
+    key_with_ext = f"emojis/{emoji.id}.{next_ext}"
+    await r2.put_object_async(key_no_ext, mime_type, image_bytes)
+    await r2.put_object_async(key_with_ext, mime_type, image_bytes)
+    # cleanup old ext if it changed so we don’t leak r2 objects
+    if prev_ext and prev_ext != next_ext:
+        await r2.delete_object_async(f"emojis/{emoji.id}.{prev_ext}")
 
 
 @bp.route("/v1/users/<user_id>/emojis", methods=["GET"])
@@ -85,18 +118,10 @@ async def create_emoji(request: Request, user_id: str):
     if not await Emoji.validate_dict(data):
         raise exceptions.BadRequest("Invalid request")
 
-    mime_type, _ = _split_data_url(data.get("image"))
-
-    if (
-        mime_type not in ANIMATED_MIME_TYPES
-        and mime_type not in NON_ANIMATED_MIME_TYPES
-    ):
-        raise exceptions.BadRequest("Invalid image mime type")
-
     emoji = Emoji(
         owner_id=request.ctx.user.id,
         name=data.get("name"),
-        animated=mime_type in ANIMATED_MIME_TYPES,
+        animated=False,
     )
 
     await _put_emoji_image(emoji, data.get("image"))
@@ -118,9 +143,10 @@ async def delete_emoji(request: Request, user_id: str, emoji_id: str):
         raise exceptions.NotFound("Emoji not found")
 
     await emoji.delete()
-    await r2.delete_object_async(
-        f"emojis/{emoji.id}.{emoji.animated and 'gif' or 'png'}"
-    )
+    ext = getattr(emoji, "ext", None) or ("gif" if emoji.animated else "png")
+    # delete both keys so id-only urls don’t 404
+    await r2.delete_object_async(f"emojis/{emoji.id}")
+    await r2.delete_object_async(f"emojis/{emoji.id}.{ext}")
     return json({"message": "Emoji deleted"})
 
 

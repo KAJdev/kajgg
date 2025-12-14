@@ -1,7 +1,5 @@
 import React from "react";
-import { Emoji } from "src/components/Emoji";
 import { DEFAULT_EMOJIS } from "src/lib/defaultEmojis";
-import { useEmojis } from "src/lib/cache";
 import { registerMessageMarkdownComponent } from "src/lib/messageMarkdownRegistry";
 
 export function MarkdownEmoji(
@@ -13,38 +11,32 @@ export function MarkdownEmoji(
     }
   >
 ) {
-  const emojisByName = useEmojis();
   const id = typeof props.id === "string" ? props.id : undefined;
   const name = typeof props.name === "string" ? props.name : undefined;
 
-  const resolved = React.useMemo(() => {
-    if (id) {
-      return Object.values(emojisByName).find((e) => e.id === id);
-    }
-
-    if (name) {
-      const key = name.toLowerCase();
-      const builtin = DEFAULT_EMOJIS[key as keyof typeof DEFAULT_EMOJIS];
-      if (builtin) return builtin;
-      return emojisByName[key];
-    }
-
-    return null;
-  }, [emojisByName, id, name]);
-
-  if (!resolved) {
-    const fallback = id ? `:${id}:` : name ? `:${name}:` : ":emoji:";
-    return <span className="opacity-80">{fallback}</span>;
+  if (id) {
+    // id-only url so markdown parsing can stay dumb/simple
+    return (
+      <img
+        src={`https://cdn.kaj.gg/emojis/${id}`}
+        alt={`:${id}:`}
+        className="w-4 h-4 inline-block align-[-2px]"
+        loading="lazy"
+      />
+    );
   }
 
-  return (
-    <span className="inline-flex align-[-2px]">
-      <Emoji emoji={resolved} />
-    </span>
-  );
+  if (name) {
+    const key = name.toLowerCase();
+    const builtin = DEFAULT_EMOJIS[key as keyof typeof DEFAULT_EMOJIS];
+    if (builtin) {
+      return <span className="text-2xl w-4 h-4 inline-block">{builtin}</span>;
+    }
+    return <span className="opacity-80">{`:${name}:`}</span>;
+  }
+
+  return <span className="opacity-80">:emoji:</span>;
 }
 
 // register once on import so sanitize + renderer both know about it
 registerMessageMarkdownComponent("emoji", MarkdownEmoji, ["id", "name"]);
-
-

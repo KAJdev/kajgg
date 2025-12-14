@@ -302,6 +302,8 @@ class Emoji(Document):
     owner_id: str
     name: str
     animated: bool
+    mime_type: str = "image/png"
+    ext: str = "png"
     created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
     updated_at: Optional[datetime] = None
     deleted_at: Optional[datetime] = None
@@ -317,7 +319,11 @@ class Emoji(Document):
                 )
 
         if data.get("image"):
-            if not re.match(r"^data:image/(png|gif);base64,", data["image"]):
+            # allow most image/* types and validate more strictly later when we decode it
+            # (we still block svg bc it’s a whole scripting / injection can of worms)
+            if not re.match(r"^data:image/[a-zA-Z0-9.+-]+;base64,", data["image"]):
+                raise exceptions.BadRequest("Invalid image")
+            if data["image"].startswith("data:image/svg"):
                 raise exceptions.BadRequest("Invalid image")
 
             payload = data["image"].split(",", 1)[1]
@@ -330,10 +336,6 @@ class Emoji(Document):
             raise exceptions.BadRequest("Name and image are required")
 
         return True
-
-    @property
-    def url(self) -> str:
-        return f"https://cdn.kaj.gg/emojis/{self.id}.{self.animated and 'gif' or 'png'}"
 
     class Settings:
         name = "emojis"

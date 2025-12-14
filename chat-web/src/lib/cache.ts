@@ -101,7 +101,6 @@ export const defaultTheme = {
 
 export const persistentCache = create<PersistentCache>()(
   persist(
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     (_set) => ({
       lastSeenChannel: null,
       lastSeenChannelAt: {},
@@ -678,9 +677,8 @@ export function useEmojis() {
 }
 
 export function getEmojiUrl(emoji: Emoji) {
-  return `https://cdn.kaj.gg/emojis/${emoji.id}.${
-    emoji.animated ? "gif" : "png"
-  }`;
+  // id-only url so markdown (and anything else) can construct emoji urls without metadata
+  return `https://cdn.kaj.gg/emojis/${emoji.id}`;
 }
 
 export function searchEmojis(query: string) {
