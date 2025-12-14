@@ -94,7 +94,7 @@ async def get_user_emojis(request: Request, user_id: str):
         raise exceptions.NotFound("User not found")
 
     emojis = await Emoji.find(Emoji.owner_id == user.id).to_list()
-    return json(utils.dtoa(ApiEmoji, emojis))
+    return json([utils.dtoa(ApiEmoji, emoji) for emoji in emojis])
 
 
 @bp.route("/v1/users/<user_id>/emojis", methods=["POST"])
