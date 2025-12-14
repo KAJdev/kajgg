@@ -1,7 +1,6 @@
 import { Button } from "@theme/Button";
-import { TrashIcon } from "lucide-react";
-import { Link } from "react-router";
-import { deleteChannel } from "src/lib/api";
+import { Settings } from "lucide-react";
+import { Link, useNavigate } from "react-router";
 import { useIsChannelUnread, useUser } from "src/lib/cache";
 import type { Channel as ChannelType } from "src/types/models/channel";
 
@@ -13,6 +12,7 @@ export function ListChannel({
   active: boolean;
 }) {
   const self = useUser();
+  const navigate = useNavigate();
   const ownsChannel = self?.id == channel.author_id;
   const isUnread = useIsChannelUnread(channel.id);
   return (
@@ -32,9 +32,13 @@ export function ListChannel({
       </span>
       {ownsChannel && (
         <Button
-          icon={TrashIcon}
+          icon={Settings}
           className="ml-auto hidden group-hover:block"
-          onClick={() => deleteChannel(channel.id)}
+          onClick={(e) => {
+            e.stopPropagation();
+            e.preventDefault();
+            navigate(`/channels/${channel.id}?channelSettingsTab=channel`);
+          }}
         />
       )}
     </Link>

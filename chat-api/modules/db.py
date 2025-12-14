@@ -3,7 +3,7 @@ from datetime import datetime, UTC
 from chat_types.models import Status, MessageType, Embed as ApiEmbed
 from dotenv import load_dotenv
 from os import getenv
-from modules.utils import generate_id
+from modules.utils import generate_id, generate_secret
 from modules.resend import send_verification_email
 import logging
 from modules.kv import get_client
@@ -404,6 +404,37 @@ class Channel(Document):
         return convert_dates_to_iso(super().model_dump(exclude={"deleted_at"}))
 
 
+class Webhook(Document):
+    id: str = Field(default_factory=generate_id)
+    owner_id: str
+    name: str
+    channel_id: str
+    created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
+    updated_at: Optional[datetime] = None
+    secret: str = Field(default_factory=generate_secret)
+    color: str = Field(default="#000000")
+
+    @classmethod
+    async def validate_dict(cls, data: dict) -> bool:
+        if data.get("name"):
+            if len(data["name"]) < 3 or len(data["name"]) > 32:
+                raise exceptions.BadRequest("Name must be between 3 and 32 characters")
+            if not re.match(r"^[a-zA-Z0-9_-]+$", data["name"]):
+                raise exceptions.BadRequest(
+                    "Name must only contain letters, numbers, underscores, and hyphens"
+                )
+
+        if data.get("color"):
+            if not re.match(r"^#([0-9a-fA-F]{6})$", data["color"]):
+                raise exceptions.BadRequest("Invalid color")
+
+        return True
+
+    class Settings:
+        name = "webhooks"
+        use_state_management = True
+
+
 class ChannelMember(Document):
     id: str = Field(default_factory=generate_id)
     channel_id: str
@@ -427,6 +458,7 @@ async def init():
             Channel,
             ChannelMember,
             Emoji,
+            Webhook,
         ],
     )
     logging.info("Connected to MongoDB")

@@ -7,7 +7,7 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { useShallow } from "zustand/shallow";
 import { flipColor, getIsPageFocused } from "./utils";
-import type { Emoji } from "@schemas/index";
+import type { Emoji, Webhook } from "@schemas/index";
 
 type TimeoutId = ReturnType<typeof setTimeout>;
 
@@ -51,6 +51,7 @@ export type Cache = {
   typing: Record<string, Record<string, TimeoutId>>;
   last_event_ts?: number;
   emojis: Record<string, Emoji>;
+  webhooks: Record<string, Webhook[]>;
 };
 
 export type PersistentCache = {
@@ -78,6 +79,7 @@ export const cache = create<Cache>()(() => ({
   typing: {},
   last_event_ts: undefined,
   emojis: {},
+  webhooks: {},
 }));
 
 export const tokenCache = create<{ token: string | null }>()(
@@ -586,6 +588,29 @@ export function removeAuthor(authorId: string) {
     authors: Object.fromEntries(
       Object.entries(state.authors).filter(([id]) => id !== authorId)
     ),
+  }));
+}
+
+export function addWebhook(webhook: Webhook) {
+  cache.setState((state) => ({
+    webhooks: {
+      ...state.webhooks,
+      [webhook.channel_id]: [
+        ...(state.webhooks[webhook.channel_id].filter(
+          (w) => w.id !== webhook.id
+        ) ?? []),
+        webhook,
+      ],
+    },
+  }));
+}
+
+export function removeWebhook(channelId: string, webhookId: string) {
+  cache.setState((state) => ({
+    webhooks: {
+      ...state.webhooks,
+      [channelId]: state.webhooks[channelId].filter((w) => w.id !== webhookId),
+    },
   }));
 }
 

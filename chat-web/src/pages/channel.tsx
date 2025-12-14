@@ -26,6 +26,7 @@ import { PlusIcon } from "lucide-react";
 import { CreateChannel } from "src/components/CreateChannel";
 import { Modal } from "@theme/Modal";
 import { EmojiSearch } from "src/components/EmojiSearch";
+import { EditChannel } from "src/components/EditChannel";
 
 const statusOrder = [
   StatusType.ONLINE,
@@ -296,6 +297,8 @@ export function Channel() {
           }}
         />
       </Modal>
+
+      <EditChannel />
     </>
   );
 }

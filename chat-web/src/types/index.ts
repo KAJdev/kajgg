@@ -16,6 +16,7 @@ export type { MessageDeleted } from "./events/messagedeleted";
 export type { MessageUpdated } from "./events/messageupdated";
 export type { TypingStarted } from "./events/typingstarted";
 export type { User } from "./models/user";
+export type { Webhook } from "./models/webhook";
 export { EventType } from "./events/eventtype";
 export { MessageType } from "./models/messagetype";
 export { Status } from "./models/status";

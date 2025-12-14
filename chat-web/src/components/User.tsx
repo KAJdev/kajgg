@@ -250,9 +250,9 @@ function EmojisSettings() {
   const emojis = useEmojis();
 
   return (
-    <div className="flex flex-col gap-2">
-      <div className="flex itenms-center justify-between gap-2">
-        <p>upload emojis to use in your messages</p>
+    <div className="flex flex-col gap-6">
+      <p className="text-secondary/50">upload emojis to use in your messages</p>
+      <div>
         <Button
           onClick={() => {
             const fileInput = document.createElement("input");
@@ -274,7 +274,7 @@ function EmojisSettings() {
         </Button>
       </div>
 
-      <div className="flex flex-col gap-2 border-t border-tertiary/30 pt-4 mt-4">
+      <div className="flex flex-col gap-2 border-t border-tertiary/30 pt-4">
         {Object.values(emojis).length === 0 && (
           <div className="flex items-center gap-2 text-secondary/50">
             <p>no emojis yet. Try uploading one!</p>

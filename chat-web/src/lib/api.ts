@@ -12,6 +12,8 @@ import {
   updateMessage,
   updateMessageById,
   setEmojis,
+  addWebhook,
+  removeWebhook,
 } from "./cache";
 import type { Channel } from "@schemas/models/channel";
 import type { Message } from "@schemas/models/message";
@@ -20,7 +22,8 @@ import type { Author } from "@schemas/models/author";
 import type { FileUpload } from "@schemas/models/fileupload";
 import type { File as ApiFile } from "@schemas/models/file";
 import type { User as UserType } from "src/types/models/user";
-import type { Emoji } from "@schemas/index";
+import type { Emoji, Webhook } from "@schemas/index";
+import { useShallow } from "zustand/react/shallow";
 
 async function compressImage(file: File): Promise<File> {
   const compressed = await new Promise<File>((resolve, reject) => {
@@ -336,6 +339,16 @@ export async function editMessage(
   return message;
 }
 
+export async function editChannel(
+  channelId: string,
+  channel: Partial<Channel>
+) {
+  return await request<Channel>(`channels/${channelId}`, {
+    method: "PATCH",
+    body: channel,
+  });
+}
+
 export async function deleteChannel(channelId: string) {
   const [, error] = await request<Channel>(`channels/${channelId}`, {
     method: "DELETE",
@@ -518,4 +531,68 @@ export async function updateEmoji(emojiId: string, name: string) {
     )
   );
   return emoji;
+}
+
+export function useWebhooks(channelId: string) {
+  return cache(useShallow((state) => state.webhooks[channelId]));
+}
+
+export async function createWebhook(channelId: string, name: string) {
+  const [webhook, error] = await request<Webhook>(
+    `channels/${channelId}/webhooks`,
+    {
+      method: "POST",
+      body: { name },
+    }
+  );
+  if (error) {
+    throw error;
+  }
+  addWebhook(webhook);
+  return webhook;
+}
+
+export async function deleteWebhook(channelId: string, webhookId: string) {
+  const [, error] = await request<Webhook>(
+    `channels/${channelId}/webhooks/${webhookId}`,
+    {
+      method: "DELETE",
+    }
+  );
+  if (error) {
+    throw error;
+  }
+  removeWebhook(channelId, webhookId);
+}
+
+export async function updateWebhook(
+  channelId: string,
+  webhookId: string,
+  webhook: Partial<Webhook>
+) {
+  const [updatedWebhook, error] = await request<Webhook>(
+    `channels/${channelId}/webhooks/${webhookId}`,
+    {
+      method: "PATCH",
+      body: webhook,
+    }
+  );
+  if (error) {
+    throw error;
+  }
+  addWebhook(updatedWebhook);
+  return updatedWebhook;
+}
+
+export async function fetchWebhooks(channelId: string) {
+  const [webhooks, error] = await request<Webhook[]>(
+    `channels/${channelId}/webhooks`
+  );
+  if (error) {
+    throw error;
+  }
+  for (const webhook of webhooks) {
+    addWebhook(webhook);
+  }
+  return webhooks;
 }

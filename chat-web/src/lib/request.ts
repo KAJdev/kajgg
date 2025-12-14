@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/set-state-in-effect */
 import { getToken, tokenCache } from "./cache";
 
 const API_URL = import.meta.env.VITE_API_URL;
@@ -61,4 +62,25 @@ export async function request<T>(
       { message: (error as Error).message, status: response.status },
     ];
   }
+}
+
+export function useFetch<T>(path: string, options?: RequestOptions) {
+  const [data, setData] = useState<T | null>(null);
+  const [error, setError] = useState<ApiError | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  const doFetch = useCallback(async () => {
+    setLoading(true);
+    const [data, error] = await request<T>(path, options);
+    setData(data);
+    setError(error);
+    setLoading(false);
+    return [data ?? null, error ?? null];
+  }, [path, options]);
+
+  useEffect(() => {
+    void doFetch();
+  }, [doFetch]);
+
+  return { data, error, loading, doFetch };
 }

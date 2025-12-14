@@ -16,12 +16,17 @@ from typing import get_origin, get_args, Union, List
 import enum
 
 CUID_GENERATOR: Cuid = Cuid(length=10)
+SECRET_GENERATOR: Cuid = Cuid(length=32)
 
 T = TypeVar("T")
 
 
 def generate_id():
     return CUID_GENERATOR.generate()
+
+
+def generate_secret():
+    return SECRET_GENERATOR.generate()
 
 
 def convert_dates_to_iso(d):

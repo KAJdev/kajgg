@@ -90,6 +90,29 @@ animated = { type = "boolean", doc = "Whether the emoji is animated" }
 mime_type = { type = "string", doc = "MIME type of the emoji image" }
 ext = { type = "string", doc = "File extension for the emoji image (e.g. png, gif, webp)" }
 
+[Webhook]
+type = "object"
+required = [
+  "id",
+  "owner_id",
+  "name",
+  "color",
+  "channel_id",
+  "created_at",
+  "updated_at",
+  "secret",
+]
+
+[Webhook.properties]
+id = { type = "string", doc = "Unique identifier for the webhook" }
+owner_id = { type = "string", doc = "ID of the user who created the webhook" }
+name = { type = "string", doc = "Name of the webhook" }
+color = { type = "string", doc = "Color of the webhook" }
+channel_id = { type = "string", doc = "ID of the channel this webhook belongs to" }
+created_at = { type = "string", format = "date-time", doc = "When the webhook was created" }
+updated_at = { type = "string", format = "date-time", doc = "When the webhook was last updated" }
+secret = { type = "string", doc = "Secret for the webhook" }
+
 [Message]
 type = "object"
 required = ["id", "type", "files", "created_at", "author_id", "channel_id"]
