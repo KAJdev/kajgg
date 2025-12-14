@@ -332,8 +332,8 @@ class Emoji(Document):
             if approx_bytes > 1000000:
                 raise exceptions.BadRequest("Image must be less than 1MB")
 
-        if not data.get("name") or not data.get("image"):
-            raise exceptions.BadRequest("Name and image are required")
+        if not data.get("name"):
+            raise exceptions.BadRequest("Name is required")
 
         return True
 

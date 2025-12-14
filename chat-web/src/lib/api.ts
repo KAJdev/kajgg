@@ -497,17 +497,7 @@ export async function deleteEmoji(emojiId: string) {
   );
 }
 
-export async function updateEmoji(
-  emojiId: string,
-  name: string,
-  image: string | File
-) {
-  let imageData: string;
-  if (image instanceof File) {
-    imageData = await fileToDataUrl(image);
-  } else {
-    imageData = image;
-  }
+export async function updateEmoji(emojiId: string, name: string) {
   let sanitizedName = name.toLowerCase().replace(/[^a-z0-9_-]/g, "");
   if (sanitizedName.length < 3 || sanitizedName.length > 32) {
     sanitizedName = "emoji";
@@ -521,7 +511,7 @@ export async function updateEmoji(
   }
   const [emoji, error] = await request<Emoji>(`users/@me/emojis/${emojiId}`, {
     method: "PATCH",
-    body: { name, image: imageData },
+    body: { name: sanitizedName },
   });
   if (error) {
     throw error;

@@ -118,6 +118,9 @@ async def create_emoji(request: Request, user_id: str):
     if not await Emoji.validate_dict(data):
         raise exceptions.BadRequest("Invalid request")
 
+    if not data.get("image"):
+        raise exceptions.BadRequest("Image is required")
+
     emoji = Emoji(
         owner_id=request.ctx.user.id,
         name=data.get("name"),

@@ -1,6 +1,6 @@
 import { useEmojis, useUser, useUserSettings } from "src/lib/cache";
 import { ListAuthor } from "./ListAuthor";
-import { RefreshCcwIcon, SettingsIcon } from "lucide-react";
+import { RefreshCcwIcon, SettingsIcon, XIcon } from "lucide-react";
 import { Button } from "@theme/Button";
 import { Modal } from "@theme/Modal";
 import { useSearchParams } from "react-router";
@@ -12,7 +12,7 @@ import { Label } from "@theme/Label";
 import { Status as StatusType } from "src/types/models/status";
 import type { User as UserType } from "src/types/models/user";
 import { ColorPicker } from "@theme/ColorPicker";
-import { createEmoji, updateUser } from "src/lib/api";
+import { createEmoji, deleteEmoji, updateEmoji, updateUser } from "src/lib/api";
 import type { ApiError } from "src/lib/request";
 import { getColor } from "src/lib/utils";
 import { defaultTheme } from "src/lib/cache";
@@ -216,11 +216,26 @@ function EmojisSettings() {
         </Button>
       </div>
 
-      <div className="flex flex-col gap-2">
+      <div className="flex flex-col gap-2 border-t border-tertiary/30 pt-4 mt-4">
+        {Object.values(emojis).length === 0 && (
+          <div className="flex items-center gap-2 text-secondary/50">
+            <p>no emojis yet. Try uploading one!</p>
+          </div>
+        )}
         {Object.values(emojis).map((emoji) => (
           <div key={emoji.id} className="flex items-center gap-2">
-            <Emoji emoji={emoji} />
-            {emoji.name}
+            <Emoji emoji={emoji} className="w-8 h-8" />
+            <Input
+              className="text-primary w-full"
+              value={emoji.name}
+              maxLength={32}
+              onBlur={(e: React.FocusEvent<HTMLInputElement>) =>
+                updateEmoji(emoji.id, e.target.value)
+              }
+            />
+            <Button variant="danger" onClick={() => deleteEmoji(emoji.id)}>
+              delete
+            </Button>
           </div>
         ))}
       </div>
