@@ -70,6 +70,17 @@ function MarkdownCode({
   );
 }
 
+function MarkdownBlockquote(
+  props: Readonly<React.HTMLAttributes<HTMLQuoteElement>>
+) {
+  return (
+    <blockquote
+      {...props}
+      className="border-l-4 border-tertiary/50 pl-3 leading-[8px] bg-tertiary/20 pr-2"
+    />
+  );
+}
+
 const baseComponents: Components = {
   a: MarkdownLink,
   strong: MarkdownStrong,
@@ -78,6 +89,7 @@ const baseComponents: Components = {
   u: MarkdownUnderline,
   pre: MarkdownPre,
   code: MarkdownCode,
+  blockquote: MarkdownBlockquote,
 };
 
 export function MessageMarkdown({
