@@ -1,5 +1,6 @@
 import base64
 import binascii
+from datetime import UTC, datetime
 from sanic import Blueprint, Request, json, exceptions
 from sanic_ext import openapi
 from modules.db import Channel, Message, Webhook
@@ -8,6 +9,7 @@ from modules.auth import authorized
 from chat_types.models.webhook import Webhook as ApiWebhook
 from chat_types.models.message import Message as ApiMessage
 from chat_types.models.author import Author as ApiAuthor
+from chat_types.models.status import Status
 from modules.events import publish_event
 from chat_types.events import MessageCreated
 
@@ -175,7 +177,19 @@ async def receive_webhook(
     publish_event(
         MessageCreated(
             message=utils.dtoa(ApiMessage, message),
-            author=utils.dtoa(ApiAuthor, webhook.owner),
+            author=utils.dtoa(
+                ApiAuthor,
+                {
+                    "id": webhook.owner_id,
+                    "username": webhook.name,
+                    "avatar_url": None,
+                    "bio": None,
+                    "created_at": webhook.created_at,
+                    "updated_at": webhook.updated_at,
+                    "status": Status.ONLINE,
+                    "color": webhook.color,
+                },
+            ),
         )
     )
 
