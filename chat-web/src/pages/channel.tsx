@@ -189,7 +189,7 @@ export function Channel() {
 
   return (
     <>
-      <div className="grid h-full min-h-0 w-full grid-cols-1 gap-3 md:grid-cols-[18ch_1fr_18ch]">
+      <div className="grid h-full min-h-0 w-full grid-cols-1 gap-3 md:grid-cols-[26ch_1fr_26ch]">
         <div className="flex-col gap-2 overflow-hidden p-3 hidden md:flex">
           <div className="flex items-center gap-2 justify-between">
             <Label>channels</Label>
