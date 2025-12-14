@@ -1,3 +1,4 @@
+import logging
 import re
 from sanic import Blueprint, Request, json, exceptions
 from sanic_ext import openapi
@@ -152,6 +153,8 @@ async def receive_webhook(
     )
     if not webhook:
         raise exceptions.NotFound("Webhook not found")
+
+    logging.info(f"Webhook received: {request.json}, headers: {request.headers}")
 
     data = request.json
     if not data:
