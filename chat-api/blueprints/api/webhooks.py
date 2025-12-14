@@ -142,6 +142,47 @@ def parse_github_webhook(response: Request) -> dict | None:
         }
 
 
+def parse_railway_webhook(response: Request) -> dict | None:
+    # railway is lame and doesnt actually give anything to go off of other than the request
+
+    payload = response.json
+    is_railway_webhook = (
+        "type" in payload and "details" in payload and "resource" in payload
+    )  # this is probably good enough
+
+    if not is_railway_webhook:
+        return None
+
+    event = payload.get("type")
+
+    if event.lower() == "deployment.created":
+        return {
+            "embeds": [
+                {
+                    "title": f"{payload.get('details', {}).get('id')}",
+                }
+            ]
+        }
+    elif event.lower() == "deployment.updated":
+        return {
+            "embeds": [
+                {
+                    "title": f"{payload.get('details', {}).get('id')}",
+                }
+            ]
+        }
+    elif event.lower() == "deployment.removed":
+        return {
+            "embeds": [
+                {
+                    "title": f"{payload.get('details', {}).get('id')}",
+                }
+            ]
+        }
+    else:
+        return None
+
+
 @bp.route("/v1/webhooks/<channel_id>/<webhook_id>/<webhook_secret>", methods=["POST"])
 async def receive_webhook(
     request: Request, channel_id: str, webhook_id: str, webhook_secret: str
@@ -161,6 +202,8 @@ async def receive_webhook(
         raise exceptions.BadRequest("Bad Request")
 
     if parsed := parse_github_webhook(request):
+        data = parsed
+    elif parsed := parse_railway_webhook(request):
         data = parsed
 
     if not await Message.validate_dict(data):

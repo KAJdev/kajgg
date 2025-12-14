@@ -279,8 +279,10 @@ async def fetch_embed(url: str, *, session: aiohttp.ClientSession) -> Optional[D
             if kind:
                 return _media_embed_for(kind, final_url)
 
-            max_html_bytes = 512 * 1024
-            sniff_bytes = 8 * 1024
+            max_html_bytes = 512 * 1024  # 512kb
+            sniff_bytes = (
+                24 * 1024
+            )  # 24kb because some sites have FAT AF HEADERS BRO OMG
 
             if ct in _HTML_CT:
                 raw = await _read_limited(response, limit=max_html_bytes)
