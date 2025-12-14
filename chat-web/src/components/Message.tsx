@@ -48,7 +48,7 @@ export type MessageProps = {
   readonly onQuote: (content: string) => void;
 };
 
-function MessageFile({
+export function MessageFile({
   file,
   progress,
   previewUrl,
@@ -143,7 +143,11 @@ function MessageFile({
         <Modal title={file.name} open={open} onClose={() => setOpen(false)}>
           <img src={remoteSrc} alt={file.name} />
           <div className="flex gap-2 items-center justify-between mt-4">
-            <p className="text-secondary/70">{file.size} bytes</p>
+            {file.size ? (
+              <p className="text-secondary/70">{file.size} bytes</p>
+            ) : (
+              <div />
+            )}
             <p className="text-secondary/70">{file.mime_type}</p>
           </div>
         </Modal>
@@ -242,13 +246,15 @@ function DefaultMessage({
   return (
     <div
       className={classes(
-        "flex flex-col w-full items-start gap-2 py-[2px]",
+        "flex flex-col w-full items-start gap-1",
         isSending && "opacity-50",
-        isFailed && "opacity-70 text-red-400"
+        isFailed && "opacity-70 text-red-400",
+        showAuthorName && "mt-4",
+        !editing && "hover:bg-tertiary/40"
       )}
     >
       {showAuthorName && (
-        <div className="flex items-center gap-2 mt-4">
+        <div className="flex items-center gap-2">
           <Username author={author} />
           {author.flags?.webhook && (
             <span className="bg-tertiary px-1">Webhook</span>
@@ -257,7 +263,7 @@ function DefaultMessage({
         </div>
       )}
       {editing ? (
-        <div className="flex gap-2 flex-col w-full">
+        <div className="flex gap-2 flex-col w-full py-1">
           <ChatInput
             content={content}
             setContent={setContent}
@@ -455,15 +461,13 @@ export function Message(props: MessageProps) {
           <div className="h-px bg-red-500 w-full" />
         </div>
       )}
-      <div className="hover:bg-tertiary/10">
-        <MessageComponent
-          {...{
-            ...props,
-            // kinda a hack to force the author name to be shown
-            previousMessage: isUnread ? null : props.previousMessage,
-          }}
-        />
-      </div>
+      <MessageComponent
+        {...{
+          ...props,
+          // kinda a hack to force the author name to be shown
+          previousMessage: isUnread ? null : props.previousMessage,
+        }}
+      />
     </div>
   );
 }

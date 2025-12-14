@@ -138,7 +138,7 @@ function Open({
                 <TopBar onClose={onClose}>{title}</TopBar>
                 {children}
               </Panel>
-              <div className="text-left text-sm text-neutral-500 mt-2">
+              <div className="text-left text-neutral-500 mt-2">
                 <button
                   className="text-blue-500 hover:underline cursor-pointer"
                   onClick={onClose}

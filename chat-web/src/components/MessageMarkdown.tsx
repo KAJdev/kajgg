@@ -1,3 +1,4 @@
+import { Children } from "react";
 import ReactMarkdown from "react-markdown";
 import type { Components } from "react-markdown";
 import Twemoji from "react-twemoji";
@@ -82,14 +83,34 @@ function MarkdownCode({
   );
 }
 
-function MarkdownBlockquote(
-  props: Readonly<React.HTMLAttributes<HTMLQuoteElement>>
-) {
+function MarkdownBlockquote({
+  children,
+  ...props
+}: Readonly<React.HTMLAttributes<HTMLQuoteElement>>) {
+  const kids = Children.toArray(children);
+
+  let start = 0;
+  let end = kids.length;
+
+  while (start < end) {
+    const k = kids[start];
+    if (typeof k !== "string" || k.trim().length !== 0) break;
+    start++;
+  }
+
+  while (end > start) {
+    const k = kids[end - 1];
+    if (typeof k !== "string" || k.trim().length !== 0) break;
+    end--;
+  }
+
   return (
     <blockquote
       {...props}
-      className="border-l-4 border-tertiary/50 pl-3 leading-[8px] bg-tertiary/20 pr-2"
-    />
+      className="border-l-4 border-tertiary/50 pl-3 py-1 my-0 bg-tertiary/20 pr-2"
+    >
+      {kids.slice(start, end)}
+    </blockquote>
   );
 }
 
