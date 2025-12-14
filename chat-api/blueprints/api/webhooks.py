@@ -180,7 +180,7 @@ async def receive_webhook(
             author=utils.dtoa(
                 ApiAuthor,
                 {
-                    "id": webhook.owner_id,
+                    "id": webhook.id,
                     "username": webhook.name,
                     "avatar_url": None,
                     "bio": None,
