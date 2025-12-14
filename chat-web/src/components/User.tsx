@@ -1,6 +1,6 @@
 import { useEmojis, useUser, useUserSettings } from "src/lib/cache";
 import { ListAuthor } from "./ListAuthor";
-import { RefreshCcwIcon, SettingsIcon, XIcon } from "lucide-react";
+import { Loader2Icon, RefreshCcwIcon, SettingsIcon } from "lucide-react";
 import { Button } from "@theme/Button";
 import { Modal } from "@theme/Modal";
 import { useSearchParams } from "react-router";
@@ -17,6 +17,7 @@ import type { ApiError } from "src/lib/request";
 import { getColor } from "src/lib/utils";
 import { defaultTheme } from "src/lib/cache";
 import { Emoji } from "./Emoji";
+import type { Emoji as EmojiType } from "src/types/models/emoji";
 
 function UserSettings() {
   const user = useUser();
@@ -188,6 +189,63 @@ function ThemeSettings() {
   );
 }
 
+function EmojiItem({ emoji }: { emoji: EmojiType }) {
+  const [deleteLoading, setDeleteLoading] = useState(false);
+  const [updateLoading, setUpdateLoading] = useState(false);
+  const [name, setName] = useState(emoji.name);
+  return (
+    <div key={emoji.id} className="flex items-center gap-2">
+      <div className="relative w-8 h-8 shrink-0">
+        <Emoji
+          emoji={emoji}
+          className={classes(updateLoading && "opacity-50", "w-8 h-8")}
+        />
+        {updateLoading && (
+          <Loader2Icon className="absolute top-0 left-0 w-8 h-8 text-primary animate-spin" />
+        )}
+      </div>
+      <Input
+        className="text-primary w-full"
+        value={name}
+        maxLength={32}
+        disabled={updateLoading}
+        onChange={setName}
+        onBlur={async () => {
+          if (name === emoji.name) {
+            return;
+          }
+          setUpdateLoading(true);
+          let newEmoji: EmojiType | null = null;
+          try {
+            newEmoji = await updateEmoji(emoji.id, name);
+          } catch {
+            setName(emoji.name);
+          } finally {
+            setName(newEmoji?.name ?? emoji.name);
+            setUpdateLoading(false);
+          }
+        }}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") {
+            e.currentTarget.blur();
+          }
+        }}
+      />
+      <Button
+        loading={deleteLoading}
+        variant="danger"
+        onClick={async () => {
+          setDeleteLoading(true);
+          await deleteEmoji(emoji.id);
+          setDeleteLoading(false);
+        }}
+      >
+        delete
+      </Button>
+    </div>
+  );
+}
+
 function EmojisSettings() {
   const emojis = useEmojis();
 
@@ -223,20 +281,7 @@ function EmojisSettings() {
           </div>
         )}
         {Object.values(emojis).map((emoji) => (
-          <div key={emoji.id} className="flex items-center gap-2">
-            <Emoji emoji={emoji} className="w-8 h-8" />
-            <Input
-              className="text-primary w-full"
-              value={emoji.name}
-              maxLength={32}
-              onBlur={(e: React.FocusEvent<HTMLInputElement>) =>
-                updateEmoji(emoji.id, e.target.value)
-              }
-            />
-            <Button variant="danger" onClick={() => deleteEmoji(emoji.id)}>
-              delete
-            </Button>
-          </div>
+          <EmojiItem key={emoji.id} emoji={emoji} />
         ))}
       </div>
     </div>

@@ -3,6 +3,42 @@ import { DEFAULT_EMOJIS } from "src/lib/defaultEmojis";
 import { registerMessageMarkdownComponent } from "src/lib/messageMarkdownRegistry";
 import { getEmojiUrl } from "./cache";
 
+function EmojiImage({ eid }: { eid: string }) {
+  const [failed, setFailed] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (failed) return;
+    const img = new Image();
+    img.onload = () => {
+      setLoading(false);
+    };
+    img.onerror = () => {
+      setLoading(false);
+      setFailed(true);
+    };
+    img.src = getEmojiUrl(eid);
+  }, [eid, failed]);
+
+  if (loading) {
+    return (
+      <div className="w-4 h-4 inline-block bg-tertiary/50 animate-pulse" />
+    );
+  }
+
+  if (failed) {
+    return <span className="opacity-80">:{eid}:</span>;
+  }
+
+  return (
+    <img
+      src={getEmojiUrl(eid)}
+      alt={`:${eid}:`}
+      className="w-4 h-4 inline-block"
+    />
+  );
+}
+
 export function MarkdownEmoji(
   props: Readonly<
     Record<string, unknown> & {
@@ -16,14 +52,7 @@ export function MarkdownEmoji(
   const ename = typeof props.ename === "string" ? props.ename : undefined;
 
   if (eid) {
-    return (
-      <img
-        src={getEmojiUrl(eid)}
-        alt={`:${eid}:`}
-        className="w-4 h-4 inline-block align-[-2px]"
-        loading="lazy"
-      />
-    );
+    return <EmojiImage eid={eid} />;
   }
 
   if (ename) {

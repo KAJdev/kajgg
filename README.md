@@ -10,7 +10,7 @@ You'll need docker installed, and if you want to run the chat client you'll need
 
 ## getting Started
 
-cloe the repo
+clone the repo
 
 ```
 git clone https://github.com/KAJdev/kajgg
