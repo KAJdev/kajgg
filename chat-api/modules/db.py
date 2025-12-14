@@ -1,9 +1,11 @@
 import asyncio
 from datetime import datetime, UTC
 from chat_types.models import Status, MessageType, Embed as ApiEmbed
+from chat_types.models.author import Author as ApiAuthor
 from dotenv import load_dotenv
 from os import getenv
 from modules.utils import generate_id, generate_secret
+from modules.utils import pydantic_model_from_dataclass
 from modules.resend import send_verification_email
 import logging
 from modules.kv import get_client
@@ -195,13 +197,8 @@ class StoredFile(Document):
         use_state_management = True
 
 
-class Embed(BaseModel):
-    title: Optional[str] = Field(default=None)
-    description: Optional[str] = Field(default=None)
-    image_url: Optional[str] = Field(default=None)
-    url: Optional[str] = Field(default=None)
-    footer: Optional[str] = Field(default=None)
-    color: Optional[str] = Field(default=None)
+Embed = pydantic_model_from_dataclass(ApiEmbed, name="Embed")
+Author = pydantic_model_from_dataclass(ApiAuthor, name="Author")
 
 
 class Message(Document):
@@ -217,6 +214,7 @@ class Message(Document):
     deleted_at: Optional[datetime] = None
     user_embeds: list[Embed] = Field(default_factory=list)
     system_embeds: list[Embed] = Field(default_factory=list)
+    author: Optional[Author] = Field(default=None)
 
     @property
     def embeds(self) -> list[Embed]:

@@ -14,7 +14,7 @@ enum = [
 
 [MessageCreated]
 type = "object"
-required = ["message", "author"]
+required = ["message"]
 
 [MessageCreated.properties]
 message = { ref = "Message" }

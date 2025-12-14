@@ -205,7 +205,9 @@ function handleEvent(event: Event) {
           "add"
         ),
         stopTyping(event.d.message.channel_id, event.d.message.author_id),
-        addAuthor(event.d.author)
+        event.d.author &&
+          !event.d.author.flags?.webhook &&
+          addAuthor(event.d.author)
       );
     case EventType.MESSAGE_UPDATED:
       return (

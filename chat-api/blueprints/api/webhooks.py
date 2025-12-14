@@ -1,14 +1,11 @@
-import base64
-import binascii
-from datetime import UTC, datetime
+import re
 from sanic import Blueprint, Request, json, exceptions
 from sanic_ext import openapi
-from modules.db import Channel, Message, Webhook
+from modules.db import Author, Channel, Message, User, Webhook
 from modules import utils
 from modules.auth import authorized
 from chat_types.models.webhook import Webhook as ApiWebhook
-from chat_types.models.message import Message as ApiMessage
-from chat_types.models.author import Author as ApiAuthor
+from chat_types.models.flags import Flags
 from chat_types.models.status import Status
 from modules.events import publish_event
 from chat_types.events import MessageCreated
@@ -167,11 +164,39 @@ async def receive_webhook(
     if not await Message.validate_dict(data):
         raise exceptions.BadRequest("Invalid request")
 
+    custom_author = {
+        "username": data.get("username", webhook.name),
+        "color": data.get("color", webhook.color),
+        "background_color": data.get("background_color", None),
+        "bio": data.get("bio", None),
+        "avatar_url": data.get("avatar_url", None),
+    }
+
+    if not await User.validate_dict(custom_author):
+        raise exceptions.BadRequest("Invalid request")
+
+    # manually check the avatar_url
+    if custom_author["avatar_url"]:
+        if not re.match(r"^https?://", custom_author["avatar_url"]):
+            raise exceptions.BadRequest("Invalid avatar URL")
+
     message = Message(
         author_id=webhook.id,
         channel_id=channel_id,
         content=data.get("content"),
         user_embeds=data.get("embeds", []),
+        author=Author(
+            id=webhook.id,
+            username=custom_author["username"],
+            avatar_url=custom_author["avatar_url"],
+            bio=custom_author["bio"],
+            created_at=webhook.created_at,
+            updated_at=webhook.updated_at,
+            status=Status.ONLINE,
+            color=custom_author["color"],
+            background_color=custom_author["background_color"],
+            flags=Flags(webhook=True),
+        ),
     )
     await message.save()
 
@@ -180,19 +205,6 @@ async def receive_webhook(
     publish_event(
         MessageCreated(
             message=payload,
-            author=utils.dtoa(
-                ApiAuthor,
-                {
-                    "id": webhook.id,
-                    "username": webhook.name,
-                    "avatar_url": None,
-                    "bio": None,
-                    "created_at": webhook.created_at,
-                    "updated_at": webhook.updated_at,
-                    "status": Status.ONLINE,
-                    "color": webhook.color,
-                },
-            ),
         )
     )
 

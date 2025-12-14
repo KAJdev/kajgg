@@ -11,6 +11,7 @@ type = "object"
 
 [Flags.properties]
 admin = { type = "boolean", doc = "Whether the user is an admin" }
+webhook = { type = "boolean", doc = "Whether the user is a webhook" }
 
 [Author]
 type = "object"

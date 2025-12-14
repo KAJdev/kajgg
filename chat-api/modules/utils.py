@@ -10,7 +10,8 @@ from datetime import UTC, datetime
 from cuid2 import Cuid
 from dataclasses import fields, is_dataclass
 import logging
-from pydantic import BaseModel
+from dataclasses import MISSING
+from pydantic import BaseModel, ConfigDict, Field, create_model
 from beanie import Document
 from typing import get_origin, get_args, Union, List
 import enum
@@ -226,3 +227,77 @@ def dataclass_from_dict(klass, data):
         return data
 
     return _convert(klass, data)
+
+
+class DataclassBackedModel(BaseModel):
+    # lowkey just a base for "generated from dataclass" models
+    model_config = ConfigDict(extra="ignore", arbitrary_types_allowed=True)
+
+
+_DC_MODEL_CACHE: dict[type, type[BaseModel]] = {}
+
+
+def pydantic_model_from_dataclass(
+    dc_cls: type, *, name: str | None = None
+) -> type[BaseModel]:
+    """
+    create a pydantic model class from a stdlib dataclass type.
+
+    this is mainly for beanie nesting: beanie wants pydantic models, but typegen gives us dataclasses.
+    """
+
+    if dc_cls in _DC_MODEL_CACHE:
+        return _DC_MODEL_CACHE[dc_cls]
+
+    if not is_dataclass(dc_cls):
+        raise TypeError("expected a dataclass type")
+
+    def _map_type(tp):
+        origin = get_origin(tp)
+        args = get_args(tp)
+
+        # list[t]
+        if origin in (list, List):
+            inner = args[0] if args else Any
+            return list[_map_type(inner)]
+
+        # optional/union
+        if (
+            origin == Union
+            or isinstance(tp, types.UnionType)
+            or origin == types.UnionType
+        ):
+            union_args = args
+            if not union_args and hasattr(tp, "__args__"):
+                union_args = getattr(tp, "__args__", ())
+            if not union_args:
+                return tp
+            mapped = tuple(_map_type(a) for a in union_args)
+            # rebuild union the simplest way
+            out = mapped[0]
+            for extra in mapped[1:]:
+                out = out | extra
+            return out
+
+        # nested dataclass
+        if isinstance(tp, type) and is_dataclass(tp):
+            return pydantic_model_from_dataclass(tp)
+
+        return tp
+
+    model_name = name or f"{dc_cls.__name__}Model"
+
+    field_defs: dict[str, tuple[Any, Any]] = {}
+    for f in fields(dc_cls):
+        ann = _map_type(f.type)
+        if f.default is not MISSING:
+            default = f.default
+        elif f.default_factory is not MISSING:  # type: ignore[comparison-overlap]
+            default = Field(default_factory=f.default_factory)  # type: ignore[arg-type]
+        else:
+            default = ...
+        field_defs[f.name] = (ann, default)
+
+    model = create_model(model_name, __base__=DataclassBackedModel, **field_defs)
+    _DC_MODEL_CACHE[dc_cls] = model
+    return model

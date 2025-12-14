@@ -196,7 +196,14 @@ function DefaultMessage({
   onCancelEdit,
 }: MessageProps) {
   const [content, setContent] = useState<string>(message.content ?? "");
-  const author = useAuthor(message.author_id);
+  const cachedAuthor = useAuthor(message.author_id);
+  const author = message.author ??
+    cachedAuthor ?? {
+      id: message.author_id,
+      username: "Unknown",
+      created_at: new Date(),
+      updated_at: new Date(),
+    };
   const timestamp = new Date(
     message.updated_at ?? message.created_at
   ).toLocaleTimeString([], {
@@ -242,6 +249,9 @@ function DefaultMessage({
       {showAuthorName && (
         <div className="flex items-center gap-2 mt-4">
           <Username author={author} />
+          {author.flags?.webhook && (
+            <span className="bg-tertiary px-1">Webhook</span>
+          )}
           <span className="opacity-30">{timestamp}</span>
         </div>
       )}
@@ -314,7 +324,14 @@ function DefaultMessage({
 }
 
 function JoinLeaveMessage({ message }: MessageProps) {
-  const author = useAuthor(message.author_id);
+  const cachedAuthor = useAuthor(message.author_id);
+  const author = message.author ??
+    cachedAuthor ?? {
+      id: message.author_id,
+      username: "Unknown",
+      created_at: new Date(),
+      updated_at: new Date(),
+    };
 
   const supplementaryMessage = getRandomMessage(
     message.type === MessageTypeEnum.JOIN ? joinMessages : leaveMessages,
