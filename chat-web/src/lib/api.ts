@@ -534,7 +534,7 @@ export async function updateEmoji(emojiId: string, name: string) {
 }
 
 export function useWebhooks(channelId: string) {
-  return cache(useShallow((state) => state.webhooks[channelId]));
+  return cache(useShallow((state) => state.webhooks[channelId] ?? []));
 }
 
 export async function createWebhook(channelId: string, name: string) {

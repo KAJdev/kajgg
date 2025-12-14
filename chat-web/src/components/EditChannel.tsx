@@ -7,7 +7,7 @@ import { Input } from "@theme/Input";
 import { Label } from "@theme/Label";
 import type { Webhook as WebhookType } from "src/types/models/webhook";
 import { ColorPicker } from "@theme/ColorPicker";
-import { type ApiError } from "src/lib/request";
+import { API_URL, type ApiError } from "src/lib/request";
 import type { Channel as ChannelType } from "src/types/models/channel";
 import {
   createWebhook,
@@ -84,50 +84,64 @@ function WebhookItem({ webhook }: { webhook: WebhookType }) {
   const [name, setName] = useState(webhook.name);
   const [color, setColor] = useState(webhook.color);
   return (
-    <div className="flex items-center gap-2 border border-tertiary/30 p-2 bg-tertiary/10">
-      <div
-        className="w-8 h-8 bg-primary rounded-full"
-        style={{ backgroundColor: color }}
-      />
-      <div className="flex flex-col gap-2">
-        <Label>Name</Label>
-        <Input
-          className="text-primary w-full"
-          value={name}
-          maxLength={32}
-          disabled={updateLoading}
-          onChange={setName}
-        />
-      </div>
-      <div className="flex flex-col gap-2">
-        <Label>Color</Label>
-        <ColorPicker color={color} setColor={setColor} />
+    <div className="flex flex-col gap-2 border border-tertiary/30 p-2 bg-tertiary/10">
+      <div className="flex items-center gap-2 justify-between">
+        <div className="flex flex-col gap-2 w-full">
+          <Label>Name</Label>
+          <Input
+            className="text-primary w-full"
+            value={name}
+            maxLength={32}
+            disabled={updateLoading}
+            onChange={setName}
+          />
+        </div>
+        <div className="flex flex-col gap-2 w-24">
+          <Label>Color</Label>
+          <ColorPicker color={color} setColor={setColor} />
+        </div>
       </div>
 
-      <Button
-        loading={updateLoading}
-        disabled={name === webhook.name && color === webhook.color}
-        onClick={async () => {
-          setUpdateLoading(true);
-          await updateWebhook(webhook.channel_id, webhook.id, {
-            name,
-            color,
-          });
-        }}
-      >
-        save
-      </Button>
-      <Button
-        loading={deleteLoading}
-        variant="danger"
-        onClick={async () => {
-          setDeleteLoading(true);
-          await deleteWebhook(webhook.channel_id, webhook.id);
-          setDeleteLoading(false);
-        }}
-      >
-        delete
-      </Button>
+      <div className="flex items-center gap-2 justify-between pt-4 border-t border-tertiary/30">
+        <Button
+          onClick={() =>
+            navigator.clipboard.writeText(
+              `${API_URL}/api/v1/webhooks/${webhook.channel_id}/${webhook.id}/${webhook.secret}`
+            )
+          }
+        >
+          copy url
+        </Button>
+
+        <div className="flex items-center gap-6">
+          <Button
+            loading={deleteLoading}
+            variant="danger"
+            onClick={async () => {
+              setDeleteLoading(true);
+              await deleteWebhook(webhook.channel_id, webhook.id);
+              setDeleteLoading(false);
+            }}
+          >
+            delete
+          </Button>
+          <Button
+            loading={updateLoading}
+            disabled={name === webhook.name && color === webhook.color}
+            onClick={async () => {
+              setUpdateLoading(true);
+              await updateWebhook(webhook.channel_id, webhook.id, {
+                name,
+                color,
+              }).catch(() => {
+                setUpdateLoading(false);
+              });
+            }}
+          >
+            save
+          </Button>
+        </div>
+      </div>
     </div>
   );
 }
@@ -146,7 +160,7 @@ function WebhooksSettings({ channelId }: { channelId: string }) {
         webhooks can send messages directly to this channel
       </p>
       <div>
-        <Button onClick={() => createWebhook(channelId, "new_webhookk")}>
+        <Button onClick={() => createWebhook(channelId, "new_webhook")}>
           Create Webhook
         </Button>
       </div>

@@ -8,7 +8,7 @@ export function ColorPicker({
   return (
     <input
       type="color"
-      className="cursor-pointer"
+      className="cursor-pointer h-10 w-24"
       value={color}
       onChange={(e) => setColor(e.target.value)}
     />

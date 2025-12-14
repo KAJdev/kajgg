@@ -596,7 +596,7 @@ export function addWebhook(webhook: Webhook) {
     webhooks: {
       ...state.webhooks,
       [webhook.channel_id]: [
-        ...(state.webhooks[webhook.channel_id].filter(
+        ...(state.webhooks[webhook.channel_id]?.filter(
           (w) => w.id !== webhook.id
         ) ?? []),
         webhook,

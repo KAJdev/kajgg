@@ -1,7 +1,7 @@
 /* eslint-disable react-hooks/set-state-in-effect */
 import { getToken, tokenCache } from "./cache";
 
-const API_URL = import.meta.env.VITE_API_URL;
+export const API_URL = import.meta.env.VITE_API_URL;
 
 export type RequestOptions = {
   method: "GET" | "POST" | "PUT" | "DELETE" | "PATCH";

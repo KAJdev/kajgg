@@ -5,7 +5,7 @@ export type Icon = string | LucideIcon;
 type ButtonProps = Styleable &
   Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, "onClick"> & {
     onClick?: (() => void) | React.MouseEventHandler<HTMLButtonElement>;
-    variant?: "primary" | "danger";
+    variant?: "primary" | "transparent" | "danger";
     icon?: Icon;
     loading?: boolean;
     disabled?: boolean;
@@ -37,9 +37,13 @@ export function Button({
   return (
     <button
       className={classes(
-        "active:outline-none flex items-center cursor-pointer justify-between gap-2 focus:outline-none transition-colors opacity-70 hover:opacity-100",
-        variant === "danger" && "text-red-500",
+        "active:outline-none flex items-center cursor-pointer justify-between gap-2 focus:outline-none transition-colors opacity-70 hover:opacity-100 ",
         !children && icon && "gap-0.5",
+        children &&
+          !icon &&
+          variant !== "transparent" &&
+          "bg-tertiary/50 hover:bg-tertiary/70",
+        variant === "danger" && "bg-red-500/50 hover:bg-red-500/70",
         disabled && "opacity-25 pointer-events-none",
         className
       )}

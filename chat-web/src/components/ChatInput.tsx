@@ -132,6 +132,7 @@ export function ChatInput({
         {!editing && (
           <Button
             icon={PlusIcon}
+            variant="transparent"
             className="h-12 pl-2 pr-1"
             onClick={() => {
               const fileInput = document.createElement("input");
@@ -210,6 +211,7 @@ export function ChatInput({
         />
         {!editing && (
           <Button
+            variant="transparent"
             className={classes(
               "px-3 text-neutral-200 transition h-12",
               content.length > 0 || (attachments?.length ?? 0) > 0
