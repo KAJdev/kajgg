@@ -15,3 +15,7 @@ class Embed:
     footer: str | None = None
     # Color of the embed
     color: str | None = None
+    # URL to the video of the embed
+    video_url: str | None = None
+    # URL to the audio of the embed
+    audio_url: str | None = None

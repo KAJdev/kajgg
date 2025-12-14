@@ -11,4 +11,8 @@ export type Embed = {
     footer?: string;
     /** Color of the embed */
     color?: string;
+    /** URL to the video of the embed */
+    video_url?: string;
+    /** URL to the audio of the embed */
+    audio_url?: string;
 }

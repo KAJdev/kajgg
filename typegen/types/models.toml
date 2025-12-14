@@ -40,6 +40,8 @@ image_url = { type = "string", doc = "URL to the image of the embed" }
 url = { type = "string", doc = "URL to the embed" }
 footer = { type = "string", doc = "Footer of the embed" }
 color = { type = "string", doc = "Color of the embed" }
+video_url = { type = "string", doc = "URL to the video of the embed" }
+audio_url = { type = "string", doc = "URL to the audio of the embed" }
 
 
 [User]
