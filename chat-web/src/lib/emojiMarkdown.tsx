@@ -1,13 +1,9 @@
 import React from "react";
 import { getDefaultEmojiByName } from "src/lib/defaultEmojiIndex";
 import { registerMessageMarkdownComponent } from "src/lib/messageMarkdownRegistry";
-import { MessageMarkdownContext } from "src/lib/messageMarkdownContext";
 import { getEmojiUrl } from "./cache";
 
-function EmojiImage({
-  eid,
-  className,
-}: Readonly<{ eid: string; className?: string }>) {
+function EmojiImage({ eid }: Readonly<{ eid: string }>) {
   const [failed, setFailed] = useState(false);
   const [loading, setLoading] = useState(true);
 
@@ -25,14 +21,7 @@ function EmojiImage({
   }, [eid, failed]);
 
   if (loading) {
-    return (
-      <div
-        className={classes(
-          "inline-block bg-tertiary/50 animate-pulse",
-          className
-        )}
-      />
-    );
+    return <div className="custom-emoji bg-tertiary/50 animate-pulse" />;
   }
 
   if (failed) {
@@ -40,11 +29,7 @@ function EmojiImage({
   }
 
   return (
-    <img
-      src={getEmojiUrl(eid)}
-      alt={`:${eid}:`}
-      className={classes("inline-block", className)}
-    />
+    <img src={getEmojiUrl(eid)} alt={`:${eid}:`} className="custom-emoji" />
   );
 }
 
@@ -59,30 +44,17 @@ export function MarkdownEmoji(
 ) {
   const eid = typeof props.eid === "string" ? props.eid : undefined;
   const ename = typeof props.ename === "string" ? props.ename : undefined;
-  const { emojiOnly } = useContext(MessageMarkdownContext);
 
   if (eid) {
-    return (
-      <span className="inline-flex align-[-2px]">
-        <EmojiImage eid={eid} className={emojiOnly ? "w-12 h-12" : "w-4 h-4"} />
-      </span>
-    );
+    return <EmojiImage eid={eid} />;
   }
 
   if (ename) {
     const key = ename.toLowerCase();
     const builtin = getDefaultEmojiByName(key);
     if (builtin) {
-      return (
-        <span
-          className={classes(
-            "inline-block w-4 h-4",
-            emojiOnly ? "text-6xl" : "text-2xl"
-          )}
-        >
-          {builtin}
-        </span>
-      );
+      // twemoji will replace this unicode with an <img class="twemoji" ...>
+      return <span>{builtin}</span>;
     }
     return <span className="opacity-80">{`:${ename}:`}</span>;
   }

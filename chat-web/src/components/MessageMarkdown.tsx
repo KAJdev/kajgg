@@ -1,5 +1,6 @@
 import ReactMarkdown from "react-markdown";
 import type { Components } from "react-markdown";
+import Twemoji from "react-twemoji";
 import remarkGfm from "remark-gfm";
 import rehypeRaw from "rehype-raw";
 import rehypeSanitize from "rehype-sanitize";
@@ -10,7 +11,6 @@ import {
 import { remarkMinecraftFormatting } from "src/lib/remarkMinecraftFormatting";
 import { remarkEmojis } from "src/lib/remarkEmojis";
 import { isEmojiOnlyMessage } from "src/lib/emojiOnly";
-import { MessageMarkdownContext } from "src/lib/messageMarkdownContext";
 import "src/lib/minecraftSpan";
 import "src/lib/emojiMarkdown";
 
@@ -112,27 +112,34 @@ export function MessageMarkdown({
 }>) {
   const custom = getMessageMarkdownComponents();
   const emojiOnly = isEmojiOnlyMessage(content);
-  const ctx = useMemo(() => ({ emojiOnly }), [emojiOnly]);
+
+  const emojiBase =
+    "[&_.twemoji]:inline-block [&_.twemoji]:align-[-2px] [&_.custom-emoji]:inline-block [&_.custom-emoji]:align-[-2px]";
+  const emojiSize = emojiOnly
+    ? "[&_.twemoji]:w-12 [&_.twemoji]:h-12 [&_.custom-emoji]:w-12 [&_.custom-emoji]:h-12"
+    : "[&_.twemoji]:w-4 [&_.twemoji]:h-4 [&_.custom-emoji]:w-4 [&_.custom-emoji]:h-4";
 
   return (
-    <MessageMarkdownContext.Provider value={ctx}>
-      <div
-        className={classes(
-          "wrap-break-word whitespace-pre-wrap",
-          emojiOnly && "leading-none"
-        )}
+    <Twemoji
+      tag="div"
+      options={{ className: "twemoji" }}
+      className={classes(
+        "wrap-break-word whitespace-pre-wrap",
+        emojiBase,
+        emojiSize,
+        emojiOnly && "leading-none"
+      )}
+    >
+      <ReactMarkdown
+        remarkPlugins={[remarkGfm, remarkMinecraftFormatting, remarkEmojis]}
+        rehypePlugins={[
+          rehypeRaw,
+          [rehypeSanitize, buildMessageMarkdownSanitizeSchema()],
+        ]}
+        components={{ ...baseComponents, ...custom } as unknown as Components}
       >
-        <ReactMarkdown
-          remarkPlugins={[remarkGfm, remarkMinecraftFormatting, remarkEmojis]}
-          rehypePlugins={[
-            rehypeRaw,
-            [rehypeSanitize, buildMessageMarkdownSanitizeSchema()],
-          ]}
-          components={{ ...baseComponents, ...custom } as unknown as Components}
-        >
-          {content}
-        </ReactMarkdown>
-      </div>
-    </MessageMarkdownContext.Provider>
+        {content}
+      </ReactMarkdown>
+    </Twemoji>
   );
 }

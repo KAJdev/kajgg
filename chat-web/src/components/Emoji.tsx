@@ -1,3 +1,4 @@
+import Twemoji from "react-twemoji";
 import { getEmojiUrl } from "src/lib/cache";
 import type { Emoji as EmojiType } from "src/types";
 
@@ -9,7 +10,11 @@ export function Emoji({
   className?: string;
 }) {
   if (typeof emoji === "string") {
-    return <span className={classes("w-4 h-4", className)}>{emoji}</span>;
+    return (
+      <Twemoji tag="span" className={classes("w-4 h-4", className)}>
+        {emoji}
+      </Twemoji>
+    );
   }
   return (
     <img
