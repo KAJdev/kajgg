@@ -676,9 +676,8 @@ export function useEmojis() {
   return cache(useShallow((state) => state.emojis));
 }
 
-export function getEmojiUrl(emoji: Emoji) {
-  // id-only url so markdown (and anything else) can construct emoji urls without metadata
-  return `https://cdn.kaj.gg/emojis/${emoji.id}`;
+export function getEmojiUrl(emojiId: string) {
+  return `https://cdn.kaj.gg/emojis/${emojiId}`;
 }
 
 export function searchEmojis(query: string) {

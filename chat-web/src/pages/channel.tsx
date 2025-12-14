@@ -50,8 +50,7 @@ export function Channel() {
 
   const emojiQuery = useMemo(() => {
     // ends with : followed by at least 2 alphabetic characters (e.g. 'soemthing :aa', 'something :AA', 'something :aA', 'something :AAa')
-    const isTypingEmoji =
-      content.length >= 3 && /^:[a-zA-Z]{2,}$/.test(content);
+    const isTypingEmoji = content.length >= 3 && /:[a-zA-Z]{2,}$/.test(content);
     return isTypingEmoji ? content.split(":").at(-1) : null;
   }, [content]);
 
@@ -151,7 +150,7 @@ export function Channel() {
   }, [authors]);
 
   useKeybind("arrowup", () => {
-    if (editingMessageId) {
+    if (editingMessageId || emojiQuery) {
       return;
     }
 

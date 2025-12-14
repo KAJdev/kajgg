@@ -37,9 +37,10 @@ function isValidToken(token: string) {
 
 function tokenToHtml(token: string) {
   if (isNumericId(token) || isUuid(token) || isCuidLike(token)) {
-    return `<emoji id="${escapeHtml(token)}"></emoji>`;
+    // don't use id/name attrs bc rehype-sanitize will clobber-prefix them ("user-content-...")
+    return `<emoji eid="${escapeHtml(token)}"></emoji>`;
   }
-  return `<emoji name="${escapeHtml(token)}"></emoji>`;
+  return `<emoji ename="${escapeHtml(token)}"></emoji>`;
 }
 
 function parseEmojiNodes(text: string): MdastNode[] | null {
