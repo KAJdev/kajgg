@@ -5,6 +5,7 @@ export type { ChannelCreated } from "./events/channelcreated";
 export type { ChannelDeleted } from "./events/channeldeleted";
 export type { ChannelUpdated } from "./events/channelupdated";
 export type { Embed } from "./models/embed";
+export type { Emoji } from "./models/emoji";
 export type { Event } from "./events/event";
 export type { File } from "./models/file";
 export type { FileUpload } from "./models/fileupload";

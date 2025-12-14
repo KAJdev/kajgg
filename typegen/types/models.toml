@@ -79,6 +79,15 @@ last_message_at = { type = "string", format = "date-time", doc = "When the chann
 author_id = { type = "string", doc = "ID of the user who created the channel" }
 author = { ref = "Author" }
 
+[Emoji]
+type = "object"
+required = ["id", "name", "animated"]
+
+[Emoji.properties]
+id = { type = "string", doc = "Unique identifier for the emoji" }
+name = { type = "string", doc = "Name of the emoji" }
+animated = { type = "boolean", doc = "Whether the emoji is animated" }
+
 [Message]
 type = "object"
 required = ["id", "type", "files", "created_at", "author_id", "channel_id"]

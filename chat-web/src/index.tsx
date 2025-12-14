@@ -2,7 +2,7 @@ import { RouterProvider } from "react-router";
 import { useGateway } from "./lib/gateway";
 import { router } from "./routes";
 import { getLastSeenChannel, useAppliedTheme, useToken } from "./lib/cache";
-import { fetchChannels, fetchMe } from "./lib/api";
+import { fetchChannels, fetchEmojis, fetchMe } from "./lib/api";
 
 export function Index() {
   useGateway();
@@ -10,6 +10,7 @@ export function Index() {
 
   async function init() {
     fetchMe();
+    fetchEmojis();
 
     const channels = await fetchChannels();
     let channelId = getLastSeenChannel();

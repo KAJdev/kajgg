@@ -71,3 +71,29 @@ def head_object(key: str) -> dict:
 async def head_object_async(key: str) -> dict:
     # network call -> definitely don’t do this on the event loop
     return await asyncio.to_thread(head_object, key)
+
+
+def put_object(key: str, content_type: str, body: bytes) -> None:
+    client = get_s3_client()
+    try:
+        return client.put_object(
+            Bucket=get_bucket(), Key=key, ContentType=content_type, Body=body
+        )
+    except Exception as e:
+        raise RuntimeError(f"Failed to upload object: {e}")
+
+
+async def put_object_async(key: str, content_type: str, body: bytes) -> None:
+    return await asyncio.to_thread(put_object, key, content_type, body)
+
+
+def delete_object(key: str) -> None:
+    client = get_s3_client()
+    try:
+        return client.delete_object(Bucket=get_bucket(), Key=key)
+    except Exception as e:
+        raise RuntimeError(f"Failed to delete object: {e}")
+
+
+async def delete_object_async(key: str) -> None:
+    return await asyncio.to_thread(delete_object, key)

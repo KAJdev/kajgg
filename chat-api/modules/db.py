@@ -297,6 +297,49 @@ class Message(Document):
         use_state_management = True
 
 
+class Emoji(Document):
+    id: str = Field(default_factory=generate_id)
+    owner_id: str
+    name: str
+    animated: bool
+    created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
+    updated_at: Optional[datetime] = None
+    deleted_at: Optional[datetime] = None
+
+    @classmethod
+    async def validate_dict(cls, data: dict) -> bool:
+        if data.get("name"):
+            if len(data["name"]) < 3 or len(data["name"]) > 32:
+                raise exceptions.BadRequest("Name must be between 3 and 32 characters")
+            if not re.match(r"^[a-zA-Z0-9_-]+$", data["name"]):
+                raise exceptions.BadRequest(
+                    "Name must only contain letters, numbers, underscores, and hyphens"
+                )
+
+        if data.get("image"):
+            if not re.match(r"^data:image/(png|gif);base64,", data["image"]):
+                raise exceptions.BadRequest("Invalid image")
+
+            payload = data["image"].split(",", 1)[1]
+            padding = payload.count("=")
+            approx_bytes = (len(payload) * 3) // 4 - padding
+            if approx_bytes > 1000000:
+                raise exceptions.BadRequest("Image must be less than 1MB")
+
+        if not data.get("name") or not data.get("image"):
+            raise exceptions.BadRequest("Name and image are required")
+
+        return True
+
+    @property
+    def url(self) -> str:
+        return f"https://cdn.kaj.gg/emojis/{self.id}.{self.animated and 'gif' or 'png'}"
+
+    class Settings:
+        name = "emojis"
+        use_state_management = True
+
+
 class Channel(Document):
     id: str = Field(default_factory=generate_id)
     name: str

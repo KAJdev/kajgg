@@ -12,6 +12,7 @@ import {
   updateAuthor,
   updateMessage,
   updateMessageById,
+  setEmojis,
 } from "./cache";
 import type { Channel } from "@schemas/models/channel";
 import type { Message } from "@schemas/models/message";
@@ -20,6 +21,49 @@ import type { Author } from "@schemas/models/author";
 import type { FileUpload } from "@schemas/models/fileupload";
 import type { File as ApiFile } from "@schemas/models/file";
 import type { User as UserType } from "src/types/models/user";
+import type { Emoji } from "@schemas/index";
+
+async function compressImage(file: File): Promise<File> {
+  const compressed = await new Promise<File>((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement("canvas");
+      canvas.width = img.width;
+      canvas.height = img.height;
+      const ctx = canvas.getContext("2d");
+      ctx?.drawImage(img, 0, 0);
+      const dataUrl = canvas.toDataURL("image/png");
+      const blob = new Blob([dataUrl], { type: "image/png" });
+      resolve(new File([blob], file.name, { type: "image/png" }));
+    };
+    img.onerror = () => reject(new Error("failed to compress image"));
+    img.src = URL.createObjectURL(file);
+  });
+  return compressed;
+}
+
+async function fileToDataUrl(file: File): Promise<string> {
+  return await new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () =>
+      resolve(typeof reader.result === "string" ? reader.result : "");
+    reader.onerror = () =>
+      reject(reader.error ?? new Error("failed to read file"));
+
+    // we want to compress the image if its greater than 1MB
+    if (file.size > 1000000 && file.type.startsWith("image/")) {
+      compressImage(file)
+        .then((compressed) => {
+          reader.readAsDataURL(compressed);
+        })
+        .catch((error) => {
+          reject(error);
+        });
+    } else {
+      reader.readAsDataURL(file);
+    }
+  });
+}
 
 export async function login(username: string, password: string) {
   return await request<User>("login", {
@@ -395,4 +439,97 @@ export async function startTyping(channelId: string) {
   }
 
   return response;
+}
+
+export async function fetchEmojis(userId?: string) {
+  const [emojis, error] = await request<Emoji[]>(
+    `users/${userId ?? "@me"}/emojis`
+  );
+  if (error) {
+    throw error;
+  }
+  setEmojis(emojis);
+  return emojis;
+}
+
+export async function createEmoji(name: string, image: string | File) {
+  let imageData: string;
+  if (image instanceof File) {
+    imageData = await fileToDataUrl(image);
+  } else {
+    imageData = image;
+  }
+
+  let sanitizedName = name.toLowerCase().replace(/[^a-z0-9_-]/g, "");
+  if (sanitizedName.length < 3 || sanitizedName.length > 32) {
+    sanitizedName = "emoji";
+  }
+  if (
+    Object.values(cache.getState().emojis).some(
+      (emoji) => emoji.name === sanitizedName
+    )
+  ) {
+    sanitizedName = `${sanitizedName}_${Math.floor(Math.random() * 1000000)}`;
+  }
+
+  const [emoji, error] = await request<Emoji>(`users/@me/emojis`, {
+    method: "POST",
+    body: { name: sanitizedName, image: imageData },
+  });
+  if (error) {
+    throw error;
+  }
+  setEmojis([...Object.values(cache.getState().emojis), emoji]);
+  return emoji;
+}
+
+export async function deleteEmoji(emojiId: string) {
+  const [, error] = await request<Emoji>(`users/@me/emojis/${emojiId}`, {
+    method: "DELETE",
+  });
+  if (error) {
+    throw error;
+  }
+  setEmojis(
+    Object.values(cache.getState().emojis).filter(
+      (emoji) => emoji.id !== emojiId
+    )
+  );
+}
+
+export async function updateEmoji(
+  emojiId: string,
+  name: string,
+  image: string | File
+) {
+  let imageData: string;
+  if (image instanceof File) {
+    imageData = await fileToDataUrl(image);
+  } else {
+    imageData = image;
+  }
+  let sanitizedName = name.toLowerCase().replace(/[^a-z0-9_-]/g, "");
+  if (sanitizedName.length < 3 || sanitizedName.length > 32) {
+    sanitizedName = "emoji";
+  }
+  if (
+    Object.values(cache.getState().emojis).some(
+      (emoji) => emoji.name === sanitizedName
+    )
+  ) {
+    sanitizedName = `${sanitizedName}_${Math.floor(Math.random() * 1000000)}`;
+  }
+  const [emoji, error] = await request<Emoji>(`users/@me/emojis/${emojiId}`, {
+    method: "PATCH",
+    body: { name, image: imageData },
+  });
+  if (error) {
+    throw error;
+  }
+  setEmojis(
+    Object.values(cache.getState().emojis).map((e) =>
+      e.id === emojiId ? emoji : e
+    )
+  );
+  return emoji;
 }

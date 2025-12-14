@@ -1,4 +1,4 @@
-import { useUser, useUserSettings } from "src/lib/cache";
+import { useEmojis, useUser, useUserSettings } from "src/lib/cache";
 import { ListAuthor } from "./ListAuthor";
 import { RefreshCcwIcon, SettingsIcon } from "lucide-react";
 import { Button } from "@theme/Button";
@@ -12,7 +12,7 @@ import { Label } from "@theme/Label";
 import { Status as StatusType } from "src/types/models/status";
 import type { User as UserType } from "src/types/models/user";
 import { ColorPicker } from "@theme/ColorPicker";
-import { updateUser } from "src/lib/api";
+import { createEmoji, updateUser } from "src/lib/api";
 import type { ApiError } from "src/lib/request";
 import { getColor } from "src/lib/utils";
 import { defaultTheme } from "src/lib/cache";
@@ -187,6 +187,37 @@ function ThemeSettings() {
   );
 }
 
+function EmojisSettings() {
+  const emojis = useEmojis();
+
+  return (
+    <div className="flex flex-col gap-2">
+      <div className="flex itenms-center justify-between gap-2">
+        <p>upload emojis to use in your messages</p>
+        <Button
+          onClick={() => {
+            const fileInput = document.createElement("input");
+            fileInput.type = "file";
+            fileInput.multiple = true;
+            fileInput.accept = "*";
+            fileInput.onchange = (e) => {
+              const file = (e.target as HTMLInputElement)?.files?.[0];
+              if (file) {
+                createEmoji(file.name, file);
+              }
+            };
+            fileInput.style.display = "none";
+            document.body.appendChild(fileInput);
+            fileInput.click();
+          }}
+        >
+          Create Emoji
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 export function User() {
   const user = useUser();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -219,9 +250,11 @@ export function User() {
           >
             <Tab name="User" value="user" />
             <Tab name="Theme" value="theme" />
+            <Tab name="Emojis" value="emojis" />
           </Tabs>
           {settingsTab === "user" && <UserSettings />}
           {settingsTab === "theme" && <ThemeSettings />}
+          {settingsTab === "emojis" && <EmojisSettings />}
         </div>
       </Modal>
     </>

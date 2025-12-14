@@ -7,6 +7,7 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { useShallow } from "zustand/shallow";
 import { flipColor, getIsPageFocused } from "./utils";
+import type { Emoji } from "@schemas/index";
 
 type TimeoutId = ReturnType<typeof setTimeout>;
 
@@ -49,6 +50,7 @@ export type Cache = {
   authors: Record<string, Author>;
   typing: Record<string, Record<string, TimeoutId>>;
   last_event_ts?: number;
+  emojis: Record<string, Emoji>;
 };
 
 export type PersistentCache = {
@@ -75,6 +77,7 @@ export const cache = create<Cache>()(() => ({
   authors: {},
   typing: {},
   last_event_ts: undefined,
+  emojis: {},
 }));
 
 export const tokenCache = create<{ token: string | null }>()(
@@ -660,4 +663,28 @@ export function setContextMenuState(
     position: position === undefined ? state.position : position,
     content: content === undefined ? state.content : content,
   }));
+}
+
+export function setEmojis(emojis: Emoji[]) {
+  cache.setState({
+    emojis: Object.fromEntries(
+      emojis.map((emoji) => [emoji.name.toLowerCase(), emoji])
+    ),
+  });
+}
+
+export function useEmojis() {
+  return cache(useShallow((state) => state.emojis));
+}
+
+export function getEmojiUrl(emoji: Emoji) {
+  return `https://cdn.kaj.gg/emojis/${emoji.id}.${
+    emoji.animated ? "gif" : "png"
+  }`;
+}
+
+export function searchEmojis(query: string) {
+  return Object.values(cache.getState().emojis).filter((emoji) =>
+    emoji.name.toLowerCase().includes(query.toLowerCase())
+  );
 }

@@ -9,4 +9,8 @@ export type File = {
     size: number;
     /** URL to access the file */
     url: string;
+    /** Height of the file */
+    height?: number;
+    /** Width of the file */
+    width?: number;
 }

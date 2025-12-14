@@ -25,6 +25,7 @@ import { Button } from "@theme/Button";
 import { PlusIcon } from "lucide-react";
 import { CreateChannel } from "src/components/CreateChannel";
 import { Modal } from "@theme/Modal";
+import { EmojiSearch } from "src/components/EmojiSearch";
 
 const statusOrder = [
   StatusType.ONLINE,
@@ -46,6 +47,13 @@ export function Channel() {
   const channel = useChannel(channelId);
   const channels = useChannels();
   const authors = useAuthors();
+
+  const emojiQuery = useMemo(() => {
+    // ends with : followed by at least 2 alphabetic characters (e.g. 'soemthing :aa', 'something :AA', 'something :aA', 'something :AAa')
+    const isTypingEmoji =
+      content.length >= 3 && /^:[a-zA-Z]{2,}$/.test(content);
+    return isTypingEmoji ? content.split(":").at(-1) : null;
+  }, [content]);
 
   function setQuote(quotedMessage: string) {
     setContent(
@@ -225,7 +233,17 @@ export function Channel() {
           </div>
 
           <div className="flex flex-col">
-            <TypingIndicator channelId={channelId} />
+            {emojiQuery ? (
+              <EmojiSearch
+                query={emojiQuery}
+                onPick={(emoji) => {
+                  const stripped = content.split(":").slice(0, -1).join(":");
+                  setContent(`${stripped}${emoji}`);
+                }}
+              />
+            ) : (
+              <TypingIndicator channelId={channelId} />
+            )}
             <ChatInput
               content={content}
               attachments={attachments}

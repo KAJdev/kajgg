@@ -13,3 +13,7 @@ class File:
     size: int | None = None
     # URL to access the file
     url: str | None = None
+    # Height of the file
+    height: int | None = None
+    # Width of the file
+    width: int | None = None
