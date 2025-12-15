@@ -193,7 +193,7 @@ def parse_railway_webhook(response: Request) -> dict | None:
         return {
             "embeds": [
                 {
-                    "title": f"{service_name} on &dRailway",
+                    "title": f"**{service_name}** on &dRailway",
                     "description": description,
                     "color": color,
                     "footer": f"{project_name} | {payload.get('details', {}).get('id')}",
