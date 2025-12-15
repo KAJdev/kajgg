@@ -7,6 +7,7 @@ services:
     environment:
       - CHAT_API_URL=http://chat-api:3002
       - CHAT_GATEWAY_URL=http://chat-gateway:3003
+      - MEDIA_PROXY_URL=http://media-proxy:3004
     networks:
       - chat-network
 
@@ -76,6 +77,22 @@ services:
       watch:
         - action: rebuild
           path: ./chat-api
+
+  media-proxy:
+    build:
+      context: ./media-proxy
+      dockerfile: Dockerfile
+    environment:
+      - PORT=3004
+      - ENV=staging
+      # - ALLOWED_PORTS=80,443
+      # - MAX_BYTES=0
+    networks:
+      - chat-network
+    develop:
+      watch:
+        - action: rebuild
+          path: ./media-proxy
 
   # embeddings:
   #   build:

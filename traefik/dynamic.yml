@@ -16,6 +16,21 @@ http:
       middlewares:
         - chat-gateway-stripprefix
         - cors
+    media-proxy:
+      rule: Host(`media.kaj.gg`)
+      entryPoints:
+        - web
+      service: media-proxy
+      middlewares:
+        - cors
+    media-proxy-local:
+      rule: PathPrefix(`/media`)
+      entryPoints:
+        - web
+      service: media-proxy
+      middlewares:
+        - media-proxy-stripprefix
+        - cors
 
   middlewares:
     chat-api-stripprefix:
@@ -32,6 +47,10 @@ http:
       stripPrefix:
         prefixes:
           - /gateway
+    media-proxy-stripprefix:
+      stripPrefix:
+        prefixes:
+          - /media
 
   services:
     chat-api:
@@ -42,3 +61,7 @@ http:
       loadBalancer:
         servers:
           - url: "{{ env `CHAT_GATEWAY_URL` }}"
+    media-proxy:
+      loadBalancer:
+        servers:
+          - url: "{{ env `MEDIA_PROXY_URL` }}"
