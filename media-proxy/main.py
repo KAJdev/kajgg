@@ -1,6 +1,7 @@
 import asyncio
 import ipaddress
 import logging
+import mimetypes
 import socket
 from os import getenv
 from typing import Iterable, Optional
@@ -10,7 +11,7 @@ from aiohttp import ClientSession, ClientTimeout
 from dotenv import load_dotenv
 from sanic import Sanic
 from sanic.exceptions import BadRequest, Forbidden, ServiceUnavailable
-from sanic.response import json
+from sanic.response import ResponseStream, empty, json
 
 load_dotenv()
 
@@ -101,7 +102,6 @@ def _filtered_response_headers(
     upstream_headers: "aiohttp.typedefs.LooseHeaders",
 ) -> dict[str, str]:
     passthrough = {
-        "content-type",
         "content-length",
         "etag",
         "last-modified",
@@ -144,6 +144,21 @@ async def health(_request):
     return json({"ok": True})
 
 
+@app.get("/")
+async def root(_request):
+    return json(
+        {
+            "ok": True,
+            "usage": "GET /<url> (example: /https://example.com/cat.png)",
+        }
+    )
+
+
+@app.get("/favicon.ico")
+async def favicon(_request):
+    return json({"ok": False}, status=404)
+
+
 async def _proxy_request(request, method: str, raw_target: str):
     target = _normalize_target(raw_target)
     split = urlsplit(target)
@@ -170,10 +185,27 @@ async def _proxy_request(request, method: str, raw_target: str):
 
     sess: ClientSession = request.app.ctx.http
     try:
-        async with sess.request(
+        upstream = await sess.request(
             method, target, headers=upstream_headers, allow_redirects=True
-        ) as upstream:
+        )
+        try:
+            # some hosts (esp behind cdns) return 405 to head, so we fall back to a tiny ranged get
+            if method == "HEAD" and upstream.status in (405, 501):
+                upstream.release()
+                ranged_headers = dict(upstream_headers)
+                ranged_headers.setdefault("range", "bytes=0-0")
+                upstream = await sess.request(
+                    "GET",
+                    target,
+                    headers=ranged_headers,
+                    allow_redirects=True,
+                )
+
             headers = _filtered_response_headers(upstream.headers)
+            content_type = upstream.headers.get("content-type")
+            if not content_type:
+                guessed, _ = mimetypes.guess_type(split.path)
+                content_type = guessed or upstream.content_type or None
 
             if MAX_BYTES > 0:
                 cl = upstream.headers.get("content-length")
@@ -181,19 +213,34 @@ async def _proxy_request(request, method: str, raw_target: str):
                     raise BadRequest("payload too large")
 
             if method == "HEAD":
-                return await request.respond(status=upstream.status, headers=headers)
+                if content_type:
+                    headers["Content-Type"] = content_type
+                return empty(status=upstream.status, headers=headers)
 
-            resp = await request.respond(status=upstream.status, headers=headers)
-            sent = 0
-            async for chunk in upstream.content.iter_chunked(64 * 1024):
-                if not chunk:
-                    continue
-                sent += len(chunk)
-                if MAX_BYTES > 0 and sent > MAX_BYTES:
-                    raise BadRequest("payload too large")
-                await resp.send(chunk)
-            await resp.eof()
-            return resp
+            async def streaming(resp):
+                sent = 0
+                try:
+                    async for chunk in upstream.content.iter_chunked(64 * 1024):
+                        if not chunk:
+                            continue
+                        sent += len(chunk)
+                        if MAX_BYTES > 0 and sent > MAX_BYTES:
+                            raise BadRequest("payload too large")
+                        await resp.write(chunk)
+                finally:
+                    upstream.release()
+
+            kwargs = {
+                "streaming_fn": streaming,
+                "status": upstream.status,
+                "headers": headers,
+            }
+            if content_type:
+                kwargs["content_type"] = content_type
+            return ResponseStream(**kwargs)
+        except Exception:
+            upstream.release()
+            raise
     except BadRequest:
         raise
     except Forbidden:
@@ -203,14 +250,9 @@ async def _proxy_request(request, method: str, raw_target: str):
         raise ServiceUnavailable("upstream error")
 
 
-@app.get("/<path:target>")
-async def proxy_get(request, target: str):
-    return await _proxy_request(request, "GET", target)
-
-
-@app.head("/<path:target>")
-async def proxy_head(request, target: str):
-    return await _proxy_request(request, "HEAD", target)
+@app.route("/<target:path>", methods=["GET", "HEAD"])
+async def proxy(request, target: str):
+    return await _proxy_request(request, request.method, target)
 
 
 if __name__ == "__main__":

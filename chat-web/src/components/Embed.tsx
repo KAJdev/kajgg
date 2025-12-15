@@ -10,6 +10,8 @@ const mediaOnlyFields = {
   audio_url: ["audio", "mpeg"],
 } as const;
 
+const MEDIA_PROXY_URL = import.meta.env.VITE_MEDIA_PROXY;
+
 export function Embed({ embed }: { embed: Embed }) {
   const { theme } = useUserSettings();
 
@@ -40,7 +42,7 @@ export function Embed({ embed }: { embed: Embed }) {
             `${mediaOnlyFields[key as keyof typeof mediaOnlyFields][1]}.${
               ext ?? mediaOnlyFields[key as keyof typeof mediaOnlyFields][1]
             }`,
-          url: url,
+          url: `${MEDIA_PROXY_URL}/${url}`,
           mime_type,
           size: 0,
         }}
