@@ -3,6 +3,7 @@ import re
 from sanic import Blueprint, Request, json, exceptions
 from sanic_ext import openapi
 from modules.db import Author, Channel, Message, User, UserFlags, Webhook
+from modules.mentions import extract_mention_usernames, resolve_mentions_for_channel
 from modules import utils
 from modules.auth import authorized
 from chat_types.models.webhook import Webhook as ApiWebhook
@@ -228,6 +229,17 @@ async def receive_webhook(
     if not await Message.validate_dict(data):
         raise exceptions.BadRequest("Invalid request")
 
+    channel = await Channel.find_one(Channel.id == channel_id)
+    if not channel:
+        raise exceptions.NotFound("Channel not found")
+
+    mentions = []
+    content = data.get("content")
+    if content:
+        usernames = extract_mention_usernames(content)
+        if usernames:
+            mentions = await resolve_mentions_for_channel(channel, usernames)
+
     custom_author = {
         "username": data.get("username", webhook.name),
         "color": data.get("color", webhook.color),
@@ -249,6 +261,7 @@ async def receive_webhook(
         channel_id=channel_id,
         content=data.get("content"),
         user_embeds=data.get("embeds", []),
+        mentions=mentions,
         author=Author(
             id=webhook.id,
             username=custom_author["username"],

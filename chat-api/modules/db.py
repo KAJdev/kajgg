@@ -212,6 +212,7 @@ class Message(Document):
     deleted_at: Optional[datetime] = None
     user_embeds: list[Embed] = Field(default_factory=list)
     system_embeds: list[Embed] = Field(default_factory=list)
+    mentions: list[str] = Field(default_factory=list)
     author: Optional[Author] = Field(default=None)
 
     @property

@@ -126,6 +126,7 @@ type = { ref = "MessageType", doc = "Type of the message" }
 content = { type = "string", doc = "Text content of the message" }
 files = { type = "array", items = { ref = "File" }, doc = "List of files attached to the message" }
 embeds = { type = "array", items = { ref = "Embed" }, doc = "List of embeds attached to the message" }
+mentions = { type = "array", items = { type = "string" }, doc = "list of user ids mentioned in the message" }
 created_at = { type = "string", format = "date-time", doc = "When the message was created" }
 updated_at = { type = "string", format = "date-time", doc = "When the message was last updated" }
 author_id = { type = "string", doc = "ID of the user who sent the message" }

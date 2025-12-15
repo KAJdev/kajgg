@@ -26,6 +26,7 @@ import { PlusIcon } from "lucide-react";
 import { CreateChannel } from "src/components/CreateChannel";
 import { Modal } from "@theme/Modal";
 import { EmojiSearch } from "src/components/EmojiSearch";
+import { MentionSearch } from "src/components/MentionSearch";
 import { EditChannel } from "src/components/EditChannel";
 import { router } from "src/routes";
 
@@ -54,6 +55,12 @@ export function Channel() {
     // ends with : followed by at least 2 alphabetic characters (e.g. 'soemthing :aa', 'something :AA', 'something :aA', 'something :AAa')
     const isTypingEmoji = content.length >= 3 && /:[a-zA-Z]{2,}$/.test(content);
     return isTypingEmoji ? content.split(":").at(-1) : null;
+  }, [content]);
+
+  const mentionQuery = useMemo(() => {
+    // ends with @ followed by at least 1 valid username char, and either start-of-string or whitespace before the @
+    const m = content.match(/(?:^|\s)@([a-zA-Z0-9_-]{1,32})$/);
+    return m ? m[1] : null;
   }, [content]);
 
   function setQuote(quotedMessage: string) {
@@ -162,7 +169,7 @@ export function Channel() {
   }, [authors]);
 
   useKeybind("arrowup", () => {
-    if (editingMessageId || emojiQuery) {
+    if (editingMessageId || emojiQuery || mentionQuery) {
       return;
     }
 
@@ -244,7 +251,23 @@ export function Channel() {
           </div>
 
           <div className="flex flex-col">
-            {emojiQuery ? (
+            {mentionQuery ? (
+              <MentionSearch
+                query={mentionQuery}
+                onPick={(author) => {
+                  const escaped = mentionQuery.replace(
+                    /[.*+?^${}()|[\]\\]/g,
+                    "\\$&"
+                  );
+                  setContent((prev) =>
+                    prev.replace(
+                      new RegExp(`@${escaped}$`),
+                      `@${author.username} `
+                    )
+                  );
+                }}
+              />
+            ) : emojiQuery ? (
               <EmojiSearch
                 query={emojiQuery}
                 onPick={(emoji) => {
@@ -264,6 +287,7 @@ export function Channel() {
               placeholder={`> message #${channel?.name ?? ""}`}
               autofocus={!editingMessageId}
               emojiQuery={emojiQuery}
+              mentionQuery={mentionQuery}
             />
           </div>
         </div>

@@ -15,6 +15,7 @@ from modules.events import publish_event
 from chat_types.events import MessageCreated, MessageUpdated, MessageDeleted
 from beanie.operators import In
 from modules.urls import embed_message_content
+from modules.mentions import extract_mention_usernames, resolve_mentions_for_channel
 
 bp = Blueprint("messages")
 
@@ -140,6 +141,12 @@ async def create_message(request: Request, channel_id: str):
     if content:
         content = content.strip()  # this is already validated
 
+    mentions = []
+    if content:
+        usernames = extract_mention_usernames(content)
+        if usernames:
+            mentions = await resolve_mentions_for_channel(channel, usernames)
+
     files: list[StoredFile] = []
     if file_ids:
         files = await StoredFile.find(
@@ -157,6 +164,7 @@ async def create_message(request: Request, channel_id: str):
         file_ids=file_ids,
         nonce=nonce,
         user_embeds=data.get("embeds", []),
+        mentions=mentions,
     )
     await message.save()
 
@@ -207,6 +215,15 @@ async def update_message(request: Request, channel_id: str, message_id: str):
 
     if data.get("content"):
         data["content"] = data["content"].strip()  # this is already validated
+
+        channel = await Channel.find_one(Channel.id == channel_id)
+        if channel:
+            usernames = extract_mention_usernames(data["content"])
+            message.mentions = (
+                await resolve_mentions_for_channel(channel, usernames)
+                if usernames
+                else []
+            )
 
     byte_diff = len(data.get("content", "")) - len(message.content or "")
     if byte_diff != 0:

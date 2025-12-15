@@ -19,6 +19,8 @@ class Message:
     files: list[File] | None = None
     # List of embeds attached to the message
     embeds: list[Embed] | None = None
+    # list of user ids mentioned in the message
+    mentions: list[str] | None = None
     # When the message was created
     created_at: datetime | None = None
     # When the message was last updated

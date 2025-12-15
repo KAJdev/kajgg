@@ -201,6 +201,7 @@ function DefaultMessage({
 }: MessageProps) {
   const [content, setContent] = useState<string>(message.content ?? "");
   const cachedAuthor = useAuthor(message.author_id);
+  const self = useUser();
   const author = message.author ??
     cachedAuthor ?? {
       id: message.author_id,
@@ -208,6 +209,7 @@ function DefaultMessage({
       created_at: new Date(),
       updated_at: new Date(),
     };
+  const mentionedMe = !!self?.id && (message.mentions ?? []).includes(self.id);
   const timestamp = new Date(
     message.updated_at ?? message.created_at
   ).toLocaleTimeString([], {
@@ -249,6 +251,7 @@ function DefaultMessage({
         "flex flex-col w-full items-start gap-1",
         isSending && "opacity-50",
         isFailed && "opacity-70 text-red-400",
+        mentionedMe && "bg-yellow-500/10 border-l-2 border-yellow-500/40 pl-2",
         showAuthorName && "mt-4",
         !editing && "hover:bg-tertiary/10"
       )}
@@ -295,6 +298,7 @@ function DefaultMessage({
               content={
                 message.content + (message.updated_at ? ` *(edited)*` : "")
               }
+              mentionIds={message.mentions}
             />
           )}
         </>

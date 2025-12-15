@@ -11,9 +11,13 @@ import {
 } from "src/lib/messageMarkdownRegistry";
 import { remarkMinecraftFormatting } from "src/lib/remarkMinecraftFormatting";
 import { remarkEmojis } from "src/lib/remarkEmojis";
+import { remarkMentions } from "src/lib/remarkMentions";
 import { isEmojiOnlyMessage } from "src/lib/emojiOnly";
+import { useAuthors } from "src/lib/cache";
+import { fetchAuthor } from "src/lib/api";
 import "src/lib/minecraftSpan";
 import "src/lib/emojiMarkdown";
+import "src/lib/mentionMarkdown";
 
 function MarkdownLink({
   children,
@@ -128,11 +132,35 @@ const baseComponents: Components = {
 
 export function MessageMarkdown({
   content,
+  mentionIds,
 }: Readonly<{
   content: string;
+  mentionIds?: string[] | null;
 }>) {
   const custom = getMessageMarkdownComponents();
   const emojiOnly = isEmojiOnlyMessage(content);
+  const authors = useAuthors();
+
+  useEffect(() => {
+    if (!mentionIds || mentionIds.length === 0) return;
+    for (const id of mentionIds) {
+      if (!id) continue;
+      if (authors?.[id]) continue;
+      fetchAuthor(id).catch(() => null);
+    }
+  }, [mentionIds, authors]);
+
+  const usernameToId = useMemo(() => {
+    if (!mentionIds || mentionIds.length === 0) return {};
+    const out: Record<string, string> = {};
+    for (const id of mentionIds) {
+      const a = id ? authors?.[id] : undefined;
+      if (!a?.username) continue;
+      out[a.username] = id;
+      out[a.username.toLowerCase()] = id;
+    }
+    return out;
+  }, [mentionIds, authors]);
 
   const emojiBase =
     "[&_.twemoji]:inline-block [&_.twemoji]:align-[-2px] [&_.custom-emoji]:inline-block [&_.custom-emoji]:align-[-2px]";
@@ -152,7 +180,12 @@ export function MessageMarkdown({
       )}
     >
       <ReactMarkdown
-        remarkPlugins={[remarkGfm, remarkMinecraftFormatting, remarkEmojis]}
+        remarkPlugins={[
+          remarkGfm,
+          remarkMinecraftFormatting,
+          remarkEmojis,
+          [remarkMentions, { usernameToId }],
+        ]}
         rehypePlugins={[
           rehypeRaw,
           [rehypeSanitize, buildMessageMarkdownSanitizeSchema()],
