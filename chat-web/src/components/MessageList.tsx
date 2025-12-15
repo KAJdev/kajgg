@@ -1,12 +1,13 @@
-import { useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import {
   useChannelMessages,
+  useUser,
   useVirtuosoFirstItemIndex,
   type CachedMessage,
 } from "src/lib/cache";
 import { fetchMessages } from "src/lib/api";
 import { Message } from "./Message";
-import { Virtuoso } from "react-virtuoso";
+import { Virtuoso, type VirtuosoHandle } from "react-virtuoso";
 
 export type MessageListProps = {
   readonly channelId: string;
@@ -62,7 +63,7 @@ function messageItemContent(
 }
 
 const listComponents = {
-  Footer: () => <div className="h-4" />,
+  Footer: () => <div className="h-8" />,
 } as const;
 
 export function MessageList({
@@ -72,6 +73,7 @@ export function MessageList({
   onQuote,
 }: MessageListProps) {
   const firstItemIndex = useVirtuosoFirstItemIndex(channelId);
+  const self = useUser();
   const messages = useChannelMessages(channelId);
   const messagesArray = useMemo(() => {
     return Object.values(messages ?? {}).sort(
@@ -85,6 +87,35 @@ export function MessageList({
       return [message, messagesArray[index - 1] ?? null] as const;
     });
   }, [messagesArray]);
+
+  const virtuosoRef = useRef<VirtuosoHandle>(null);
+  const lastSnappedMessageIdRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    const last = messagesArray.at(-1);
+    if (!last) return;
+
+    const myId = self?.id ?? "me";
+    if (last.author_id !== myId) return;
+    if (lastSnappedMessageIdRef.current === last.id) return;
+    lastSnappedMessageIdRef.current = last.id;
+
+    // if you sent it, we snap. no questions asked.
+    const lastIndex = tupledMessages.length - 1;
+    if (lastIndex < 0) return;
+
+    // virtuoso uses "item index space" when firstItemIndex is set,
+    // so we need to scroll to firstItemIndex + lastIndex, not just lastIndex.
+    const virtuosoIndex = firstItemIndex + lastIndex;
+
+    requestAnimationFrame(() => {
+      virtuosoRef.current?.scrollToIndex({
+        index: virtuosoIndex,
+        align: "end",
+        behavior: "auto",
+      });
+    });
+  }, [messagesArray, self?.id, tupledMessages.length, firstItemIndex]);
 
   const loadingRef = useRef(false);
   const lastBeforeCursorRef = useRef<string | null>(null);
@@ -115,13 +146,15 @@ export function MessageList({
 
   return (
     <Virtuoso
+      ref={virtuosoRef}
       data={tupledMessages as MessageTuple[]}
-      style={{ height: "100%" }}
+      style={{ height: "100%", minHeight: 0 }}
       alignToBottom
-      initialTopMostItemIndex={{ index: "LAST" }}
       skipAnimationFrameInResizeObserver
+      initialTopMostItemIndex={{ index: "LAST" }}
       firstItemIndex={firstItemIndex}
       followOutput={(isAtBottom) => (isAtBottom ? "auto" : false)}
+      atBottomThreshold={96}
       components={listComponents}
       atTopStateChange={(atTop) => {
         if (atTop) fetchPreviousMessages();

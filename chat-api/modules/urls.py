@@ -327,7 +327,12 @@ async def collect_message_embeds(content: Optional[str]) -> list[DbEmbed]:
     headers = {"User-Agent": "kaj.gg/1.0"}
 
     async with aiohttp.ClientSession(
-        timeout=timeout, connector=connector, headers=headers
+        timeout=timeout,
+        connector=connector,
+        headers=headers,
+        max_line_size=8190 * 4,
+        # fixing exception: Got more than 8190 bytes when reading Header value is too long (people abuse tf out of csp)
+        max_field_size=8190 * 4,
     ) as session:
         embeds = await asyncio.gather(
             *[fetch_embed(url, session=session) for url in urls if url],

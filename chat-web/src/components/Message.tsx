@@ -250,7 +250,7 @@ function DefaultMessage({
         isSending && "opacity-50",
         isFailed && "opacity-70 text-red-400",
         showAuthorName && "mt-4",
-        !editing && "hover:bg-tertiary/40"
+        !editing && "hover:bg-tertiary/10"
       )}
     >
       {showAuthorName && (

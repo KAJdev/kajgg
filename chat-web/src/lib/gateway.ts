@@ -192,6 +192,11 @@ const useEventSource = create<{
 
 function handleEvent(event: Event) {
   logFancy("info", "[gateway]", `${event.t}`, event.d ?? levelStyles.dim);
+
+  if ("ts" in event && typeof event.ts === "number") {
+    cache.setState({ last_event_ts: event.ts });
+  }
+
   switch (event.t) {
     case EventType.CHANNEL_CREATED:
       return addChannel(event.d.channel);
