@@ -11,7 +11,7 @@ export function Emoji({
 }) {
   if (typeof emoji === "string") {
     return (
-      <Twemoji tag="span" className={classes("w-4 h-4", className)}>
+      <Twemoji tag="span" className={classes("w-5 h-5", className)}>
         {emoji}
       </Twemoji>
     );
@@ -20,7 +20,7 @@ export function Emoji({
     <img
       src={getEmojiUrl(emoji.id)}
       alt={`:${emoji.name}:`}
-      className={classes("w-4 h-4", className)}
+      className={classes("w-5 h-5", className)}
       loading="lazy"
     />
   );

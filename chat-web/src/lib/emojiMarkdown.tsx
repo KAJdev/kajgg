@@ -21,7 +21,9 @@ function EmojiImage({ eid }: Readonly<{ eid: string }>) {
   }, [eid, failed]);
 
   if (loading) {
-    return <div className="custom-emoji bg-tertiary/50 animate-pulse" />;
+    return (
+      <div className="custom-emoji bg-tertiary/50 animate-pulse w-5.5 h-5.5" />
+    );
   }
 
   if (failed) {

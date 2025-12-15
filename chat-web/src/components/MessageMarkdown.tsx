@@ -175,11 +175,10 @@ export function MessageMarkdown({
     return out;
   }, [channels]);
 
-  const emojiBase =
-    "[&_.twemoji]:inline-block [&_.twemoji]:align-[-2px] [&_.custom-emoji]:inline-block [&_.custom-emoji]:align-[-2px]";
+  const emojiBase = "[&_.twemoji]:inline-block [&_.custom-emoji]:inline-block";
   const emojiSize = emojiOnly
     ? "[&_.twemoji]:w-12 [&_.twemoji]:h-12 [&_.custom-emoji]:w-12 [&_.custom-emoji]:h-12"
-    : "[&_.twemoji]:w-4 [&_.twemoji]:h-4 [&_.custom-emoji]:w-4 [&_.custom-emoji]:h-4";
+    : "[&_.twemoji]:w-5 [&_.twemoji]:h-5 [&_.custom-emoji]:w-5 [&_.custom-emoji]:h-5";
 
   return (
     <Twemoji

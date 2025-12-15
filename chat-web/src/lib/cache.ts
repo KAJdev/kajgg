@@ -512,11 +512,53 @@ export function reconcileMessageByNonce(
 ) {
   const nonce = serverMessage.nonce;
   if (!nonce) {
-    if (mode === "add") {
-      return addMessage(channelId, serverMessage);
-    } else if (mode === "update") {
+    if (mode === "update") {
       return updateMessageById(channelId, serverMessage.id, serverMessage);
     }
+
+    // if we're not at the newest edge, don't let realtime messages evict stuff the user is reading
+    cache.setState((state) => {
+      const existing = state.messages[channelId]?.[serverMessage.id];
+      const boundsNewest = state.messageBounds[channelId]?.newest;
+      const channelLast = state.channels[channelId]?.last_message_at;
+
+      const serverTs = new Date(serverMessage.created_at);
+      const channelLastTs = channelLast
+        ? new Date(channelLast).getTime()
+        : null;
+      const hasGapToNewest =
+        boundsNewest && channelLastTs !== null
+          ? channelLastTs > boundsNewest.getTime()
+          : false;
+
+      const isMine = serverMessage.author_id === state.user?.id;
+      const shouldDrop =
+        mode === "add" && hasGapToNewest && !existing && !isMine;
+
+      const nextState = {
+        ...state,
+        channels: {
+          ...state.channels,
+          [channelId]: {
+            ...state.channels[channelId],
+            last_message_at:
+              channelLastTs === null || serverTs.getTime() > channelLastTs
+                ? serverTs
+                : state.channels[channelId]?.last_message_at,
+          },
+        },
+      } satisfies Cache;
+
+      if (shouldDrop) return nextState;
+
+      return _upsertQueuedMessage(
+        nextState,
+        channelId,
+        serverMessage.id,
+        serverMessage
+      );
+    });
+    return;
   }
 
   cache.setState((state) => {

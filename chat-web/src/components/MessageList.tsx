@@ -13,6 +13,7 @@ import {
   useChannel,
   useChannelMessageBounds,
   useChannelMessages,
+  useUser,
   type CachedMessage,
 } from "src/lib/cache";
 import { fetchMessages } from "src/lib/api";
@@ -67,6 +68,7 @@ export function MessageList({
 }: MessageListProps) {
   const rawMessages = useChannelMessages(channelId);
   useChannel(channelId);
+  const user = useUser();
   useChannelMessageBounds(channelId);
 
   const tupledMessages = useMemo(() => {
@@ -88,40 +90,122 @@ export function MessageList({
   const loadingNewerRef = useRef(false);
   const atBottomRef = useRef(true);
   const distFromBottomRef = useRef(0);
+  const lastScrollTopRef = useRef(0);
 
   const [hasOlder, setHasOlder] = useState(true);
   const [hasNewer, setHasNewer] = useState(false);
   const [didInitialScroll, setDidInitialScroll] = useState(false);
-  const [prependTick, setPrependTick] = useState(0);
 
-  // stores scroll state right before we prepend, so we can restore the viewport after dom updates
+  // stores scroll state right before we prepend so we can keep the viewport locked after dom updates
   const pendingPrependAdjustRef = useRef<{
     prevScrollTop: number;
     prevScrollHeight: number;
     anchorId: string | null;
-    anchorOffsetTop: number;
+    anchorTopFromScroller: number;
   } | null>(null);
+
+  // keeps the anchor row pinned while images/embeds load and resize after prepend
+  const anchorLockRef = useRef<{
+    anchorId: string;
+    topFromScroller: number;
+    until: number;
+  } | null>(null);
+  const resizeObserverRef = useRef<ResizeObserver | null>(null);
+  const observedAnchorRef = useRef<HTMLElement | null>(null);
+  const roRafRef = useRef<number | null>(null);
 
   const noNewerUntilRef = useRef(0);
   const noOlderUntilRef = useRef(0);
 
   const messages = tupledMessages;
+  const firstMessageId = messages[0]?.[0]?.id;
+  const lastMessageId = messages.length
+    ? messages[messages.length - 1]?.[0]?.id
+    : undefined;
 
   useEffect(() => {
-    // reset paging state when switching channels
+    // reset paging state when switching channels lol
     loadingOlderRef.current = false;
     loadingNewerRef.current = false;
     atBottomRef.current = true;
     distFromBottomRef.current = 0;
+    lastScrollTopRef.current = 0;
     pendingPrependAdjustRef.current = null;
+    anchorLockRef.current = null;
+    if (resizeObserverRef.current && observedAnchorRef.current) {
+      resizeObserverRef.current.unobserve(observedAnchorRef.current);
+    }
+    observedAnchorRef.current = null;
     setHasOlder(true);
     // default to "unknown/true" so scroll-down can try once (then it'll disable itself if empty)
     setHasNewer(true);
     setDidInitialScroll(false);
-    setPrependTick(0);
     noNewerUntilRef.current = 0;
     noOlderUntilRef.current = 0;
   }, [channelId]);
+
+  useEffect(() => {
+    // yo: ro lets us counteract post-prepend resizes (images loading, embeds, etc) without extra react renders
+    if (typeof ResizeObserver === "undefined") return;
+
+    const obs = new ResizeObserver(() => {
+      if (roRafRef.current !== null) return;
+      roRafRef.current = window.requestAnimationFrame(() => {
+        roRafRef.current = null;
+
+        const scroller = scrollerRef.current;
+        const lock = anchorLockRef.current;
+        if (!scroller || !lock) return;
+
+        if (Date.now() > lock.until) {
+          anchorLockRef.current = null;
+          if (resizeObserverRef.current && observedAnchorRef.current) {
+            resizeObserverRef.current.unobserve(observedAnchorRef.current);
+          }
+          observedAnchorRef.current = null;
+          return;
+        }
+
+        const anchorEl = innerRef.current?.querySelector(
+          `[data-message-id="${lock.anchorId}"]`
+        ) as HTMLElement | null;
+        if (!anchorEl) {
+          anchorLockRef.current = null;
+          if (resizeObserverRef.current && observedAnchorRef.current) {
+            resizeObserverRef.current.unobserve(observedAnchorRef.current);
+          }
+          observedAnchorRef.current = null;
+          return;
+        }
+
+        const scrollerRect = scroller.getBoundingClientRect();
+        const anchorRect = anchorEl.getBoundingClientRect();
+        const nextTopFromScroller = anchorRect.top - scrollerRect.top;
+        const delta = nextTopFromScroller - lock.topFromScroller;
+
+        // ignore subpixel noise so we don't jitter
+        if (Math.abs(delta) >= 0.5) {
+          scroller.scrollTop += delta;
+        }
+
+        lock.topFromScroller = nextTopFromScroller;
+      });
+    });
+
+    resizeObserverRef.current = obs;
+    return () => {
+      if (roRafRef.current !== null) {
+        window.cancelAnimationFrame(roRafRef.current);
+        roRafRef.current = null;
+      }
+      obs.disconnect();
+      if (resizeObserverRef.current === obs) {
+        resizeObserverRef.current = null;
+      }
+      observedAnchorRef.current = null;
+      anchorLockRef.current = null;
+    };
+  }, []);
 
   useLayoutEffect(() => {
     const scroller = scrollerRef.current;
@@ -135,26 +219,46 @@ export function MessageList({
       : null;
 
     if (anchorEl) {
-      scroller.scrollTo({
-        top:
-          scroller.scrollTop +
-          (anchorEl.getBoundingClientRect().top -
-            scroller.getBoundingClientRect().top) -
-          pending.anchorOffsetTop,
-        behavior: "instant",
-      });
+      const scrollerRect = scroller.getBoundingClientRect();
+      const anchorRect = anchorEl.getBoundingClientRect();
+      const nextTopFromScroller = anchorRect.top - scrollerRect.top;
+      const delta = nextTopFromScroller - pending.anchorTopFromScroller;
+      scroller.scrollTop += delta;
+
+      // lock the anchor briefly so post-load resizes don't make the viewport drift
+      const scrollerRect2 = scroller.getBoundingClientRect();
+      const anchorRect2 = anchorEl.getBoundingClientRect();
+      anchorLockRef.current = {
+        anchorId: pending.anchorId ?? anchorEl.dataset.messageId ?? "",
+        topFromScroller: anchorRect2.top - scrollerRect2.top,
+        until: Date.now() + 2_000,
+      };
+      const obs = resizeObserverRef.current;
+      if (obs) {
+        if (observedAnchorRef.current) obs.unobserve(observedAnchorRef.current);
+        obs.observe(anchorEl);
+        observedAnchorRef.current = anchorEl;
+      }
     } else {
-      // fallback: keep the same distance-from-top by using scrollheight delta
+      // fallback: keep the same distance-from-top by using the scrollheight delta
       const nextScrollHeight = scroller.scrollHeight;
       const delta = nextScrollHeight - pending.prevScrollHeight;
       scroller.scrollTop = pending.prevScrollTop + delta;
+
+      // no reliable anchor => no resize lock
+      anchorLockRef.current = null;
+      if (resizeObserverRef.current && observedAnchorRef.current) {
+        resizeObserverRef.current.unobserve(observedAnchorRef.current);
+      }
+      observedAnchorRef.current = null;
     }
 
     pendingPrependAdjustRef.current = null;
 
-    // chill for a sec so we don't immediately chain-fetch while we're still near the top
+    // chill for a sec so we don't immediately chain-fetch while we're still near the top lol
     noOlderUntilRef.current = Date.now() + 250;
-  }, [prependTick, channelId]);
+    // note: don't depend only on messages.length, because at the cache cap a prepend can evict from bottom and keep length the same
+  }, [channelId, messages.length, firstMessageId, lastMessageId]);
 
   useEffect(() => {
     // if channel mounts without any cached messages, fetch an initial page
@@ -164,7 +268,7 @@ export function MessageList({
       .then((msgs) => {
         // api returns newest-first; if we got a full page, there might be older history
         setHasOlder(msgs.length === PAGE_SIZE);
-        // we just pulled from the "newest" edge, so assume no newer until proven otherwise
+        // we just pulled from the newest edge, so assume no newer until proven otherwise
         setHasNewer(false);
         noNewerUntilRef.current = Date.now() + 5_000;
       })
@@ -189,39 +293,34 @@ export function MessageList({
     const scroller = scrollerRef.current;
     if (!scroller) return null;
 
-    const rootTop = scroller.getBoundingClientRect().top;
-    const commonId = messages[250]?.[0]?.id ?? null;
+    const container = innerRef.current;
+    if (!container) return null;
 
-    console.log("commonId", commonId);
+    const scrollerRect = scroller.getBoundingClientRect();
+    const messageEls =
+      container.querySelectorAll<HTMLElement>("[data-message-id]");
+    if (!messageEls.length) return null;
 
-    let anchor =
-      (commonId
-        ? (innerRef.current?.querySelector(
-            `[data-message-id="${commonId}"]`
-          ) as HTMLElement | null)
-        : null) ?? null;
-
-    if (!anchor) {
-      // ok fallback: first visible-ish
-      const els =
-        innerRef.current?.querySelectorAll<HTMLElement>("[data-message-id]") ??
-        [];
-      for (const el of els) {
-        const top = el.getBoundingClientRect().top;
-        if (top >= rootTop) {
-          anchor = el;
-          break;
-        }
+    // pick the first visible-ish message so we preserve what the user is actually looking at
+    let anchor: HTMLElement | null = null;
+    for (const el of messageEls) {
+      const rect = el.getBoundingClientRect();
+      if (rect.bottom > scrollerRect.top + 1) {
+        anchor = el;
+        break;
       }
-      if (!anchor && els.length) anchor = els[0] ?? null;
     }
-
+    anchor ??= messageEls[0] ?? null;
     if (!anchor) return null;
+
+    const anchorRect = anchor.getBoundingClientRect();
+    const anchorTopFromScroller = anchorRect.top - scrollerRect.top;
+
     return {
       anchorId: anchor.dataset.messageId ?? null,
-      anchorOffsetTop: anchor.getBoundingClientRect().top,
+      anchorTopFromScroller,
     };
-  }, [messages]);
+  }, []);
 
   const loadOlder = useCallback(async () => {
     if (!hasOlder) return;
@@ -237,7 +336,7 @@ export function MessageList({
       prevScrollTop: scroller.scrollTop,
       prevScrollHeight: scroller.scrollHeight,
       anchorId: anchorInfo?.anchorId ?? null,
-      anchorOffsetTop: anchorInfo?.anchorOffsetTop ?? 0,
+      anchorTopFromScroller: anchorInfo?.anchorTopFromScroller ?? 0,
     };
 
     try {
@@ -253,7 +352,6 @@ export function MessageList({
       setHasOlder(msgs.length === PAGE_SIZE);
       // when we pull older, the cache may evict from the bottom, so enable forward paging again
       setHasNewer(true);
-      setPrependTick((t) => t + 1);
     } catch {
       // if we fail, drop the pending adjust so we don't jump later
       pendingPrependAdjustRef.current = null;
@@ -292,6 +390,9 @@ export function MessageList({
   const onScroll = useCallback(
     (event: UIEvent<HTMLDivElement>) => {
       const { scrollTop, clientHeight, scrollHeight } = event.currentTarget;
+      const deltaTop = scrollTop - lastScrollTopRef.current;
+      lastScrollTopRef.current = scrollTop;
+
       const distFromBottom = Math.max(
         0,
         scrollHeight - (scrollTop + clientHeight)
@@ -305,7 +406,9 @@ export function MessageList({
         scrollTop + clientHeight >= scrollHeight - FETCH_THRESHOLD_PX;
       const isNearTop = scrollTop <= FETCH_THRESHOLD_PX;
 
-      if (isNearTop) {
+      // only fetch older when the user is actually scrolling up into the top zone
+      // this avoids a fetch loop when we programmatically adjust scrolltop to preserve anchor
+      if (isNearTop && deltaTop < 0) {
         void loadOlder();
       } else if (isNearBottom) {
         void loadNewer();
@@ -315,40 +418,26 @@ export function MessageList({
   );
 
   useEffect(() => {
-    const root = scrollerRef.current;
-    const target = topSentinelRef.current;
-    if (!root || !target) return;
-
-    const obs = new IntersectionObserver(
-      (entries) => {
-        const entry = entries[0];
-        if (!entry?.isIntersecting) return;
-        void loadOlder();
-      },
-      {
-        root,
-        rootMargin: "400px 0px 0px 0px",
-        threshold: 0,
-      }
-    );
-
-    obs.observe(target);
-    return () => obs.disconnect();
-  }, [loadOlder, channelId]);
-
-  useEffect(() => {
     // if you're pinned to bottom and new messages come in, keep it glued
     if (!messages.length) return;
-    if (!atBottomRef.current) return;
+    const newMessage = messages.at(-1)?.[0];
+    // only skip if you're not pinned to bottom and the new message is not yours
+    if (
+      (!atBottomRef.current && newMessage?.author_id !== user?.id) ||
+      hasNewer // if we are viewing an older window, we don't want to scroll to bottom
+    )
+      return;
     requestAnimationFrame(() => {
       bottomRef.current?.scrollIntoView({ block: "end" });
     });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [messages.length]);
 
   return (
     <div
       ref={scrollerRef}
       className="min-h-0 h-full overflow-y-auto"
+      style={{ overflowAnchor: "none" }}
       onScroll={onScroll}
     >
       <div ref={innerRef} className="flex flex-col">

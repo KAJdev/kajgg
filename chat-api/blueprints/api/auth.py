@@ -16,24 +16,6 @@ bp = Blueprint("auth")
 dummy_pass = bcrypt.hashpw(b"password", bcrypt.gensalt())
 
 
-async def join_all_public_channels(user: User):
-    channels = await Channel.find(Channel.private == False).to_list()
-    for channel in channels:
-        m = Message(
-            type=MessageType.JOIN,
-            author_id=user.id,
-            channel_id=channel.id,
-        )
-        await m.save()
-        await user.fetch_status()
-        publish_event(
-            MessageCreated(
-                message=utils.dtoa(ApiMessage, m),
-                author=utils.dtoa(ApiUser, user),
-            )
-        )
-
-
 @bp.route("/v1/signup", methods=["POST"])
 @openapi.exclude()
 async def signup(request: Request):
@@ -68,8 +50,6 @@ async def signup(request: Request):
     await user.save()
     await user.start_verification()
     await user.fetch_status()
-
-    asyncio.create_task(join_all_public_channels(user))
 
     return json(utils.dtoa(ApiUser, user))
 
