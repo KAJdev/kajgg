@@ -161,6 +161,7 @@ def parse_railway_webhook(response: Request) -> dict | None:
             {
                 "deploying": "#f7c266",
                 "deployed": "#22e08a",
+                "building": "#f7c266",
                 "failed": "#ff5f52",
                 "removed": "#ff5f52",
                 "unknown": "#8fa3b0",
@@ -182,6 +183,10 @@ def parse_railway_webhook(response: Request) -> dict | None:
             description = f"{service_name} **&cfailed to deploy**"
         elif state == "removed":
             description = f"deployment &cremoved for **{service_name}**"
+        elif state == "building":
+            description = f"{service_name} is &ebuilding"
+        else:
+            description = f"{service_name} is &e{state.capitalize()}"
 
         description += f"\n\n{message} &7- pushed by **{author}**"
 
