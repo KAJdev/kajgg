@@ -33,6 +33,7 @@ export function ChatInput({
   autofocus,
   emojiQuery,
   mentionQuery,
+  channelQuery,
 }: {
   content: string;
   attachments?: Attachment[];
@@ -44,6 +45,7 @@ export function ChatInput({
   autofocus?: boolean;
   emojiQuery?: string | null;
   mentionQuery?: string | null;
+  channelQuery?: string | null;
 }) {
   const { channelId } = useParams();
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -173,7 +175,7 @@ export function ChatInput({
           onKeyDown={(e) => {
             const key = e.key.toLowerCase();
             if (
-              (emojiQuery || mentionQuery) &&
+              (emojiQuery || mentionQuery || channelQuery) &&
               (key === "arrowup" ||
                 key === "arrowdown" ||
                 key === "tab" ||

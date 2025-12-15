@@ -12,12 +12,14 @@ import {
 import { remarkMinecraftFormatting } from "src/lib/remarkMinecraftFormatting";
 import { remarkEmojis } from "src/lib/remarkEmojis";
 import { remarkMentions } from "src/lib/remarkMentions";
+import { remarkChannels } from "src/lib/remarkChannels";
 import { isEmojiOnlyMessage } from "src/lib/emojiOnly";
-import { useAuthors } from "src/lib/cache";
+import { useAuthors, useChannels } from "src/lib/cache";
 import { fetchAuthor } from "src/lib/api";
 import "src/lib/minecraftSpan";
 import "src/lib/emojiMarkdown";
 import "src/lib/mentionMarkdown";
+import "src/lib/channelMarkdown";
 
 function MarkdownLink({
   children,
@@ -140,6 +142,7 @@ export function MessageMarkdown({
   const custom = getMessageMarkdownComponents();
   const emojiOnly = isEmojiOnlyMessage(content);
   const authors = useAuthors();
+  const channels = useChannels();
 
   useEffect(() => {
     if (!mentionIds || mentionIds.length === 0) return;
@@ -161,6 +164,16 @@ export function MessageMarkdown({
     }
     return out;
   }, [mentionIds, authors]);
+
+  const channelNameToId = useMemo(() => {
+    const out: Record<string, string> = {};
+    for (const c of Object.values(channels ?? {})) {
+      if (!c?.id || !c?.name) continue;
+      out[c.name] = c.id;
+      out[c.name.toLowerCase()] = c.id;
+    }
+    return out;
+  }, [channels]);
 
   const emojiBase =
     "[&_.twemoji]:inline-block [&_.twemoji]:align-[-2px] [&_.custom-emoji]:inline-block [&_.custom-emoji]:align-[-2px]";
@@ -185,6 +198,7 @@ export function MessageMarkdown({
           remarkMinecraftFormatting,
           remarkEmojis,
           [remarkMentions, { usernameToId }],
+          [remarkChannels, { channelNameToId }],
         ]}
         rehypePlugins={[
           rehypeRaw,

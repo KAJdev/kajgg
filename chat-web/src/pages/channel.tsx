@@ -27,6 +27,7 @@ import { CreateChannel } from "src/components/CreateChannel";
 import { Modal } from "@theme/Modal";
 import { EmojiSearch } from "src/components/EmojiSearch";
 import { MentionSearch } from "src/components/MentionSearch";
+import { ChannelSearch } from "src/components/ChannelSearch";
 import { EditChannel } from "src/components/EditChannel";
 import { router } from "src/routes";
 
@@ -60,6 +61,12 @@ export function Channel() {
   const mentionQuery = useMemo(() => {
     // ends with @ followed by at least 1 valid username char, and either start-of-string or whitespace before the @
     const m = content.match(/(?:^|\s)@([a-zA-Z0-9_-]{1,32})$/);
+    return m ? m[1] : null;
+  }, [content]);
+
+  const channelQuery = useMemo(() => {
+    // ends with # followed by at least 1 valid channel char, and either start-of-string or whitespace before the #
+    const m = content.match(/(?:^|\s)#([a-zA-Z0-9_-]{1,64})$/);
     return m ? m[1] : null;
   }, [content]);
 
@@ -169,7 +176,7 @@ export function Channel() {
   }, [authors]);
 
   useKeybind("arrowup", () => {
-    if (editingMessageId || emojiQuery || mentionQuery) {
+    if (editingMessageId || emojiQuery || mentionQuery || channelQuery) {
       return;
     }
 
@@ -251,7 +258,20 @@ export function Channel() {
           </div>
 
           <div className="flex flex-col">
-            {mentionQuery ? (
+            {channelQuery ? (
+              <ChannelSearch
+                query={channelQuery}
+                onPick={(ch) => {
+                  const escaped = channelQuery.replace(
+                    /[.*+?^${}()|[\]\\]/g,
+                    "\\$&"
+                  );
+                  setContent((prev) =>
+                    prev.replace(new RegExp(`#${escaped}$`), `#${ch.name} `)
+                  );
+                }}
+              />
+            ) : mentionQuery ? (
               <MentionSearch
                 query={mentionQuery}
                 onPick={(author) => {
@@ -288,6 +308,7 @@ export function Channel() {
               autofocus={!editingMessageId}
               emojiQuery={emojiQuery}
               mentionQuery={mentionQuery}
+              channelQuery={channelQuery}
             />
           </div>
         </div>
