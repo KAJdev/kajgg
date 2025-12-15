@@ -11,9 +11,8 @@ import type { Emoji, Webhook } from "@schemas/index";
 
 type TimeoutId = ReturnType<typeof setTimeout>;
 
-// keep more so infinite scroll doesn't immediately evict history
-const MAX_MESSAGES_PER_CHANNEL = 2000;
-export const VIRTUOSO_FIRST_ITEM_INDEX_BASE = 1_000_000;
+const MAX_MESSAGES_PER_CHANNEL = 500;
+const EVICT_NEAR_BOTTOM_THRESHOLD_PX = 2000;
 
 export type ClientUploadProgress = {
   /** 0..1 */
@@ -34,19 +33,46 @@ export type CachedMessage = Message & {
   cachedAt?: number;
 };
 
-type ChannelMessageQueue = {
-  ids: string[];
-  head: number;
+type ChannelMessageBounds = {
+  oldest: Date;
+  newest: Date;
 };
+
+function _compute_bounds(
+  channel: Record<string, CachedMessage>
+): ChannelMessageBounds | undefined {
+  const vals = Object.values(channel);
+  if (!vals.length) return undefined;
+
+  let oldest = vals[0];
+  let newest = vals[0];
+  const oldestTs = () => new Date(oldest.created_at).getTime();
+  const newestTs = () => new Date(newest.created_at).getTime();
+
+  for (const m of vals) {
+    const ts = new Date(m.created_at).getTime();
+    if (ts < oldestTs()) oldest = m;
+    if (ts > newestTs()) newest = m;
+  }
+
+  return {
+    oldest: new Date(oldest.created_at),
+    newest: new Date(newest.created_at),
+  };
+}
 
 export type Cache = {
   user?: User;
   channels: Record<string, Channel>;
   messages: Record<string, Record<string, CachedMessage>>;
-  messageQueues: Record<string, ChannelMessageQueue>;
-  // virtuoso wants this to be positive, so we keep a per-channel index here
-  // and update it atomically with message prepends to avoid 1-frame jumps
-  virtuosoFirstItemIndexByChannel: Record<string, number>;
+  messageBounds: Record<string, ChannelMessageBounds>;
+  /**
+   * UI hint: whether the user is currently "pinned" to bottom in a channel message list.
+   * Used to decide which side to evict from when we exceed the per-channel message cap.
+   */
+  channelAtBottom: Record<string, boolean>;
+  /** UI hint: current distance (px) from bottom for scroll container in that channel */
+  channelDistFromBottom: Record<string, number>;
   authors: Record<string, Author>;
   typing: Record<string, Record<string, TimeoutId>>;
   last_event_ts?: number;
@@ -73,8 +99,9 @@ export const cache = create<Cache>()(() => ({
   user: undefined,
   channels: {},
   messages: {},
-  messageQueues: {},
-  virtuosoFirstItemIndexByChannel: {},
+  messageBounds: {},
+  channelAtBottom: {},
+  channelDistFromBottom: {},
   authors: {},
   typing: {},
   last_event_ts: undefined,
@@ -329,7 +356,8 @@ export function addChannel(channel: Channel) {
 function _upsertQueuedMessages(
   state: Cache,
   channelId: string,
-  nextMessages: CachedMessage[]
+  nextMessages: CachedMessage[],
+  mode: "append" | "prepend" | "single" = "append"
 ) {
   const currentChannel = state.messages[channelId] ?? {};
 
@@ -356,34 +384,49 @@ function _upsertQueuedMessages(
     nextChannel[messageId] = merged;
   }
 
-  // note: we used to evict by arrival order, but that breaks once you page in older messages.
-  // this keeps memory bounded while preserving newest-by-created_at.
-  if (Object.keys(nextChannel).length > MAX_MESSAGES_PER_CHANNEL) {
+  const over = Object.keys(nextChannel).length - MAX_MESSAGES_PER_CHANNEL;
+  if (over > 0) {
+    const distFromBottom = state.channelDistFromBottom[channelId] ?? 0;
+    const nearBottom = distFromBottom <= EVICT_NEAR_BOTTOM_THRESHOLD_PX;
     const sorted = Object.values(nextChannel).sort((a, b) => {
       const at = new Date(a.created_at).getTime();
       const bt = new Date(b.created_at).getTime();
-      return at - bt;
+      if (at !== bt) return at - bt;
+      return a.id.localeCompare(b.id);
     });
-    const toEvict = sorted.length - MAX_MESSAGES_PER_CHANNEL;
-    for (let i = 0; i < toEvict; i++) {
-      const id = sorted[i]?.id;
-      if (id) delete nextChannel[id];
+
+    // If user is reading history (not at bottom), never evict from the top (oldest),
+    // because that collapses content above the viewport and makes scroll jump to start.
+    //
+    // - prepend: we pulled older history => drop newest
+    // - append/single:
+    //    - near bottom => drop oldest (avoid clamping scrollTop when bottom shrinks)
+    //    - far from bottom => drop newest (don't delete what they're reading)
+    const dropNewest = mode === "prepend" || !nearBottom;
+    if (dropNewest) {
+      for (let i = 0; i < over; i++) {
+        const id = sorted[sorted.length - 1 - i]?.id;
+        if (id) delete nextChannel[id];
+      }
+    } else {
+      for (let i = 0; i < over; i++) {
+        const id = sorted[i]?.id;
+        if (id) delete nextChannel[id];
+      }
     }
   }
 
-  // keep the queue around for backwards compat / persistence but rebuild it from current keys
-  // (otherwise it grows without bound once we stop using arrival-order eviction)
-  const qIds = Object.keys(nextChannel);
-  const qHead = 0;
+  // track bounds so the ui can decide if it should fetch forward/backward pages
+  const bounds = _compute_bounds(nextChannel);
 
   return {
     messages: {
       ...state.messages,
       [channelId]: nextChannel,
     },
-    messageQueues: {
-      ...state.messageQueues,
-      [channelId]: { ids: qIds, head: qHead },
+    messageBounds: {
+      ...state.messageBounds,
+      ...(bounds ? { [channelId]: bounds } : {}),
     },
   };
 }
@@ -394,9 +437,12 @@ function _upsertQueuedMessage(
   messageId: string,
   nextMessage: CachedMessage
 ) {
-  return _upsertQueuedMessages(state, channelId, [
-    { ...nextMessage, id: messageId },
-  ]);
+  return _upsertQueuedMessages(
+    state,
+    channelId,
+    [{ ...nextMessage, id: messageId }],
+    "single"
+  );
 }
 
 export function addMessage(channelId: string, message: Message) {
@@ -411,7 +457,7 @@ export function addMessage(channelId: string, message: Message) {
 
 export function addMessages(channelId: string, messages: Message[]) {
   cache.setState((state) => {
-    return _upsertQueuedMessages(state, channelId, messages);
+    return _upsertQueuedMessages(state, channelId, messages, "append");
   });
 
   if (getIsPageFocused()) return;
@@ -428,27 +474,7 @@ export function addMessages(channelId: string, messages: Message[]) {
 
 export function prependMessages(channelId: string, messages: Message[]) {
   cache.setState((state) => {
-    const existing = state.messages[channelId] ?? {};
-    const existingIds = new Set(Object.keys(existing));
-
-    // only count truly new messages; server can return overlap with current oldest page
-    const newCount = messages.filter((m) => !existingIds.has(m.id)).length;
-
-    const currentIndex =
-      state.virtuosoFirstItemIndexByChannel[channelId] ??
-      VIRTUOSO_FIRST_ITEM_INDEX_BASE;
-
-    const nextIndex = newCount
-      ? Math.max(0, currentIndex - newCount)
-      : currentIndex;
-
-    return {
-      ..._upsertQueuedMessages(state, channelId, messages),
-      virtuosoFirstItemIndexByChannel: {
-        ...state.virtuosoFirstItemIndexByChannel,
-        [channelId]: nextIndex,
-      },
-    };
+    return _upsertQueuedMessages(state, channelId, messages, "prepend");
   });
 }
 
@@ -531,15 +557,39 @@ export function reconcileMessageByNonce(
       delete nextChannel[optimisticId];
     }
 
-    const qIds = Object.keys(nextChannel);
-    const qHead = 0;
+    const over = Object.keys(nextChannel).length - MAX_MESSAGES_PER_CHANNEL;
+    if (over > 0) {
+      const distFromBottom = state.channelDistFromBottom[channelId] ?? 0;
+      const nearBottom = distFromBottom <= EVICT_NEAR_BOTTOM_THRESHOLD_PX;
+      const sorted = Object.values(nextChannel).sort((a, b) => {
+        const at = new Date(a.created_at).getTime();
+        const bt = new Date(b.created_at).getTime();
+        if (at !== bt) return at - bt;
+        return a.id.localeCompare(b.id);
+      });
+      // reconcile is effectively an "append/single" from the UI perspective.
+      // respect the same eviction rules as _upsertQueuedMessages for scroll stability.
+      if (nearBottom) {
+        for (let i = 0; i < over; i++) {
+          const id = sorted[i]?.id;
+          if (id) delete nextChannel[id];
+        }
+      } else {
+        for (let i = 0; i < over; i++) {
+          const id = sorted[sorted.length - 1 - i]?.id;
+          if (id) delete nextChannel[id];
+        }
+      }
+    }
+
+    const bounds = _compute_bounds(nextChannel);
 
     return {
       ...state,
       messages: { ...state.messages, [channelId]: nextChannel },
-      messageQueues: {
-        ...state.messageQueues,
-        [channelId]: { ids: qIds, head: qHead },
+      messageBounds: {
+        ...state.messageBounds,
+        ...(bounds ? { [channelId]: bounds } : {}),
       },
     };
   });
@@ -636,16 +686,6 @@ export function useChannels() {
   return cache(useShallow((state) => state.channels));
 }
 
-export function useVirtuosoFirstItemIndex(channelId: string) {
-  return cache(
-    useShallow(
-      (state) =>
-        state.virtuosoFirstItemIndexByChannel[channelId] ??
-        VIRTUOSO_FIRST_ITEM_INDEX_BASE
-    )
-  );
-}
-
 export function useChannel(channelId: string) {
   const channels = useChannels();
   return channels[channelId];
@@ -657,6 +697,39 @@ export function useMessages() {
 
 export function useChannelMessages(channelId: string) {
   return cache(useShallow((state) => state.messages[channelId]));
+}
+
+export function useChannelMessageBounds(channelId: string) {
+  return cache(useShallow((state) => state.messageBounds[channelId]));
+}
+
+export function setChannelScrollInfo(
+  channelId: string,
+  info: { atBottom: boolean; distFromBottom: number }
+) {
+  cache.setState((state) => {
+    const prevAtBottom = state.channelAtBottom[channelId];
+    const prevDist = state.channelDistFromBottom[channelId];
+    if (prevAtBottom === info.atBottom && prevDist === info.distFromBottom) {
+      return state;
+    }
+    return {
+      ...state,
+      channelAtBottom: { ...state.channelAtBottom, [channelId]: info.atBottom },
+      channelDistFromBottom: {
+        ...state.channelDistFromBottom,
+        [channelId]: info.distFromBottom,
+      },
+    };
+  });
+}
+
+// backwards compat: keep the old name for call sites
+export function setChannelAtBottom(channelId: string, atBottom: boolean) {
+  setChannelScrollInfo(channelId, {
+    atBottom,
+    distFromBottom: atBottom ? 0 : Number.POSITIVE_INFINITY,
+  });
 }
 
 export function useChannelMessage(channelId: string, messageId: string) {

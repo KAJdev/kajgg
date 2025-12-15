@@ -98,9 +98,13 @@ async def get_messages(request: Request, channel_id: str):
     if contains:
         query["content"] = {"$regex": contains}
 
-    messages = (
-        await Message.find(query).sort(-Message.created_at).limit(limit).to_list()
-    )
+    # paging be like: `before` wants closest older so newest-first is fine,
+    # but `after` wants closest newer so we gotta go oldest-first or it skips a ton.
+    sort_field = -Message.created_at
+    if after and not before:
+        sort_field = Message.created_at
+
+    messages = await Message.find(query).sort(sort_field).limit(limit).to_list()
 
     return json(await _messages_to_api(messages))
 

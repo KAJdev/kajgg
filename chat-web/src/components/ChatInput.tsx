@@ -34,6 +34,7 @@ export function ChatInput({
   emojiQuery,
   mentionQuery,
   channelQuery,
+  textareaRef,
 }: {
   content: string;
   attachments?: Attachment[];
@@ -46,9 +47,11 @@ export function ChatInput({
   emojiQuery?: string | null;
   mentionQuery?: string | null;
   channelQuery?: string | null;
+  textareaRef?: React.RefObject<HTMLTextAreaElement | null>;
 }) {
   const { channelId } = useParams();
-  const inputRef = useRef<HTMLTextAreaElement>(null);
+  const internalRef = useRef<HTMLTextAreaElement>(null);
+  const inputRef = textareaRef ?? internalRef;
   const lastTypedRef = useRef<number>(0);
   const didAutofocusRef = useRef(false);
 
@@ -88,11 +91,14 @@ export function ChatInput({
       el.focus();
       el.setSelectionRange(content.length, content.length);
     });
-  }, [autofocus, content.length]);
+  }, [autofocus, content.length, inputRef]);
 
   useEffect(() => {
-    autosize();
-  }, [content]);
+    const el = inputRef.current;
+    if (!el) return;
+    el.style.height = "0px";
+    el.style.height = `${el.scrollHeight}px`;
+  }, [content, inputRef]);
 
   return (
     <div className="flex flex-col px-2 border border-tertiary min-w-0">
