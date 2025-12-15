@@ -24,7 +24,7 @@ export function ListAuthor({
         allowPlate={allowPlate}
       />
       {author.flags?.webhook ? (
-        <span className="bg-tertiary px-1">Webhook</span>
+        <span className="bg-tertiary px-1">webhook</span>
       ) : (
         <Status status={author.status} />
       )}

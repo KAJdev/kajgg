@@ -7,10 +7,12 @@ export function Username({
   author,
   noColor,
   allowPlate = true,
+  noHover = false,
 }: {
   author: Author;
   noColor?: boolean;
   allowPlate?: boolean;
+  noHover?: boolean;
 }) {
   const [isOpen, setIsOpen] = useState(false);
   if (!author) {
@@ -23,7 +25,7 @@ export function Username({
       className={classes(
         "overflow-hidden text-ellipsis whitespace-nowrap min-w-0",
         isOpen && "bg-tertiary",
-        allowPlate && "hover:bg-tertiary cursor-pointer"
+        allowPlate && !noHover && "hover:bg-tertiary cursor-pointer"
       )}
       style={{
         color: noColor ? undefined : author.color ?? getColor(author.id),

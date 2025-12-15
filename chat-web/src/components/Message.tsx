@@ -251,7 +251,7 @@ function DefaultMessage({
         "flex flex-col w-full items-start gap-1",
         isSending && "opacity-50",
         isFailed && "opacity-70 text-red-400",
-        mentionedMe && "bg-yellow-500/10 border-l-2 border-yellow-500/40 pl-2",
+        mentionedMe && "bg-primary/10",
         showAuthorName && "mt-4",
         !editing && "hover:bg-tertiary/10"
       )}
@@ -260,7 +260,7 @@ function DefaultMessage({
         <div className="flex items-center gap-2">
           <Username author={author} />
           {author.flags?.webhook && (
-            <span className="bg-tertiary px-1">Webhook</span>
+            <span className="bg-tertiary px-1">webhook</span>
           )}
           <span className="opacity-30">{timestamp}</span>
         </div>
