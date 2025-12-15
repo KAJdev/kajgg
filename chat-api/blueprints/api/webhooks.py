@@ -167,12 +167,23 @@ def parse_railway_webhook(response: Request) -> dict | None:
             }
         ).get(state)
 
-        description = f"{payload.get('resource', {}).get('project', {}).get('name')} - {state.capitalize()} on &dRailway\n\npushed by {payload.get('details', {}).get('commitAuthor', 'somebody?')}"
+        service_name = payload.get("resource", {}).get("service", {}).get("name")
+
+        if state == "deploying":
+            description = f"{service_name} is &ebeing deployed"
+        elif state == "deployed":
+            description = f"{service_name} was **&asuccessfully deployed**"
+        elif state == "failed":
+            description = f"{service_name} **&cfailed to deploy**"
+        elif state == "removed":
+            description = f"deployment &cremoved for **{service_name}**"
+
+        description += f"\n\npushed by &7{payload.get('details', {}).get('commitAuthor', 'somebody?')}"
 
         return {
             "embeds": [
                 {
-                    "title": "Railway",
+                    "title": f"{payload.get('resource', {}).get('project', {}).get('name')} on Railway",
                     "description": description,
                     "color": color,
                     "footer": f"{payload.get('details', {}).get('id')}",
