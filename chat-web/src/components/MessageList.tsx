@@ -103,6 +103,7 @@ export function MessageList({
   } | null>(null);
 
   const noNewerUntilRef = useRef(0);
+  const noOlderUntilRef = useRef(0);
 
   const messages = tupledMessages;
 
@@ -119,6 +120,7 @@ export function MessageList({
     setDidInitialScroll(false);
     setPrependTick(0);
     noNewerUntilRef.current = 0;
+    noOlderUntilRef.current = 0;
   }, [channelId]);
 
   useLayoutEffect(() => {
@@ -126,7 +128,6 @@ export function MessageList({
     const pending = pendingPrependAdjustRef.current;
     if (!scroller || !pending) return;
 
-    const rootTop = scroller.getBoundingClientRect().top;
     const anchorEl = pending.anchorId
       ? (innerRef.current?.querySelector(
           `[data-message-id="${pending.anchorId}"]`
@@ -134,8 +135,14 @@ export function MessageList({
       : null;
 
     if (anchorEl) {
-      const nextOffset = anchorEl.getBoundingClientRect().top - rootTop;
-      scroller.scrollTop += nextOffset - pending.anchorOffsetTop;
+      scroller.scrollTo({
+        top:
+          scroller.scrollTop +
+          (anchorEl.getBoundingClientRect().top -
+            scroller.getBoundingClientRect().top) -
+          pending.anchorOffsetTop,
+        behavior: "instant",
+      });
     } else {
       // fallback: keep the same distance-from-top by using scrollheight delta
       const nextScrollHeight = scroller.scrollHeight;
@@ -144,6 +151,9 @@ export function MessageList({
     }
 
     pendingPrependAdjustRef.current = null;
+
+    // chill for a sec so we don't immediately chain-fetch while we're still near the top
+    noOlderUntilRef.current = Date.now() + 250;
   }, [prependTick, channelId]);
 
   useEffect(() => {
@@ -175,36 +185,59 @@ export function MessageList({
     });
   }, [didInitialScroll, messages.length]);
 
+  const getAnchorBeforePrepend = useCallback(() => {
+    const scroller = scrollerRef.current;
+    if (!scroller) return null;
+
+    const rootTop = scroller.getBoundingClientRect().top;
+    const commonId = messages[250]?.[0]?.id ?? null;
+
+    console.log("commonId", commonId);
+
+    let anchor =
+      (commonId
+        ? (innerRef.current?.querySelector(
+            `[data-message-id="${commonId}"]`
+          ) as HTMLElement | null)
+        : null) ?? null;
+
+    if (!anchor) {
+      // ok fallback: first visible-ish
+      const els =
+        innerRef.current?.querySelectorAll<HTMLElement>("[data-message-id]") ??
+        [];
+      for (const el of els) {
+        const top = el.getBoundingClientRect().top;
+        if (top >= rootTop) {
+          anchor = el;
+          break;
+        }
+      }
+      if (!anchor && els.length) anchor = els[0] ?? null;
+    }
+
+    if (!anchor) return null;
+    return {
+      anchorId: anchor.dataset.messageId ?? null,
+      anchorOffsetTop: anchor.getBoundingClientRect().top,
+    };
+  }, [messages]);
+
   const loadOlder = useCallback(async () => {
     if (!hasOlder) return;
     if (loadingOlderRef.current) return;
+    if (Date.now() < noOlderUntilRef.current) return;
     const scroller = scrollerRef.current;
     const first = messages[0]?.[0];
     if (!scroller || !first) return;
 
     loadingOlderRef.current = true;
-    // pick an anchor element currently in view so we can keep it in the same spot
-    const rootTop = scroller.getBoundingClientRect().top;
-    const els =
-      innerRef.current?.querySelectorAll<HTMLElement>("[data-message-id]") ??
-      [];
-    let anchor: HTMLElement | null = null;
-    for (const el of els) {
-      const top = el.getBoundingClientRect().top;
-      if (top >= rootTop) {
-        anchor = el;
-        break;
-      }
-    }
-    if (!anchor && els.length) anchor = els[0] ?? null;
-
+    const anchorInfo = getAnchorBeforePrepend();
     pendingPrependAdjustRef.current = {
       prevScrollTop: scroller.scrollTop,
       prevScrollHeight: scroller.scrollHeight,
-      anchorId: anchor?.dataset.messageId ?? null,
-      anchorOffsetTop: anchor
-        ? anchor.getBoundingClientRect().top - rootTop
-        : 0,
+      anchorId: anchorInfo?.anchorId ?? null,
+      anchorOffsetTop: anchorInfo?.anchorOffsetTop ?? 0,
     };
 
     try {
@@ -227,7 +260,7 @@ export function MessageList({
     } finally {
       loadingOlderRef.current = false;
     }
-  }, [channelId, hasOlder, messages]);
+  }, [channelId, getAnchorBeforePrepend, hasOlder, messages]);
 
   const loadNewer = useCallback(async () => {
     if (!hasNewer) return;
