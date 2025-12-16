@@ -187,14 +187,20 @@ const ChannelComposerImpl = memo(
     }, [content]);
 
     const mentionQuery = useMemo(() => {
-      // ends with @ followed by at least 1 valid username char, and either start-of-string or whitespace before the @
-      const m = content.match(/(?:^|\s)@([a-zA-Z0-9_-]{1,32})$/);
+      // ends with @ followed by up to 32 valid username characters, and either start-of-string or whitespace before the @
+      const m =
+        content.length > 0
+          ? content.match(/(?:^|\s)@([a-zA-Z0-9_-]{0,32})$/)
+          : null;
       return m ? m[1] : null;
     }, [content]);
 
     const channelQuery = useMemo(() => {
-      // ends with # followed by at least 1 valid channel char, and either start-of-string or whitespace before the #
-      const m = content.match(/(?:^|\s)#([a-zA-Z0-9_-]{1,64})$/);
+      // ends with # followed by up to 64 valid channel characters, and either start-of-string or whitespace before the #
+      const m =
+        content.length > 0
+          ? content.match(/(?:^|\s)#([a-zA-Z0-9_-]{0,64})$/)
+          : null;
       return m ? m[1] : null;
     }, [content]);
 
@@ -238,34 +244,34 @@ const ChannelComposerImpl = memo(
     }, [attachments, channelId, content]);
 
     return (
-      <div className="flex flex-col">
-        {channelQuery ? (
-          <ChannelSearch
-            query={channelQuery}
-            onPick={(ch) => {
-              const escaped = channelQuery.replace(
-                /[.*+?^${}()|[\]\\]/g,
-                "\\$&"
-              );
-              setContent((prev) =>
-                prev.replace(new RegExp(`#${escaped}$`), `#${ch.name} `)
-              );
-            }}
-          />
-        ) : mentionQuery ? (
-          <MentionSearch
-            query={mentionQuery}
-            onPick={(author) => {
-              const escaped = mentionQuery.replace(
-                /[.*+?^${}()|[\]\\]/g,
-                "\\$&"
-              );
-              setContent((prev) =>
-                prev.replace(new RegExp(`@${escaped}$`), `@${author.username} `)
-              );
-            }}
-          />
-        ) : emojiQuery ? (
+      <div className="flex flex-col relative">
+        <ChannelSearch
+          query={channelQuery}
+          onPick={(ch) => {
+            const escaped = channelQuery?.replace(
+              /[.*+?^${}()|[\]\\]/g,
+              "\\$&"
+            );
+            setContent((prev) =>
+              prev.replace(new RegExp(`#${escaped}$`), `#${ch.name} `)
+            );
+          }}
+        />
+
+        <MentionSearch
+          query={mentionQuery}
+          onPick={(author) => {
+            const escaped = mentionQuery?.replace(
+              /[.*+?^${}()|[\]\\]/g,
+              "\\$&"
+            );
+            setContent((prev) =>
+              prev.replace(new RegExp(`@${escaped}$`), `@${author.username} `)
+            );
+          }}
+        />
+
+        {emojiQuery && (
           <EmojiSearch
             query={emojiQuery}
             onPick={(emoji) => {
@@ -273,9 +279,9 @@ const ChannelComposerImpl = memo(
               setContent(`${stripped}${emoji}`);
             }}
           />
-        ) : (
-          <TypingIndicator channelId={channelId} />
         )}
+
+        <TypingIndicator channelId={channelId} />
 
         <ChatInput
           content={content}

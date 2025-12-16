@@ -52,7 +52,7 @@ export function TypingIndicator({ channelId }: { readonly channelId: string }) {
   }
 
   return (
-    <div className="bg-tertiary px-1 text-secondary w-full">
+    <div className="bg-background border-x border-b border-tertiary px-1 text-secondary w-full absolute top-0 -translate-y-full">
       <Typing authors={typingAuthors} />
     </div>
   );

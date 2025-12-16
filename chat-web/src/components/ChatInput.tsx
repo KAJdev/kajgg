@@ -45,8 +45,8 @@ export function ChatInput({
   editing?: boolean;
   autofocus?: boolean;
   emojiQuery?: string | null;
-  mentionQuery?: string | null;
-  channelQuery?: string | null;
+  mentionQuery: string | null;
+  channelQuery: string | null;
   textareaRef?: React.RefObject<HTMLTextAreaElement | null>;
 }) {
   const { channelId } = useParams();
@@ -181,7 +181,7 @@ export function ChatInput({
           onKeyDown={(e) => {
             const key = e.key.toLowerCase();
             if (
-              (emojiQuery || mentionQuery || channelQuery) &&
+              (emojiQuery || mentionQuery !== null || channelQuery !== null) &&
               (key === "arrowup" ||
                 key === "arrowdown" ||
                 key === "tab" ||

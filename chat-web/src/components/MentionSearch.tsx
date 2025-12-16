@@ -4,24 +4,48 @@ import { useMemo } from "react";
 import { useAuthors } from "src/lib/cache";
 import { useKeybind } from "src/lib/keybind";
 import { Username } from "./Username";
+import { useParams } from "react-router";
+import { cache } from "src/lib/cache";
 
 export function MentionSearch({
   query,
   onPick,
 }: Readonly<{
-  query: string;
+  query: string | null;
   onPick: (author: Author) => void;
 }>) {
   const authors = useAuthors();
+  const { channelId } = useParams();
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(0);
 
   const results = useMemo(() => {
+    if (query === null) return [];
+
     const q = query.toLowerCase();
+
+    if (q.length === 0) {
+      // return past 10 message authors in the current channel that arent the current user, and then grab random people from the cache
+      if (channelId) {
+        const channelMessages = cache.getState().messages[channelId] ?? {};
+        return Object.values(channelMessages)
+          .filter((m) => m.author_id !== cache.getState().user?.id)
+          .sort(
+            (a, b) =>
+              new Date(b.created_at).getTime() -
+              new Date(a.created_at).getTime()
+          )
+          .slice(0, 10)
+          .map((m) => m.author ?? authors[m.author_id]);
+      }
+
+      return Object.values(authors ?? {}).slice(0, 10);
+    }
+
     return Object.values(authors ?? {})
       .filter((a) => a.username && a.username.toLowerCase().includes(q))
       .sort((a, b) => (a.username ?? "").localeCompare(b.username ?? ""))
       .slice(0, 10);
-  }, [authors, query]);
+  }, [authors, channelId, query]);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -55,9 +79,13 @@ export function MentionSearch({
     setHoveredIndex(null);
   });
 
+  if (results.length === 0) {
+    return null;
+  }
+
   return (
-    <div className="bg-tertiary text-primary w-full flex flex-col">
-      <Label className="p-2">mentions matching @{query}</Label>
+    <div className="bg-background border-x border-t border-tertiary text-primary w-full flex flex-col absolute top-0 -translate-y-full">
+      <Label className="p-2">users matching @{query}</Label>
       {results.map((a, index) => (
         <div
           key={a.id}
