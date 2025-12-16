@@ -19,7 +19,7 @@ import { createMessage, fetchMessages } from "src/lib/api";
 import {
   cache,
   setLastSeenChannel,
-  setLastSeenChannelAt,
+  markChannelAsRead,
   useAuthors,
   useChannel,
   useChannels,
@@ -28,7 +28,6 @@ import { useKeybind } from "src/lib/keybind";
 import { MessageType, type Author } from "@schemas/index";
 import { ListChannel } from "src/components/ListChannel";
 import { Label } from "@theme/Label";
-import { getIsPageFocused } from "src/lib/utils";
 import { Button } from "@theme/Button";
 import { PlusIcon } from "lucide-react";
 import { CreateChannel } from "src/components/CreateChannel";
@@ -317,14 +316,9 @@ export function Channel() {
   useEffect(() => {
     if (channelId) {
       setLastSeenChannel(channelId);
+      markChannelAsRead(channelId);
       void fetchMessages(channelId, undefined, undefined, 100);
     }
-
-    return () => {
-      if (channelId) {
-        setLastSeenChannelAt(channelId, Date.now());
-      }
-    };
   }, [channelId]);
 
   useEffect(() => {
@@ -340,7 +334,7 @@ export function Channel() {
   useEffect(() => {
     if (!channelId) return;
 
-    const markSeen = () => setLastSeenChannelAt(channelId, Date.now());
+    const markSeen = () => markChannelAsRead(channelId);
 
     const onVisibility = () => {
       if (document.visibilityState === "hidden") {
@@ -355,16 +349,6 @@ export function Channel() {
       window.removeEventListener("pagehide", markSeen);
       document.removeEventListener("visibilitychange", onVisibility);
     };
-  }, [channelId]);
-
-  // keep last seen fresh while you're focused so unread markers don't pop for your own sends
-  useEffect(() => {
-    if (!channelId) return;
-    if (!getIsPageFocused()) return;
-    const markSeen = () => setLastSeenChannelAt(channelId, Date.now());
-
-    const interval = globalThis.setInterval(markSeen, 10_000);
-    return () => globalThis.clearInterval(interval);
   }, [channelId]);
 
   useKeybind("arrowup", () => {

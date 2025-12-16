@@ -80,6 +80,144 @@ export type Cache = {
   webhooks: Record<string, Webhook[]>;
 };
 
+const _toMs = (d: Date | string | null | undefined) =>
+  d ? new Date(d).getTime() : null;
+
+function _bumpChannelLastMessageAtInState(
+  state: Cache,
+  channelId: string,
+  createdAt: Date
+) {
+  const existing = state.channels[channelId];
+  if (!existing) return state;
+
+  const prev = _toMs(existing.last_message_at);
+  const next = createdAt.getTime();
+  if (prev !== null && next <= prev) return state;
+
+  return {
+    ...state,
+    channels: {
+      ...state.channels,
+      [channelId]: { ...existing, last_message_at: createdAt },
+    },
+  };
+}
+
+function _hasGapToNewest(state: Cache, channelId: string) {
+  const boundsNewest = state.messageBounds[channelId]?.newest;
+  const channelLast = state.channels[channelId]?.last_message_at;
+  const boundsNewestTs = _toMs(boundsNewest);
+  const channelLastTs = _toMs(channelLast);
+  return boundsNewestTs !== null && channelLastTs !== null
+    ? channelLastTs > boundsNewestTs
+    : false;
+}
+
+function _shouldDropRealtimeInsert(
+  state: Cache,
+  channelId: string,
+  message: Message,
+  mode: "add" | "update"
+) {
+  // only drop for true realtime inserts (not updates), and never for your own sends
+  if (mode !== "add") return false;
+  if (message.author_id === state.user?.id) return false;
+  return _hasGapToNewest(state, channelId);
+}
+
+function _mergeQueuedMessages(
+  base: Record<string, CachedMessage>,
+  nextMessages: CachedMessage[]
+) {
+  const nextChannel: Record<string, CachedMessage> = { ...base };
+
+  for (const nextMessage of nextMessages) {
+    const messageId = nextMessage.id;
+    const existing = nextChannel[messageId];
+
+    // keep cachedat stable so ui stuff (like animations) doesn't freak out
+    const cachedAt = existing?.cachedAt ?? Date.now();
+
+    const merged: CachedMessage = {
+      ...(existing ?? ({} as CachedMessage)),
+      ...nextMessage,
+      cachedAt,
+    };
+
+    // don't let undefined from server stomp client-only metadata
+    if (nextMessage.client === undefined && existing?.client !== undefined) {
+      merged.client = existing.client;
+    }
+
+    nextChannel[messageId] = merged;
+  }
+
+  return nextChannel;
+}
+
+function _evictOverCapacity(
+  state: Cache,
+  channelId: string,
+  channel: Record<string, CachedMessage>,
+  mode: "append" | "prepend" | "single"
+) {
+  const over = Object.keys(channel).length - MAX_MESSAGES_PER_CHANNEL;
+  if (over <= 0) return channel;
+
+  const distFromBottom = state.channelDistFromBottom[channelId] ?? 0;
+  const nearBottom = distFromBottom <= EVICT_NEAR_BOTTOM_THRESHOLD_PX;
+  const sorted = Object.values(channel).sort((a, b) => {
+    const at = new Date(a.created_at).getTime();
+    const bt = new Date(b.created_at).getTime();
+    if (at !== bt) return at - bt;
+    return a.id.localeCompare(b.id);
+  });
+
+  // if user is reading history (not at bottom), never evict from the top (oldest),
+  // because that collapses content above the viewport and makes scroll jump to start
+  //
+  // - prepend: we pulled older history => drop newest
+  // - append/single:
+  //    - near bottom => drop oldest (avoid clamping scrolltop when bottom shrinks)
+  //    - far from bottom => drop newest (don't delete what they're reading)
+  const dropNewest = mode === "prepend" || !nearBottom;
+
+  const nextChannel: Record<string, CachedMessage> = { ...channel };
+  if (dropNewest) {
+    for (let i = 0; i < over; i++) {
+      const id = sorted[sorted.length - 1 - i]?.id;
+      if (id) delete nextChannel[id];
+    }
+  } else {
+    for (let i = 0; i < over; i++) {
+      const id = sorted[i]?.id;
+      if (id) delete nextChannel[id];
+    }
+  }
+
+  return nextChannel;
+}
+
+function _messagesAndBoundsPatch(
+  state: Cache,
+  channelId: string,
+  channel: Record<string, CachedMessage>
+) {
+  // track bounds so the ui can decide if it should fetch forward/backward pages
+  const bounds = _compute_bounds(channel);
+  return {
+    messages: {
+      ...state.messages,
+      [channelId]: channel,
+    },
+    messageBounds: {
+      ...state.messageBounds,
+      ...(bounds ? { [channelId]: bounds } : {}),
+    },
+  } satisfies Pick<Cache, "messages" | "messageBounds">;
+}
+
 export type PersistentCache = {
   lastSeenChannel: string | null;
   lastSeenChannelAt: Record<string, number>; // channel id -> timestamp
@@ -238,11 +376,11 @@ export function setLastSeenChannel(channelId: string) {
   persistentCache.setState({ lastSeenChannel: channelId });
 }
 
-export function setLastSeenChannelAt(channelId: string, timestamp: number) {
+export function markChannelAsRead(channelId: string) {
   persistentCache.setState({
     lastSeenChannelAt: {
       ...persistentCache.getState().lastSeenChannelAt,
-      [channelId]: timestamp,
+      [channelId]: Date.now(),
     },
   });
 }
@@ -360,75 +498,9 @@ function _upsertQueuedMessages(
   mode: "append" | "prepend" | "single" = "append"
 ) {
   const currentChannel = state.messages[channelId] ?? {};
-
-  const nextChannel: Record<string, CachedMessage> = { ...currentChannel };
-
-  for (const nextMessage of nextMessages) {
-    const messageId = nextMessage.id;
-    const existing = nextChannel[messageId];
-
-    // keep cachedAt stable so ui stuff (like animations) doesn't freak out
-    const cachedAt = existing?.cachedAt ?? Date.now();
-
-    const merged: CachedMessage = {
-      ...(existing ?? ({} as CachedMessage)),
-      ...nextMessage,
-      cachedAt,
-    };
-
-    // don't let "undefined" from server stomp client-only metadata
-    if (nextMessage.client === undefined && existing?.client !== undefined) {
-      merged.client = existing.client;
-    }
-
-    nextChannel[messageId] = merged;
-  }
-
-  const over = Object.keys(nextChannel).length - MAX_MESSAGES_PER_CHANNEL;
-  if (over > 0) {
-    const distFromBottom = state.channelDistFromBottom[channelId] ?? 0;
-    const nearBottom = distFromBottom <= EVICT_NEAR_BOTTOM_THRESHOLD_PX;
-    const sorted = Object.values(nextChannel).sort((a, b) => {
-      const at = new Date(a.created_at).getTime();
-      const bt = new Date(b.created_at).getTime();
-      if (at !== bt) return at - bt;
-      return a.id.localeCompare(b.id);
-    });
-
-    // If user is reading history (not at bottom), never evict from the top (oldest),
-    // because that collapses content above the viewport and makes scroll jump to start.
-    //
-    // - prepend: we pulled older history => drop newest
-    // - append/single:
-    //    - near bottom => drop oldest (avoid clamping scrollTop when bottom shrinks)
-    //    - far from bottom => drop newest (don't delete what they're reading)
-    const dropNewest = mode === "prepend" || !nearBottom;
-    if (dropNewest) {
-      for (let i = 0; i < over; i++) {
-        const id = sorted[sorted.length - 1 - i]?.id;
-        if (id) delete nextChannel[id];
-      }
-    } else {
-      for (let i = 0; i < over; i++) {
-        const id = sorted[i]?.id;
-        if (id) delete nextChannel[id];
-      }
-    }
-  }
-
-  // track bounds so the ui can decide if it should fetch forward/backward pages
-  const bounds = _compute_bounds(nextChannel);
-
-  return {
-    messages: {
-      ...state.messages,
-      [channelId]: nextChannel,
-    },
-    messageBounds: {
-      ...state.messageBounds,
-      ...(bounds ? { [channelId]: bounds } : {}),
-    },
-  };
+  const merged = _mergeQueuedMessages(currentChannel, nextMessages);
+  const evicted = _evictOverCapacity(state, channelId, merged, mode);
+  return _messagesAndBoundsPatch(state, channelId, evicted);
 }
 
 function _upsertQueuedMessage(
@@ -450,7 +522,7 @@ export function addMessage(channelId: string, message: Message) {
     return _upsertQueuedMessage(state, channelId, message.id, message);
   });
 
-  if (message.author_id !== cache.getState().user?.id && !getIsPageFocused()) {
+  if (message.author_id !== cache.getState().user?.id) {
     updateChannelLastMessageAt(channelId, message.created_at);
   }
 }
@@ -516,43 +588,22 @@ export function reconcileMessageByNonce(
       return updateMessageById(channelId, serverMessage.id, serverMessage);
     }
 
-    // if we're not at the newest edge, don't let realtime messages evict stuff the user is reading
     cache.setState((state) => {
+      const createdAt = new Date(serverMessage.created_at);
       const existing = state.messages[channelId]?.[serverMessage.id];
-      const boundsNewest = state.messageBounds[channelId]?.newest;
-      const channelLast = state.channels[channelId]?.last_message_at;
 
-      const serverTs = new Date(serverMessage.created_at);
-      const channelLastTs = channelLast
-        ? new Date(channelLast).getTime()
-        : null;
-      const hasGapToNewest =
-        boundsNewest && channelLastTs !== null
-          ? channelLastTs > boundsNewest.getTime()
-          : false;
-
-      const isMine = serverMessage.author_id === state.user?.id;
+      const bumped = _bumpChannelLastMessageAtInState(
+        state,
+        channelId,
+        createdAt
+      );
       const shouldDrop =
-        mode === "add" && hasGapToNewest && !existing && !isMine;
-
-      const nextState = {
-        ...state,
-        channels: {
-          ...state.channels,
-          [channelId]: {
-            ...state.channels[channelId],
-            last_message_at:
-              channelLastTs === null || serverTs.getTime() > channelLastTs
-                ? serverTs
-                : state.channels[channelId]?.last_message_at,
-          },
-        },
-      } satisfies Cache;
-
-      if (shouldDrop) return nextState;
+        _shouldDropRealtimeInsert(bumped, channelId, serverMessage, mode) &&
+        !existing;
+      if (shouldDrop) return bumped;
 
       return _upsertQueuedMessage(
-        nextState,
+        bumped,
         channelId,
         serverMessage.id,
         serverMessage
@@ -562,7 +613,13 @@ export function reconcileMessageByNonce(
   }
 
   cache.setState((state) => {
-    const channel = state.messages[channelId] ?? {};
+    const createdAt = new Date(serverMessage.created_at);
+    const bumped = _bumpChannelLastMessageAtInState(
+      state,
+      channelId,
+      createdAt
+    );
+    const channel = bumped.messages[channelId] ?? {};
 
     // find the optimistic entry for this nonce (if any)
     const optimisticId = Object.keys(channel).find(
@@ -571,6 +628,24 @@ export function reconcileMessageByNonce(
 
     const optimistic = optimisticId ? channel[optimisticId] : undefined;
     const existingServer = channel[serverMessage.id];
+
+    // no optimistic match => treat like a normal realtime insert/update, with optional drop-when-gap
+    if (!optimistic) {
+      const shouldDrop =
+        _shouldDropRealtimeInsert(bumped, channelId, serverMessage, mode) &&
+        !existingServer;
+      if (shouldDrop) return bumped;
+
+      return {
+        ...bumped,
+        ..._upsertQueuedMessage(
+          bumped,
+          channelId,
+          serverMessage.id,
+          serverMessage
+        ),
+      };
+    }
 
     // keep client previews so image/video doesn't flash when swapping blob -> r2 url
     const baseClient = optimistic?.client ?? existingServer?.client;
@@ -599,40 +674,15 @@ export function reconcileMessageByNonce(
       delete nextChannel[optimisticId];
     }
 
-    const over = Object.keys(nextChannel).length - MAX_MESSAGES_PER_CHANNEL;
-    if (over > 0) {
-      const distFromBottom = state.channelDistFromBottom[channelId] ?? 0;
-      const nearBottom = distFromBottom <= EVICT_NEAR_BOTTOM_THRESHOLD_PX;
-      const sorted = Object.values(nextChannel).sort((a, b) => {
-        const at = new Date(a.created_at).getTime();
-        const bt = new Date(b.created_at).getTime();
-        if (at !== bt) return at - bt;
-        return a.id.localeCompare(b.id);
-      });
-      // reconcile is effectively an "append/single" from the UI perspective.
-      // respect the same eviction rules as _upsertQueuedMessages for scroll stability.
-      if (nearBottom) {
-        for (let i = 0; i < over; i++) {
-          const id = sorted[i]?.id;
-          if (id) delete nextChannel[id];
-        }
-      } else {
-        for (let i = 0; i < over; i++) {
-          const id = sorted[sorted.length - 1 - i]?.id;
-          if (id) delete nextChannel[id];
-        }
-      }
-    }
-
-    const bounds = _compute_bounds(nextChannel);
-
+    const evicted = _evictOverCapacity(
+      bumped,
+      channelId,
+      nextChannel,
+      "single"
+    );
     return {
-      ...state,
-      messages: { ...state.messages, [channelId]: nextChannel },
-      messageBounds: {
-        ...state.messageBounds,
-        ...(bounds ? { [channelId]: bounds } : {}),
-      },
+      ...bumped,
+      ..._messagesAndBoundsPatch(bumped, channelId, evicted),
     };
   });
 }
