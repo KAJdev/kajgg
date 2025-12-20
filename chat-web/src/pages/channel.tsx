@@ -137,7 +137,7 @@ const AuthorSidebar = memo(function AuthorSidebar() {
           </Label>
           <div className="flex flex-col">
             {list.map((author) => (
-              <ListAuthor key={author.id} author={author} />
+              <ListAuthor key={author.id} author={author} allowPlate />
             ))}
           </div>
         </div>

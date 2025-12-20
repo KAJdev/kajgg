@@ -440,7 +440,7 @@ export function MessageList({
       style={{ overflowAnchor: "none" }}
       onScroll={onScroll}
     >
-      <div ref={innerRef} className="flex flex-col">
+      <div ref={innerRef} className="flex flex-col gap-1">
         <div ref={topSentinelRef} className="h-px" />
         {messages.map((item) => (
           <MessageRow

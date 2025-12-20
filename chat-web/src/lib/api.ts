@@ -67,6 +67,33 @@ async function fileToDataUrl(file: File): Promise<string> {
   });
 }
 
+export async function updateAvatar(image: string | File | null) {
+  if (image === null) {
+    const [updatedUser, error] = await request<User>("users/@me/avatar", {
+      method: "DELETE",
+    });
+    if (error) throw error;
+    setUser(updatedUser);
+    updateAuthor(updatedUser);
+    return updatedUser;
+  }
+
+  const imageData = image instanceof File ? await fileToDataUrl(image) : image;
+
+  const [updatedUser, error] = await request<User>("users/@me/avatar", {
+    method: "POST",
+    body: { image: imageData },
+  });
+
+  if (error) {
+    throw error;
+  }
+
+  setUser(updatedUser);
+  updateAuthor(updatedUser);
+  return updatedUser;
+}
+
 export async function login(username: string, password: string) {
   return await request<User>("login", {
     method: "POST",

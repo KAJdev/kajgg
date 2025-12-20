@@ -11,12 +11,14 @@ import { deleteMessage, editMessage } from "src/lib/api";
 import { MessageType as MessageTypeEnum } from "@schemas/index";
 import { getIsPageFocused, hashString } from "src/lib/utils";
 import { Username } from "./Username";
+import { Avatar } from "./Avatar";
 import type { File as ApiFile } from "@schemas/models/file";
 import { Modal } from "@theme/Modal";
 import { Embed } from "./Embed";
 import { MessageMarkdown } from "./MessageMarkdown";
 import { motion } from "motion/react";
 import { Button } from "@theme/Button";
+import { AuthorPlate } from "./AuthorPlate";
 
 const leaveMessages = [
   "has dissapeared",
@@ -248,88 +250,111 @@ function DefaultMessage({
   return (
     <div
       className={classes(
-        "flex flex-col w-full items-start gap-1",
+        "flex w-full gap-3",
         isSending && "opacity-50",
         isFailed && "opacity-70 text-red-400",
         mentionedMe && "bg-primary/10",
         showAuthorName && "mt-4",
-        !editing && "hover:bg-tertiary/10"
+        !editing && !mentionedMe && "hover:bg-tertiary/10"
       )}
     >
-      {showAuthorName && (
-        <div className="flex items-center gap-2">
-          <Username author={author} />
-          {author.flags?.webhook && (
-            <span className="bg-tertiary px-1">webhook</span>
-          )}
-          <span className="opacity-30">{timestamp}</span>
-        </div>
-      )}
-      {editing ? (
-        <div className="flex gap-2 flex-col w-full py-1">
-          <ChatInput
-            content={content}
-            setContent={setContent}
-            onSubmit={handleSubmit}
-            editing
-            autofocus
-          />
-          <p>
-            <button
-              onClick={handleSubmit}
-              className="text-blue-500 cursor-pointer hover:underline"
-            >
-              enter
-            </button>{" "}
-            to save -{" "}
-            <button
-              onClick={onCancelEdit}
-              className="text-blue-500 cursor-pointer hover:underline"
-            >
-              escape
-            </button>{" "}
-            to cancel
-          </p>
-        </div>
-      ) : (
-        <>
-          {message.content && (
-            <MessageMarkdown
-              content={
-                message.content + (message.updated_at ? ` *(edited)*` : "")
-              }
-              mentionIds={message.mentions}
+      <div
+        className={classes(
+          "flex items-center justify-center w-10",
+          showAuthorName && "h-10"
+        )}
+      >
+        {!author.flags?.webhook && showAuthorName && (
+          <AuthorPlate author={author}>
+            <Avatar
+              id={author.id}
+              username={author.username}
+              avatarUrl={author.avatar_url}
+              color={author.color}
+              size={40}
             />
-          )}
-        </>
-      )}
-      {message.files && message.files.length > 0 && (
-        <div className="flex flex-wrap gap-2">
-          {message.files.map((f) => (
-            <MessageFile
-              key={f.id}
-              file={f}
-              progress={message.client?.uploads?.[f.id]?.progress}
-              previewUrl={message.client?.uploads?.[f.id]?.preview_url}
+          </AuthorPlate>
+        )}
+      </div>
+      <div className="flex flex-col w-full items-start gap-1">
+        {showAuthorName && (
+          <div className="flex items-center gap-2">
+            <Username author={author} />
+            {author.flags?.webhook && (
+              <span className="bg-tertiary px-1">webhook</span>
+            )}
+            <span className="opacity-30">{timestamp}</span>
+          </div>
+        )}
+
+        {editing ? (
+          <div className="flex gap-2 flex-col w-full py-1">
+            <ChatInput
+              content={content}
+              setContent={setContent}
+              onSubmit={handleSubmit}
+              editing
+              autofocus
+              mentionQuery={null}
+              channelQuery={null}
             />
-          ))}
-        </div>
-      )}
+            <p>
+              <button
+                onClick={handleSubmit}
+                className="text-blue-500 cursor-pointer hover:underline"
+              >
+                enter
+              </button>{" "}
+              to save -{" "}
+              <button
+                onClick={onCancelEdit}
+                className="text-blue-500 cursor-pointer hover:underline"
+              >
+                escape
+              </button>{" "}
+              to cancel
+            </p>
+          </div>
+        ) : (
+          <>
+            {message.content && (
+              <MessageMarkdown
+                content={
+                  message.content + (message.updated_at ? ` *(edited)*` : "")
+                }
+                mentionIds={message.mentions}
+              />
+            )}
+          </>
+        )}
+        {message.files && message.files.length > 0 && (
+          <div className="flex flex-wrap gap-2">
+            {message.files.map((f) => (
+              <MessageFile
+                key={f.id}
+                file={f}
+                progress={message.client?.uploads?.[f.id]?.progress}
+                previewUrl={message.client?.uploads?.[f.id]?.preview_url}
+              />
+            ))}
+          </div>
+        )}
 
-      {message.embeds && message.embeds.length > 0 && (
-        <div className="flex flex-col flex-wrap gap-2">
-          {message.embeds.map((e) => (
-            <Embed embed={e} key={hashString(JSON.stringify(e))} />
-          ))}
-        </div>
-      )}
+        {message.embeds && message.embeds.length > 0 && (
+          <div className="flex flex-col flex-wrap gap-2">
+            {message.embeds.map((e) => (
+              <Embed embed={e} key={hashString(JSON.stringify(e))} />
+            ))}
+          </div>
+        )}
 
-      {isFailed && (
-        <div className="text-xs text-red-400/90">
-          failed to send
-          {message.client?.error ? `: ${message.client.error}` : ""}
-        </div>
-      )}
+        {isFailed && (
+          <div className="text-xs text-red-400/90">
+            failed to send
+            {message.client?.error ? `: ${message.client.error}` : ""}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -399,9 +424,7 @@ export function Message(props: MessageProps) {
   const pageFocused = getIsPageFocused();
   const self = useUser();
 
-  const isOwnMessage = useMemo(() => {
-    return props.message.author_id === self?.id;
-  }, [props.message.author_id]);
+  const isOwnMessage = props.message.author_id === self?.id;
 
   // we want to check the following
   // - lastSeenChannelAt is set
