@@ -143,7 +143,7 @@ export function ChatInput({
           <Button
             icon={PlusIcon}
             variant="transparent"
-            className="h-12 pl-2 pr-1"
+            className="h-12 px-2"
             onClick={() => {
               const fileInput = document.createElement("input");
               fileInput.type = "file";

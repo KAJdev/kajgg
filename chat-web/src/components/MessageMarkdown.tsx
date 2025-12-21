@@ -113,7 +113,7 @@ function MarkdownBlockquote({
   return (
     <blockquote
       {...props}
-      className="border-l-4 border-tertiary/50 pl-3 py-1 my-0 bg-tertiary/20 pr-2"
+      className="border-l-4 border-tertiary/50 pl-3 my-0 bg-tertiary/20 pr-2"
     >
       {kids.slice(start, end)}
     </blockquote>

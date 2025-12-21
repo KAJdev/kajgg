@@ -8,25 +8,29 @@ import { AuthorPlate } from "./AuthorPlate";
 export function ListAuthor({
   author,
   allowPlate,
+  showAvatar = true,
 }: {
   author: AuthorType;
   allowPlate?: boolean;
+  showAvatar?: boolean;
 }) {
   const content = (
     <div
       key={author.id}
       className={classes(
         "flex items-center gap-2",
-        author.status === StatusType.OFFLINE && "opacity-75"
+        author.status === StatusType.OFFLINE && "opacity-50"
       )}
     >
-      <Avatar
-        id={author.id}
-        username={author.username}
-        avatarUrl={author.avatar_url}
-        color={author.color}
-        size={22}
-      />
+      {showAvatar && (
+        <Avatar
+          id={author.id}
+          username={author.username}
+          avatarUrl={author.avatar_url}
+          color={author.color}
+          size={22}
+        />
+      )}
       <Username
         author={author}
         noColor={author.status === StatusType.OFFLINE}

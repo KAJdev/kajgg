@@ -451,7 +451,7 @@ export function MessageList({
             onQuote={onQuote}
           />
         ))}
-        <div className="h-8" ref={bottomRef} />
+        <div className="h-4" ref={bottomRef} />
       </div>
     </div>
   );

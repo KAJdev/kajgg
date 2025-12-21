@@ -3,6 +3,7 @@ import { ListAuthor } from "./ListAuthor";
 import { useFlippedColors } from "src/lib/cache";
 import { MessageMarkdown } from "./MessageMarkdown";
 import { Popover } from "react-tiny-popover";
+import { Avatar } from "./Avatar";
 
 function formatBytes(bytes: number) {
   if (bytes < 1024) {
@@ -33,10 +34,21 @@ export function AuthorPlate({
         className={classes("flex flex-col gap-2 p-2")}
         style={{ backgroundColor: author.background_color }}
       >
-        <ListAuthor author={author} allowPlate={false} />
-        <span className="opacity-60" style={{ color: colors.secondary }}>
-          {formatBytes(author.bytes ?? 0)}
-        </span>
+        <div className="flex items-center gap-3">
+          <Avatar
+            id={author.id}
+            username={author.username}
+            avatarUrl={author.avatar_url}
+            color={author.color}
+            size={48}
+          />
+          <div className="flex flex-col gap-1">
+            <ListAuthor author={author} allowPlate={false} showAvatar={false} />
+            <span className="opacity-60" style={{ color: colors.secondary }}>
+              {formatBytes(author.bytes ?? 0)}
+            </span>
+          </div>
+        </div>
         {author.bio && (
           <div
             className="w-full whitespace-pre-wrap break-words"

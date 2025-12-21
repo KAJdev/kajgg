@@ -260,8 +260,8 @@ function DefaultMessage({
     >
       <div
         className={classes(
-          "flex items-center justify-center w-10",
-          showAuthorName && "h-10"
+          "flex items-center justify-center w-12",
+          showAuthorName && "h-12"
         )}
       >
         {!author.flags?.webhook && showAuthorName && (
@@ -271,7 +271,7 @@ function DefaultMessage({
               username={author.username}
               avatarUrl={author.avatar_url}
               color={author.color}
-              size={40}
+              size={48}
             />
           </AuthorPlate>
         )}
