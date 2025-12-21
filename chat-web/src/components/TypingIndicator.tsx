@@ -15,7 +15,7 @@ function Typing({ authors }: { authors: Author[] }) {
   if (authors.length === 1) {
     return (
       <>
-        <Username author={authors[0]} /> is typing
+        <Username author={authors[0]} allowPlate={false} /> is typing
         {ellipsis}
       </>
     );
@@ -24,8 +24,8 @@ function Typing({ authors }: { authors: Author[] }) {
   if (authors.length === 2) {
     return (
       <>
-        <Username author={authors[0]} /> and <Username author={authors[1]} />{" "}
-        are typing{ellipsis}
+        <Username author={authors[0]} allowPlate={false} /> and{" "}
+        <Username author={authors[1]} allowPlate={false} /> are typing{ellipsis}
       </>
     );
   }
@@ -37,7 +37,9 @@ function Typing({ authors }: { authors: Author[] }) {
   return (
     <>
       {authors
-        .map((author) => <Username key={author.id} author={author} />)
+        .map((author) => (
+          <Username key={author.id} author={author} allowPlate={false} />
+        ))
         .join(", ")}{" "}
       are typing{ellipsis}
     </>
@@ -52,7 +54,7 @@ export function TypingIndicator({ channelId }: { readonly channelId: string }) {
   }
 
   return (
-    <div className="bg-background border-x border-b border-tertiary px-1 text-secondary w-full absolute top-0 -translate-y-full">
+    <div className="bg-background border-x border-t border-tertiary px-1 text-secondary w-full absolute bottom-full">
       <Typing authors={typingAuthors} />
     </div>
   );

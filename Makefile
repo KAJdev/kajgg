@@ -6,5 +6,7 @@ generate-chat-types:
 		echo "Processing $$schema..."; \
 		uv run typegen/generate.py --schema "$$schema" --output chat-api/chat_types --lang python --types-dir typegen/types; \
 		uv run typegen/generate.py --schema "$$schema" --output chat-web/src/types --lang typescript --types-dir typegen/types; \
+		uv run typegen/generate.py --schema "$$schema" --output chatlib-py/kajgg/_gen --lang python --types-dir typegen/types; \
+		uv run typegen/generate.py --schema "$$schema" --output chatlib-ts/src/_gen --lang typescript --types-dir typegen/types; \
 	done
 	@echo "Done generating types!"
