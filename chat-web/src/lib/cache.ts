@@ -11,7 +11,7 @@ import type { Emoji, Webhook } from "@schemas/index";
 
 type TimeoutId = ReturnType<typeof setTimeout>;
 
-const MAX_MESSAGES_PER_CHANNEL = 500;
+const MAX_MESSAGES_PER_CHANNEL = 200;
 const EVICT_NEAR_BOTTOM_THRESHOLD_PX = 2000;
 
 export type ClientUploadProgress = {
@@ -66,12 +66,7 @@ export type Cache = {
   channels: Record<string, Channel>;
   messages: Record<string, Record<string, CachedMessage>>;
   messageBounds: Record<string, ChannelMessageBounds>;
-  /**
-   * UI hint: whether the user is currently "pinned" to bottom in a channel message list.
-   * Used to decide which side to evict from when we exceed the per-channel message cap.
-   */
   channelAtBottom: Record<string, boolean>;
-  /** UI hint: current distance (px) from bottom for scroll container in that channel */
   channelDistFromBottom: Record<string, number>;
   authors: Record<string, Author>;
   typing: Record<string, Record<string, TimeoutId>>;
@@ -779,8 +774,7 @@ export function useChannels() {
 }
 
 export function useChannel(channelId: string) {
-  const channels = useChannels();
-  return channels[channelId];
+  return cache(useShallow((state) => state.channels[channelId]));
 }
 
 export function useMessages() {
