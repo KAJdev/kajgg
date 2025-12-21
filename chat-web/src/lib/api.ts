@@ -14,6 +14,7 @@ import {
   setEmojis,
   addWebhook,
   removeWebhook,
+  addAuthors,
 } from "./cache";
 import type { Channel } from "@schemas/models/channel";
 import type { Message } from "@schemas/models/message";
@@ -622,4 +623,21 @@ export async function fetchWebhooks(channelId: string) {
     addWebhook(webhook);
   }
   return webhooks;
+}
+
+export async function fetchChannelMembers(channelId: string) {
+  const [members, error] = await request<Author[]>(
+    `channels/${channelId}/members`
+  );
+  if (error) {
+    throw error;
+  }
+  addAuthors(members);
+  cache.setState((state) => ({
+    channelMembers: {
+      ...state.channelMembers,
+      [channelId]: members.map((member) => member.id),
+    },
+  }));
+  return members;
 }

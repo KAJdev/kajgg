@@ -1,5 +1,6 @@
 from .author import Author
 from .channel import Channel
+from .channel_invite import ChannelInvite
 from .embed import Embed
 from .emoji import Emoji
 from .file import File

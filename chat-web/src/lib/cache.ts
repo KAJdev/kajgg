@@ -8,6 +8,8 @@ import { persist } from "zustand/middleware";
 import { useShallow } from "zustand/shallow";
 import { flipColor, getIsPageFocused } from "./utils";
 import type { Emoji, Webhook } from "@schemas/index";
+import { request } from "./request";
+import { fetchChannelMembers } from "./api";
 
 type TimeoutId = ReturnType<typeof setTimeout>;
 
@@ -69,6 +71,7 @@ export type Cache = {
   channelAtBottom: Record<string, boolean>;
   channelDistFromBottom: Record<string, number>;
   authors: Record<string, Author>;
+  channelMembers: Record<string, string[]>; // channel id -> member ids
   typing: Record<string, Record<string, TimeoutId>>;
   last_event_ts?: number;
   emojis: Record<string, Emoji>;
@@ -236,6 +239,7 @@ export const cache = create<Cache>()(() => ({
   channelAtBottom: {},
   channelDistFromBottom: {},
   authors: {},
+  channelMembers: {},
   typing: {},
   last_event_ts: undefined,
   emojis: {},
@@ -426,6 +430,24 @@ export function useToken() {
 
 export function setLastEventTs(last_event_ts: number) {
   cache.setState({ last_event_ts });
+}
+
+export function useChannelMembers(channelId: string) {
+  const memberIds = cache(
+    useShallow((state) => state.channelMembers[channelId])
+  );
+  const members = useAuthors();
+
+  useEffect(() => {
+    if (!memberIds) {
+      void fetchChannelMembers(channelId);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [channelId]);
+
+  return Object.values(members).filter((member) =>
+    memberIds.includes(member.id)
+  );
 }
 
 export function startTyping(channelId: string, userId: string) {
@@ -697,6 +719,15 @@ export function addAuthor(author: Author) {
     }
     setUser(user as User);
   }
+}
+
+export function addAuthors(authors: Author[]) {
+  cache.setState((state) => ({
+    authors: {
+      ...state.authors,
+      ...Object.fromEntries(authors.map((author) => [author.id, author])),
+    },
+  }));
 }
 
 export function removeChannel(channelId: string) {

@@ -143,3 +143,16 @@ required = ["file", "upload_url", "method"]
 file = { ref = "File", doc = "The file metadata created server-side" }
 upload_url = { type = "string", doc = "Presigned URL for uploading the file (PUT)" }
 method = { type = "string", doc = "HTTP method to use for the upload" }
+
+[ChannelInvite]
+type = "object"
+required = ["id", "channel_id", "author_id", "created_at", "code"]
+
+[ChannelInvite.properties]
+id = { type = "string", doc = "Unique identifier for the invite" }
+channel_id = { type = "string", doc = "ID of the channel this invite belongs to" }
+author_id = { type = "string", doc = "ID of the user who created the invite" }
+created_at = { type = "string", format = "date-time", doc = "When the invite was created" }
+code = { type = "string", doc = "Code for the invite" }
+expires_at = { type = "string", format = "date-time", doc = "When the invite expires" }
+uses_left = { type = "integer", doc = "Number of uses left for the invite" }

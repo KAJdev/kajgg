@@ -1,15 +1,10 @@
-import asyncio
 from sanic import Blueprint, Request, json, exceptions
 from sanic_ext import openapi
-from modules.db import User, Channel, Message
+from modules.db import User
 from modules import utils
 from beanie.operators import Or
 import bcrypt
 from chat_types.models.user import User as ApiUser
-from chat_types.models.message import Message as ApiMessage
-from chat_types.models.message_type import MessageType
-from chat_types.events.message_created import MessageCreated
-from modules.events import publish_event
 
 bp = Blueprint("auth")
 

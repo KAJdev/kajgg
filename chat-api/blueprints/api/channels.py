@@ -1,12 +1,20 @@
 from chat_types.models import (
     Channel as ApiChannel,
+    Message as ApiMessage,
+    MessageType,
+    User as ApiUser,
 )
 from sanic import Blueprint, Request, json, exceptions
-from modules.db import Channel
+from modules.db import Channel, ChannelMember, Message
 from modules import utils
 from modules.auth import authorized
 from modules.events import publish_event
-from chat_types.events import ChannelCreated, ChannelUpdated, ChannelDeleted
+from chat_types.events import (
+    ChannelCreated,
+    ChannelUpdated,
+    ChannelDeleted,
+    MessageCreated,
+)
 
 bp = Blueprint("channels")
 
@@ -85,3 +93,32 @@ async def delete_channel(request: Request, channel_id: str):
     publish_event(ChannelDeleted(channel_id=channel_id))
 
     return json(None)
+
+
+@bp.route("/v1/channels/<channel_id>/leave", methods=["POST"])
+@authorized()
+async def leave_channel(request: Request, channel_id: str):
+    member = await ChannelMember.find_one(
+        ChannelMember.channel_id == channel_id,
+        ChannelMember.user_id == request.ctx.user.id,
+    )
+    if not member:
+        raise exceptions.Forbidden("You are not a member of this channel")
+
+    await member.delete()
+
+    leave_msg = Message(
+        type=MessageType.LEAVE,
+        author_id=request.ctx.user.id,
+        channel_id=channel_id,
+    )
+    await leave_msg.save()
+    await request.ctx.user.fetch_status()
+    publish_event(
+        MessageCreated(
+            message=utils.dtoa(ApiMessage, leave_msg),
+            author=utils.dtoa(ApiUser, request.ctx.user),
+        )
+    )
+
+    return json({"success": True})

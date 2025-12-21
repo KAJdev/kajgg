@@ -3,6 +3,7 @@ export type { AuthorUpdated } from "./events/authorupdated";
 export type { Channel } from "./models/channel";
 export type { ChannelCreated } from "./events/channelcreated";
 export type { ChannelDeleted } from "./events/channeldeleted";
+export type { ChannelInvite } from "./models/channelinvite";
 export type { ChannelUpdated } from "./events/channelupdated";
 export type { Embed } from "./models/embed";
 export type { Emoji } from "./models/emoji";
