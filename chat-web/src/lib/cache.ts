@@ -437,17 +437,46 @@ export function useChannelMembers(channelId: string) {
     useShallow((state) => state.channelMembers[channelId])
   );
   const members = useAuthors();
+  const user = useUser();
+  const channel = useChannel(channelId);
 
   useEffect(() => {
-    if (!memberIds) {
+    if (!memberIds && channel?.private) {
       void fetchChannelMembers(channelId);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [channelId]);
 
-  return Object.values(members).filter((member) =>
-    memberIds.includes(member.id)
-  );
+  if (channel?.private) {
+    const filteredMembers = Object.values(members).filter((member) =>
+      memberIds.includes(member.id)
+    );
+    if (user) {
+      filteredMembers.push(user);
+    }
+    return filteredMembers;
+  }
+
+  return members;
+}
+
+export function addChannelMember(channelId: string, userId: string) {
+  cache.setState((state) => ({
+    channelMembers: {
+      ...state.channelMembers,
+      [channelId]: [...(state.channelMembers[channelId] ?? []), userId],
+    },
+  }));
+}
+
+export function removeChannelMember(channelId: string, userId: string) {
+  cache.setState((state) => ({
+    channelMembers: {
+      ...state.channelMembers,
+      [channelId]:
+        state.channelMembers[channelId]?.filter((id) => id !== userId) ?? [],
+    },
+  }));
 }
 
 export function startTyping(channelId: string, userId: string) {

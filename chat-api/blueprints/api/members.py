@@ -17,6 +17,9 @@ async def get_channel_members(request: Request, channel_id: str):
     if not channel:
         raise exceptions.NotFound("Channel not found")
 
+    if not channel.private:
+        raise exceptions.Forbidden("This channel is not private")
+
     member_ids = [
         member.user_id
         for member in await ChannelMember.find(

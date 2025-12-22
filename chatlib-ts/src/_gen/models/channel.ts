@@ -15,5 +15,7 @@ export type Channel = {
     last_message_at?: Date;
     /** ID of the user who created the channel */
     author_id: string;
+    /** Whether the channel is private */
+    private: boolean;
     author?: Author;
 }

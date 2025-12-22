@@ -1,6 +1,7 @@
 import { Button } from "@theme/Button";
 import { Input } from "@theme/Input";
 import { Label } from "@theme/Label";
+import { Switch } from "@theme/Switch";
 import { createChannel } from "src/lib/api";
 import type { ApiError } from "src/lib/request";
 import type { Channel as ChannelType } from "src/types/models/channel";
@@ -8,6 +9,7 @@ import type { Channel as ChannelType } from "src/types/models/channel";
 type Form = {
   name: string;
   topic: string;
+  private: boolean;
 };
 
 export function CreateChannel({
@@ -54,7 +56,7 @@ export function CreateChannel({
           value={name}
           onChange={(name: string) => {
             setError(null);
-            setForm({ ...form, name });
+            setForm({ ...form, name: name.replace(/\s+/g, "-").toLowerCase() });
           }}
           placeholder="general"
           maxLength={100}
@@ -72,6 +74,21 @@ export function CreateChannel({
           }}
           placeholder="what's this channel for?"
           maxLength={1000}
+        />
+      </div>
+
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex flex-col gap-1 w-2/3">
+          <Label>Private Channel</Label>
+          <p className="text-secondary/60 text-sm">
+            Private channels are only visible to you and the people you invite.
+          </p>
+        </div>
+        <Switch
+          checked={form.private ?? true}
+          onChange={(isPrivate: boolean) =>
+            setForm({ ...form, private: isPrivate })
+          }
         />
       </div>
 

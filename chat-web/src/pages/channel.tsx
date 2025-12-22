@@ -20,9 +20,9 @@ import {
   cache,
   setLastSeenChannel,
   markChannelAsRead,
-  useAuthors,
   useChannel,
   useChannels,
+  useChannelMembers,
 } from "src/lib/cache";
 import { useKeybind } from "src/lib/keybind";
 import { MessageType, type Author } from "@schemas/index";
@@ -108,8 +108,10 @@ const ChannelSidebar = memo(function ChannelSidebar({
   );
 });
 
-const AuthorSidebar = memo(function AuthorSidebar() {
-  const authors = useAuthors();
+const AuthorSidebar = memo(function AuthorSidebar({
+  channelId,
+}: Readonly<{ channelId: string }>) {
+  const authors = useChannelMembers(channelId);
   const authorList: Record<StatusType, Author[]> = useMemo(() => {
     return Object.values(authors ?? {}).reduce((acc, author) => {
       acc[author.status as StatusType] = [
@@ -425,7 +427,7 @@ export function Channel() {
           />
         </div>
 
-        <AuthorSidebar />
+        <AuthorSidebar channelId={channelId} />
       </div>
 
       <Modal

@@ -20,6 +20,7 @@ import {
 } from "src/lib/api";
 import { Loader2Icon } from "lucide-react";
 import { router } from "src/routes";
+import { Switch } from "@theme/Switch";
 
 function ChannelSettings({ channel }: { channel: ChannelType }) {
   const [loading, setLoading] = useState(false);
@@ -64,6 +65,21 @@ function ChannelSettings({ channel }: { channel: ChannelType }) {
           onChange={(topic: string) => setForm({ ...form, topic })}
           placeholder="Tell us about the channel..."
           maxLength={1000}
+        />
+      </div>
+
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex flex-col gap-1 w-2/3">
+          <Label>Private Channel</Label>
+          <p className="text-secondary/60 text-sm">
+            Private channels are only visible to you and the people you invite.
+          </p>
+        </div>
+        <Switch
+          checked={form.private ?? channel.private ?? false}
+          onChange={(isPrivate: boolean) =>
+            setForm({ ...form, private: isPrivate })
+          }
         />
       </div>
 

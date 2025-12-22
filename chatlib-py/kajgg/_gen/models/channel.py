@@ -19,4 +19,6 @@ class Channel:
     last_message_at: datetime | None = None
     # ID of the user who created the channel
     author_id: str | None = None
+    # Whether the channel is private
+    private: bool | None = None
     author: Author | None = None

@@ -70,7 +70,15 @@ width = { type = "integer", doc = "Width of the file" }
 
 [Channel]
 type = "object"
-required = ["id", "name", "topic", "created_at", "updated_at", "author_id"]
+required = [
+  "id",
+  "name",
+  "topic",
+  "created_at",
+  "updated_at",
+  "author_id",
+  "private",
+]
 
 [Channel.properties]
 id = { type = "string", doc = "Unique identifier for the channel" }
@@ -80,6 +88,7 @@ created_at = { type = "string", format = "date-time", doc = "When the channel wa
 updated_at = { type = "string", format = "date-time", doc = "When the channel was last updated" }
 last_message_at = { type = "string", format = "date-time", doc = "When the channel had its last message" }
 author_id = { type = "string", doc = "ID of the user who created the channel" }
+private = { type = "boolean", doc = "Whether the channel is private" }
 author = { ref = "Author" }
 
 [Emoji]
