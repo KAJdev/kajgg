@@ -18,13 +18,15 @@ export function Index() {
       channelId = channels[0]?.id;
     }
 
-    const redirect = new URLSearchParams(window.location.search).get("redirect");
-    if (redirect && redirect.startsWith("/")) {
+    const redirect = new URLSearchParams(globalThis.location.search).get(
+      "redirect"
+    );
+    if (redirect?.startsWith("/")) {
       router.navigate(redirect);
       return;
     }
 
-    const path = window.location.pathname;
+    const path = globalThis.location.pathname;
     const shouldAutoNav =
       path === "/" || path === "/login" || path === "/signup";
 
@@ -35,18 +37,19 @@ export function Index() {
 
   const token = useToken();
   useEffect(() => {
-    if (!token) {
-      const path = window.location.pathname;
-      const isAuthRoute = path === "/login" || path === "/signup";
-      const isInviteRoute = path.startsWith("/invites/");
-
-      if (!isAuthRoute && !isInviteRoute) {
-        const redirect = `${path}${window.location.search}${window.location.hash}`;
-        router.navigate(`/login?redirect=${encodeURIComponent(redirect)}`);
-      }
-    } else {
+    if (token) {
       init();
+      return;
     }
+
+    const path = globalThis.location.pathname;
+    const isAuthRoute = path === "/login" || path === "/signup";
+    const isInviteRoute = path.startsWith("/invites/");
+
+    if (isAuthRoute || isInviteRoute) return;
+
+    const redirect = `${path}${globalThis.location.search}${globalThis.location.hash}`;
+    router.navigate(`/login?redirect=${encodeURIComponent(redirect)}`);
   }, [token]);
 
   return <RouterProvider router={router} />;

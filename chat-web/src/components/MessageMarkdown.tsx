@@ -16,23 +16,83 @@ import { remarkChannels } from "src/lib/remarkChannels";
 import { isEmojiOnlyMessage } from "src/lib/emojiOnly";
 import { useAuthors, useChannels } from "src/lib/cache";
 import { fetchAuthor } from "src/lib/api";
+import { router } from "src/routes";
+import { InviteCard } from "src/components/InviteCard";
 import "src/lib/minecraftSpan";
 import "src/lib/emojiMarkdown";
 import "src/lib/mentionMarkdown";
 import "src/lib/channelMarkdown";
 
+function escapeRegExp(text: string) {
+  return text.replaceAll(/[.*+?^${}()|[\]\\]/g, String.raw`\\$&`);
+}
+
+function findInviteCode(content: string): string | null {
+  const code = String.raw`[0-9a-fA-F-]{8,}|[A-Za-z0-9_-]{6,}`;
+
+  const invitePath = new RegExp(String.raw`\/invites\/(${code})\b`, "i");
+  const m1 = invitePath.exec(content);
+  if (m1?.[1]) return m1[1];
+
+  if (globalThis.window === undefined) return null;
+
+  const host = escapeRegExp(globalThis.location.hostname);
+  const hostPath = new RegExp(
+    String.raw`(?:https?:\/\/)?(?:www\.)?${host}\/(${code})\b`,
+    "i"
+  );
+  const m2 = hostPath.exec(content);
+  if (m2?.[1]) return m2[1];
+
+  return null;
+}
+
 function MarkdownLink({
   children,
+  onClick,
   ...props
 }: Readonly<
   React.AnchorHTMLAttributes<HTMLAnchorElement> & { children?: React.ReactNode }
 >) {
+  const href = props.href ?? "";
+
+  const internal = useMemo(() => {
+    if (!href) return false;
+    if (href.startsWith("/")) return true;
+    try {
+      const u = new URL(href, globalThis.location.origin);
+      return u.origin === globalThis.location.origin;
+    } catch {
+      return false;
+    }
+  }, [href]);
+
   return (
     <a
       {...props}
-      target="_blank"
-      rel="noreferrer"
+      target={internal ? undefined : "_blank"}
+      rel={internal ? undefined : "noreferrer"}
       className="text-blue-400 hover:underline wrap-break-word"
+      onClick={(e) => {
+        onClick?.(e);
+        if (e.defaultPrevented) return;
+
+        // only hijack normal left-clicks
+        if (e.button !== 0) return;
+        if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+
+        if (!internal) return;
+
+        try {
+          const u = href.startsWith("/")
+            ? new URL(href, globalThis.location.origin)
+            : new URL(href);
+          e.preventDefault();
+          router.navigate(`${u.pathname}${u.search}${u.hash}`);
+        } catch {
+          // just let the browser do its thing
+        }
+      }}
     >
       {children}
     </a>
@@ -143,6 +203,7 @@ export function MessageMarkdown({
   const emojiOnly = isEmojiOnlyMessage(content);
   const authors = useAuthors();
   const channels = useChannels();
+  const inviteCode = useMemo(() => findInviteCode(content), [content]);
 
   useEffect(() => {
     if (!mentionIds || mentionIds.length === 0) return;
@@ -207,6 +268,12 @@ export function MessageMarkdown({
       >
         {content}
       </ReactMarkdown>
+
+      {inviteCode && (
+        <div className="mt-2 max-w-md">
+          <InviteCard code={inviteCode} />
+        </div>
+      )}
     </Twemoji>
   );
 }

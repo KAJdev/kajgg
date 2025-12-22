@@ -500,7 +500,7 @@ export async function createEmoji(name: string, image: string | File) {
     imageData = image;
   }
 
-  let sanitizedName = name.toLowerCase().replace(/[^a-z0-9_-]/g, "");
+  let sanitizedName = name.toLowerCase().replaceAll(/[^a-z0-9_-]/g, "");
   if (sanitizedName.length < 3 || sanitizedName.length > 32) {
     sanitizedName = "emoji";
   }
@@ -538,7 +538,7 @@ export async function deleteEmoji(emojiId: string) {
 }
 
 export async function updateEmoji(emojiId: string, name: string) {
-  let sanitizedName = name.toLowerCase().replace(/[^a-z0-9_-]/g, "");
+  let sanitizedName = name.toLowerCase().replaceAll(/[^a-z0-9_-]/g, "");
   if (sanitizedName.length < 3 || sanitizedName.length > 32) {
     sanitizedName = "emoji";
   }
@@ -698,4 +698,17 @@ export async function fetchInvite(code: string) {
     throw error;
   }
   return invite;
+}
+
+export async function joinInvite(code: string) {
+  const [response, error] = await request<{ success: boolean }>(
+    `invites/${code}/join`,
+    {
+      method: "POST",
+    }
+  );
+  if (error) {
+    throw error;
+  }
+  return response;
 }
