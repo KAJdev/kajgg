@@ -7,7 +7,7 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { useShallow } from "zustand/shallow";
 import { flipColor, getIsPageFocused } from "./utils";
-import type { Emoji, Webhook } from "@schemas/index";
+import type { ChannelInvite, Emoji, Webhook } from "@schemas/index";
 import { request } from "./request";
 import { fetchChannelMembers } from "./api";
 
@@ -76,6 +76,7 @@ export type Cache = {
   last_event_ts?: number;
   emojis: Record<string, Emoji>;
   webhooks: Record<string, Webhook[]>;
+  channelInvites: Record<string, ChannelInvite[]>;
 };
 
 const _toMs = (d: Date | string | null | undefined) =>
@@ -244,6 +245,7 @@ export const cache = create<Cache>()(() => ({
   last_event_ts: undefined,
   emojis: {},
   webhooks: {},
+  channelInvites: {},
 }));
 
 export const tokenCache = create<{ token: string | null }>()(
@@ -807,6 +809,39 @@ export function removeWebhook(channelId: string, webhookId: string) {
     webhooks: {
       ...state.webhooks,
       [channelId]: state.webhooks[channelId].filter((w) => w.id !== webhookId),
+    },
+  }));
+}
+
+export function addChannelInvite(channelId: string, invite: ChannelInvite) {
+  cache.setState((state) => ({
+    channelInvites: {
+      ...state.channelInvites,
+      [channelId]: [...(state.channelInvites[channelId] ?? []), invite],
+    },
+  }));
+}
+
+export function removeChannelInvite(channelId: string, inviteId: string) {
+  cache.setState((state) => ({
+    channelInvites: {
+      ...state.channelInvites,
+      [channelId]: state.channelInvites[channelId].filter(
+        (i) => i.id !== inviteId
+      ),
+    },
+  }));
+}
+
+export function useChannelInvites(channelId: string) {
+  return cache(useShallow((state) => state.channelInvites[channelId]));
+}
+
+export function setChannelInvites(channelId: string, invites: ChannelInvite[]) {
+  cache.setState((state) => ({
+    channelInvites: {
+      ...state.channelInvites,
+      [channelId]: invites,
     },
   }));
 }

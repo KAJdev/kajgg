@@ -15,6 +15,9 @@ import {
   addWebhook,
   removeWebhook,
   addAuthors,
+  setChannelInvites,
+  addChannelInvite,
+  removeChannelInvite,
 } from "./cache";
 import type { Channel } from "@schemas/models/channel";
 import type { Message } from "@schemas/models/message";
@@ -23,7 +26,7 @@ import type { Author } from "@schemas/models/author";
 import type { FileUpload } from "@schemas/models/fileupload";
 import type { File as ApiFile } from "@schemas/models/file";
 import type { User as UserType } from "src/types/models/user";
-import type { Emoji, Webhook } from "@schemas/index";
+import type { ChannelInvite, Emoji, Webhook } from "@schemas/index";
 import { useShallow } from "zustand/react/shallow";
 
 async function compressImage(file: File): Promise<File> {
@@ -640,4 +643,47 @@ export async function fetchChannelMembers(channelId: string) {
     },
   }));
   return members;
+}
+
+export async function fetchChannelInvites(channelId: string) {
+  const [invites, error] = await request<ChannelInvite[]>(
+    `channels/${channelId}/invites`
+  );
+  if (error) {
+    throw error;
+  }
+  setChannelInvites(channelId, invites);
+  return invites;
+}
+
+export async function createChannelInvite(
+  channelId: string,
+  expiresAt?: Date,
+  usesLeft?: number
+) {
+  const [invite, error] = await request<ChannelInvite>(
+    `channels/${channelId}/invites`,
+    {
+      method: "POST",
+      body: { expires_at: expiresAt?.toISOString(), uses_left: usesLeft },
+    }
+  );
+  if (error) {
+    throw error;
+  }
+  addChannelInvite(channelId, invite);
+  return invite;
+}
+
+export async function deleteChannelInvite(channelId: string, inviteId: string) {
+  const [, error] = await request<ChannelInvite>(
+    `channels/${channelId}/invites/${inviteId}`,
+    {
+      method: "DELETE",
+    }
+  );
+  if (error) {
+    throw error;
+  }
+  removeChannelInvite(channelId, inviteId);
 }

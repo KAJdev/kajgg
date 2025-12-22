@@ -1,8 +1,11 @@
 from chat_types.models import (
     Author as ApiAuthor,
+    Message as ApiMessage,
+    MessageType,
+    User as ApiUser,
 )
 from sanic import Blueprint, Request, json, exceptions
-from modules.db import Channel, ChannelMember, User
+from modules.db import Channel, ChannelMember, User, Message
 from modules import utils
 from modules.auth import authorized
 from beanie.operators import In

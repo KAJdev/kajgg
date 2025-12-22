@@ -40,8 +40,6 @@ async def create_invite(request: Request, channel_id: str):
         raise exceptions.Forbidden("You are not the author of this channel")
 
     data = request.json
-    if not data:
-        raise exceptions.BadRequest("Bad Request")
 
     if not await ChannelInvite.validate_dict(data):
         raise exceptions.BadRequest("Invalid request")
@@ -49,6 +47,8 @@ async def create_invite(request: Request, channel_id: str):
     invite = ChannelInvite(
         channel_id=channel_id,
         author_id=request.ctx.user.id,
+        expires_at=data.get("expires_at"),
+        uses_left=data.get("uses_left"),
     )
     await invite.save()
     return json(utils.dtoa(ApiChannelInvite, invite))
@@ -74,8 +74,15 @@ async def create_channel_member(request: Request, code: str):
         raise exceptions.Gone("Invite has no uses left")
 
     if invite.uses_left:
-        invite.uses_left -= 1
-        await invite.save_changes()
+        await ChannelInvite.find_one(
+            ChannelInvite.id == invite.id,
+        ).update(
+            {
+                "$inc": {
+                    "uses_left": -1,
+                },
+            }
+        )
 
     member = ChannelMember(
         channel_id=invite.channel_id,
@@ -101,10 +108,12 @@ async def create_channel_member(request: Request, code: str):
     return json({"success": True})
 
 
-@bp.route("/v1/invites/<code>", methods=["DELETE"])
+@bp.route("/v1/channels/<channel_id>/invites/<invite_id>", methods=["DELETE"])
 @authorized()
-async def delete_invite(request: Request, code: str):
-    invite = await ChannelInvite.find_one(ChannelInvite.code == code)
+async def delete_invite(request: Request, channel_id: str, invite_id: str):
+    invite = await ChannelInvite.find_one(
+        ChannelInvite.id == invite_id, ChannelInvite.channel_id == channel_id
+    )
     if not invite:
         raise exceptions.NotFound("Invite not found")
 
