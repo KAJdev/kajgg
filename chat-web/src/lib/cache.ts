@@ -8,7 +8,6 @@ import { persist } from "zustand/middleware";
 import { useShallow } from "zustand/shallow";
 import { flipColor, getIsPageFocused } from "./utils";
 import type { ChannelInvite, Emoji, Webhook } from "@schemas/index";
-import { request } from "./request";
 import { fetchChannelInvites, fetchChannelMembers } from "./api";
 
 type TimeoutId = ReturnType<typeof setTimeout>;
