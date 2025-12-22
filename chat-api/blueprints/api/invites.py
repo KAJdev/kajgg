@@ -4,9 +4,10 @@ from chat_types.models import (
     MessageType,
     User as ApiUser,
     ChannelInvite as ApiChannelInvite,
+    Channel as ApiChannel,
 )
 from sanic import Blueprint, Request, json, exceptions
-from modules.db import Channel, ChannelMember, ChannelInvite, Message
+from modules.db import Channel, ChannelMember, ChannelInvite, Message, User
 from modules import utils
 from modules.auth import authorized
 from modules.events import publish_event
@@ -27,6 +28,30 @@ async def get_invites(request: Request, channel_id: str):
 
     invites = await ChannelInvite.find(ChannelInvite.channel_id == channel_id).to_list()
     return json([utils.dtoa(ApiChannelInvite, invite) for invite in invites])
+
+
+@bp.route("/v1/invites/<code>", methods=["GET"])
+@authorized()
+async def get_invite(request: Request, code: str):
+    invite = await ChannelInvite.find_one(ChannelInvite.code == code)
+    if not invite:
+        raise exceptions.NotFound("Invite not found")
+
+    channel = await Channel.find_one(Channel.id == invite.channel_id)
+    if not channel:
+        raise exceptions.NotFound("Channel not found")
+
+    author = await User.find_one(User.id == invite.author_id)
+    if not author:
+        raise exceptions.NotFound("Author not found")
+
+    return json(
+        {
+            "invite": utils.dtoa(ApiChannelInvite, invite),
+            "channel": utils.dtoa(ApiChannel, channel),
+            "author": utils.dtoa(ApiUser, author),
+        }
+    )
 
 
 @bp.route("/v1/channels/<channel_id>/invites", methods=["POST"])

@@ -21,7 +21,7 @@ import {
   updateWebhook,
   useWebhooks,
 } from "src/lib/api";
-import { Loader2Icon } from "lucide-react";
+import { CopyIcon, Loader2Icon, TrashIcon } from "lucide-react";
 import { router } from "src/routes";
 import { Switch } from "@theme/Switch";
 
@@ -213,33 +213,40 @@ function WebhooksSettings({ channelId }: { channelId: string }) {
 function InviteItem({ invite }: { invite: ChannelInviteType }) {
   const [deleteLoading, setDeleteLoading] = useState(false);
   return (
-    <div className="flex flex-col gap-2 border border-tertiary/30 p-2 bg-tertiary/10">
+    <div className="items-center grid grid-cols-4 gap-2 border-b border-tertiary/30 pb-4 last:border-b-0 last:pb-0 pt-2 first:pt-0">
+      <p>{invite.code}</p>
       <p>
-        <span className="opacity-50">{window.location.origin}/invites/</span>
-        {invite.code}
+        {(invite.max_uses ?? 0) > 0
+          ? `${invite.uses} / ${invite.max_uses}`
+          : invite.uses}{" "}
+        uses
       </p>
-      <div className="flex items-center gap-2 justify-between">
+      <p>
+        {invite.expires_at
+          ? new Date(invite.expires_at).toLocaleDateString()
+          : "Never expires"}
+      </p>
+      <div className="flex items-center gap-2 ml-auto">
         <Button
-          onClick={() =>
+          variant="primary"
+          icon={CopyIcon}
+          onClick={() => {
             navigator.clipboard.writeText(
               `${window.location.origin}/invites/${invite.code}`
-            )
-          }
-        >
-          Copy Invite Link
-        </Button>
+            );
+          }}
+        />
         <Button
           variant="danger"
           loading={deleteLoading}
+          icon={TrashIcon}
           onClick={() => {
             setDeleteLoading(true);
             deleteChannelInvite(invite.channel_id, invite.id).then(() =>
               setDeleteLoading(false)
             );
           }}
-        >
-          Delete Invite
-        </Button>
+        />
       </div>
     </div>
   );

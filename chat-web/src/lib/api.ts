@@ -687,3 +687,15 @@ export async function deleteChannelInvite(channelId: string, inviteId: string) {
   }
   removeChannelInvite(channelId, inviteId);
 }
+
+export async function fetchInvite(code: string) {
+  const [invite, error] = await request<{
+    invite: ChannelInvite;
+    channel: Channel;
+    author: Author;
+  }>(`invites/${code}`);
+  if (error) {
+    throw error;
+  }
+  return invite;
+}

@@ -9,7 +9,7 @@ import { useShallow } from "zustand/shallow";
 import { flipColor, getIsPageFocused } from "./utils";
 import type { ChannelInvite, Emoji, Webhook } from "@schemas/index";
 import { request } from "./request";
-import { fetchChannelMembers } from "./api";
+import { fetchChannelInvites, fetchChannelMembers } from "./api";
 
 type TimeoutId = ReturnType<typeof setTimeout>;
 
@@ -834,7 +834,14 @@ export function removeChannelInvite(channelId: string, inviteId: string) {
 }
 
 export function useChannelInvites(channelId: string) {
-  return cache(useShallow((state) => state.channelInvites[channelId]));
+  const invites = cache(useShallow((state) => state.channelInvites[channelId]));
+
+  useEffect(() => {
+    if (!invites) void fetchChannelInvites(channelId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [channelId]);
+
+  return invites;
 }
 
 export function setChannelInvites(channelId: string, invites: ChannelInvite[]) {
