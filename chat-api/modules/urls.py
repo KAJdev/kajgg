@@ -16,6 +16,12 @@ from modules.serializers import message_to_api
 _URL_RE = re.compile(r"https?://[^\s]+", re.IGNORECASE)
 _HTML_CT = {"text/html", "application/xhtml+xml"}
 
+_BLACKLIST_URLS = [
+    re.compile(
+        rf"https?://(?:www\.)?kaj\.gg/invites/([0-9a-fA-F-]{8,}|[A-Za-z0-9_-]{6,})"
+    ),
+]
+
 
 def _clean_candidate_url(raw: str) -> Optional[str]:
     if not raw:
@@ -40,6 +46,8 @@ def parse_urls(text: Optional[str]) -> list[str]:
     found = _URL_RE.findall(text)
     cleaned = []
     for raw in found:
+        if any(pattern.match(raw) for pattern in _BLACKLIST_URLS):
+            continue
         u = _clean_candidate_url(raw)
         if u:
             cleaned.append(u)
