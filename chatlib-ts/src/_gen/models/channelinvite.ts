@@ -11,6 +11,8 @@ export type ChannelInvite = {
     code: string;
     /** When the invite expires */
     expires_at?: Date;
-    /** Number of uses left for the invite */
-    uses_left?: number;
+    /** Number of uses of the invite */
+    uses: number;
+    /** Maximum number of uses of the invite */
+    max_uses?: number;
 }

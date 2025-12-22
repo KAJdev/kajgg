@@ -70,19 +70,18 @@ async def create_channel_member(request: Request, code: str):
     if invite.expires_at and invite.expires_at < datetime.now():
         raise exceptions.Gone("Invite has expired")
 
-    if invite.uses_left is not None and invite.uses_left <= 0:
+    if invite.max_uses is not None and invite.uses >= invite.max_uses:
         raise exceptions.Gone("Invite has no uses left")
 
-    if invite.uses_left:
-        await ChannelInvite.find_one(
-            ChannelInvite.id == invite.id,
-        ).update(
-            {
-                "$inc": {
-                    "uses_left": -1,
-                },
-            }
-        )
+    await ChannelInvite.find_one(
+        ChannelInvite.id == invite.id,
+    ).update(
+        {
+            "$inc": {
+                "uses": 1,
+            },
+        }
+    )
 
     member = ChannelMember(
         channel_id=invite.channel_id,

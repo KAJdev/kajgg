@@ -214,19 +214,33 @@ function InviteItem({ invite }: { invite: ChannelInviteType }) {
   const [deleteLoading, setDeleteLoading] = useState(false);
   return (
     <div className="flex flex-col gap-2 border border-tertiary/30 p-2 bg-tertiary/10">
-      <p>{invite.code}</p>
-      <Button
-        variant="danger"
-        loading={deleteLoading}
-        onClick={() => {
-          setDeleteLoading(true);
-          deleteChannelInvite(invite.channel_id, invite.id).then(() =>
-            setDeleteLoading(false)
-          );
-        }}
-      >
-        Delete Invite
-      </Button>
+      <p>
+        <span className="opacity-50">{window.location.origin}/invites/</span>
+        {invite.code}
+      </p>
+      <div className="flex items-center gap-2 justify-between">
+        <Button
+          onClick={() =>
+            navigator.clipboard.writeText(
+              `${window.location.origin}/invites/${invite.code}`
+            )
+          }
+        >
+          Copy Invite Link
+        </Button>
+        <Button
+          variant="danger"
+          loading={deleteLoading}
+          onClick={() => {
+            setDeleteLoading(true);
+            deleteChannelInvite(invite.channel_id, invite.id).then(() =>
+              setDeleteLoading(false)
+            );
+          }}
+        >
+          Delete Invite
+        </Button>
+      </div>
     </div>
   );
 }

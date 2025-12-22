@@ -16,5 +16,7 @@ class ChannelInvite:
     code: str | None = None
     # When the invite expires
     expires_at: datetime | None = None
-    # Number of uses left for the invite
-    uses_left: int | None = None
+    # Number of uses of the invite
+    uses: int | None = None
+    # Maximum number of uses of the invite
+    max_uses: int | None = None

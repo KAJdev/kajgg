@@ -451,8 +451,9 @@ class ChannelInvite(Document):
     author_id: str
     created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
     expires_at: Optional[datetime] = None
-    uses_left: Optional[int] = None
+    uses: int = Field(default=0)
     code: str = Field(default_factory=generate_id)
+    max_uses: Optional[int] = None
 
     @classmethod
     async def validate_dict(cls, data: dict) -> bool:
@@ -461,8 +462,8 @@ class ChannelInvite(Document):
                 "expires_at"
             ] < datetime.now(UTC):
                 raise exceptions.BadRequest("Bad Request")
-        if data.get("uses_left"):
-            if not isinstance(data["uses_left"], int) or data["uses_left"] < 0:
+        if data.get("max_uses"):
+            if not isinstance(data["max_uses"], int) or data["max_uses"] < 0:
                 raise exceptions.BadRequest("Bad Request")
         return True
 

@@ -155,7 +155,7 @@ method = { type = "string", doc = "HTTP method to use for the upload" }
 
 [ChannelInvite]
 type = "object"
-required = ["id", "channel_id", "author_id", "created_at", "code"]
+required = ["id", "channel_id", "author_id", "created_at", "code", "uses"]
 
 [ChannelInvite.properties]
 id = { type = "string", doc = "Unique identifier for the invite" }
@@ -164,4 +164,5 @@ author_id = { type = "string", doc = "ID of the user who created the invite" }
 created_at = { type = "string", format = "date-time", doc = "When the invite was created" }
 code = { type = "string", doc = "Code for the invite" }
 expires_at = { type = "string", format = "date-time", doc = "When the invite expires" }
-uses_left = { type = "integer", doc = "Number of uses left for the invite" }
+uses = { type = "integer", doc = "Number of uses of the invite" }
+max_uses = { type = "integer", doc = "Maximum number of uses of the invite" }
