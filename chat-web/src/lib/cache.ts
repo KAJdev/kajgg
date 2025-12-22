@@ -448,8 +448,8 @@ export function useChannelMembers(channelId: string) {
   }, [channelId]);
 
   if (channel?.private) {
-    const filteredMembers = Object.values(members).filter((member) =>
-      memberIds.includes(member.id)
+    const filteredMembers = Object.values(members).filter(
+      (member) => memberIds?.includes(member.id) ?? false
     );
     if (user) {
       filteredMembers.push(user);

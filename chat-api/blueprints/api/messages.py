@@ -20,19 +20,6 @@ from modules.mentions import extract_mention_usernames, resolve_mentions_for_cha
 bp = Blueprint("messages")
 
 
-def _file_to_api(file: StoredFile) -> dict:
-    return utils.dtoa(
-        ApiFile,
-        {
-            "id": file.id,
-            "name": file.name,
-            "mime_type": file.mime_type,
-            "size": file.size,
-            "url": file.url,
-        },
-    )
-
-
 async def _messages_to_api(messages: list[Message]) -> list[dict]:
     return await messages_to_api(messages)
 
@@ -63,7 +50,8 @@ async def get_messages(request: Request, channel_id: str):
         raise exceptions.NotFound("Channel not found")
 
     if (
-        channel.private
+        channel.author_id != request.ctx.user.id
+        and channel.private
         and (
             await ChannelMember.find_one(
                 ChannelMember.channel_id == channel_id,
@@ -120,7 +108,8 @@ async def create_message(request: Request, channel_id: str):
         raise exceptions.NotFound("Channel not found")
 
     if (
-        channel.private
+        channel.author_id != request.ctx.user.id
+        and channel.private
         and (
             await ChannelMember.find_one(
                 ChannelMember.channel_id == channel_id,

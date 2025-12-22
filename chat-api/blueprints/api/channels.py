@@ -5,7 +5,7 @@ from chat_types.models import (
     User as ApiUser,
 )
 from sanic import Blueprint, Request, json, exceptions
-from modules.db import Channel, ChannelMember, Message
+from modules.db import Channel, ChannelMember, Message, ChannelInvite
 from modules import utils
 from modules.auth import authorized
 from modules.events import publish_event
@@ -43,6 +43,12 @@ async def create_channel(request: Request):
         author_id=request.ctx.user.id,
     )
     await channel.save()
+
+    member = ChannelMember(
+        channel_id=channel.id,
+        user_id=request.ctx.user.id,
+    )
+    await member.save()
 
     publish_event(ChannelCreated(channel=utils.dtoa(ApiChannel, channel)))
 
@@ -92,6 +98,9 @@ async def delete_channel(request: Request, channel_id: str):
 
     publish_event(ChannelDeleted(channel_id=channel_id))
 
+    await ChannelMember.find(ChannelMember.channel_id == channel_id).delete()
+    await ChannelInvite.find(ChannelInvite.channel_id == channel_id).delete()
+
     return json(None)
 
 
@@ -104,6 +113,10 @@ async def leave_channel(request: Request, channel_id: str):
     )
     if not member:
         raise exceptions.Forbidden("You are not a member of this channel")
+
+    channel = await Channel.find_one(Channel.id == channel_id)
+    if channel.author_id == request.ctx.user.id:
+        raise exceptions.Forbidden("You cannot leave your own channel")
 
     await member.delete()
 
