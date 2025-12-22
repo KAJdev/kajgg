@@ -31,7 +31,6 @@ async def get_invites(request: Request, channel_id: str):
 
 
 @bp.route("/v1/invites/<code>", methods=["GET"])
-@authorized()
 async def get_invite(request: Request, code: str):
     invite = await ChannelInvite.find_one(ChannelInvite.code == code)
     if not invite:
