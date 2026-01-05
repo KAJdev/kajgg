@@ -24,7 +24,7 @@ export function GameControls() {
       <div className="flex items-center gap-6">
         <div className="text-center">
           <p className="text-xs text-text-dim uppercase tracking-wider">Turn</p>
-          <motion.p 
+          <motion.p
             key={gameState?.turnNumber}
             initial={{ scale: 1.2, color: "var(--color-arcane-glow)" }}
             animate={{ scale: 1, color: "var(--color-arcane)" }}
@@ -36,8 +36,10 @@ export function GameControls() {
         </div>
         <div className="h-10 w-px bg-arcane/30" />
         <div className="text-center">
-          <p className="text-xs text-text-dim uppercase tracking-wider">Energy</p>
-          <motion.p 
+          <p className="text-xs text-text-dim uppercase tracking-wider">
+            Energy
+          </p>
+          <motion.p
             key={myPlayer?.energy}
             initial={{ scale: 1.2 }}
             animate={{ scale: 1 }}
@@ -51,10 +53,7 @@ export function GameControls() {
 
       {/* action buttons */}
       <div className="flex items-center gap-4">
-        <motion.div
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-        >
+        <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
           <Button
             variant="primary"
             size="sm"
@@ -81,5 +80,5 @@ export function GameControls() {
         </motion.div>
       </div>
     </div>
-  );}
+  );
 }
