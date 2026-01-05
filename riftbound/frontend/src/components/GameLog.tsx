@@ -16,23 +16,33 @@ export function GameLog() {
   }, [gameState?.actionLog.length]);
 
   return (
-    <div className="absolute right-4 top-4 bottom-4 w-64 bg-void-deep/80 backdrop-blur-sm border border-arcane/20 rounded overflow-hidden flex flex-col">
+    <div className="absolute right-6 top-6 bottom-6 w-72 bg-void-deep/90 backdrop-blur-md border border-arcane/20 rounded-lg overflow-hidden flex flex-col shadow-[0_0_40px_rgba(0,0,0,0.6)]">
       {/* header */}
-      <div className="px-4 py-2 border-b border-arcane/20">
-        <h3 className="font-display text-xs uppercase tracking-wider text-arcane">
+      <div className="px-4 py-3 border-b border-arcane/20 bg-shadow/30">
+        <h3 className="font-display text-sm uppercase tracking-wider text-arcane">
           Game Log
         </h3>
       </div>
 
       {/* log entries */}
-      <div ref={scrollRef} className="flex-1 overflow-y-auto p-2 space-y-1">
-        <AnimatePresence>
-          {gameState?.actionLog.map((action) => (
+      <div ref={scrollRef} className="flex-1 overflow-y-auto p-3 space-y-2">
+        <AnimatePresence initial={false}>
+          {gameState?.actionLog.map((action, index) => (
             <motion.div
               key={action.id}
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0 }}
+              initial={{ opacity: 0, x: 30, scale: 0.95 }}
+              animate={{ 
+                opacity: 1, 
+                x: 0, 
+                scale: 1,
+                transition: { 
+                  type: "spring",
+                  stiffness: 300,
+                  damping: 25,
+                  delay: index * 0.02
+                }
+              }}
+              exit={{ opacity: 0, x: -20, transition: { duration: 0.2 } }}
             >
               <LogEntry action={action} />
             </motion.div>
@@ -54,15 +64,16 @@ function LogEntry({ action }: { action: GameAction }) {
   const message = formatActionMessage(action);
 
   return (
-    <div
+    <motion.div
+      whileHover={{ scale: 1.02, x: 4 }}
       className={cn(
-        "px-2 py-1 text-xs rounded",
-        "bg-shadow/30 border-l-2",
+        "px-3 py-2 text-xs rounded transition-all duration-300",
+        "bg-shadow/50 border-l-2 hover:bg-shadow/70",
         getActionBorderColor(action.type)
       )}
     >
-      <span className="text-text-dim">{message}</span>
-    </div>
+      <span className="text-text-dim leading-relaxed">{message}</span>
+    </motion.div>
   );
 }
 

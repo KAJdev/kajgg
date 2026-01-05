@@ -149,8 +149,9 @@ export function Game() {
     return (
       <div className="min-h-screen bg-void bg-hex-pattern flex items-center justify-center">
         <motion.div
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
+          initial={{ opacity: 0, scale: 0.8, y: 50 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          transition={{ type: "spring", stiffness: 200, damping: 20 }}
           className="text-center"
         >
           <h1 className={cn(
@@ -173,28 +174,34 @@ export function Game() {
   return (
     <div className="h-screen bg-void overflow-hidden flex flex-col">
       {/* opponent info bar */}
-      <div className="h-16 px-4 flex items-center justify-between border-b border-arcane/20 bg-void-deep/50">
+      <div className="h-20 px-6 flex items-center justify-between border-b border-arcane/20 bg-void-deep/50 backdrop-blur-sm">
         <div className="flex items-center gap-4">
-          <div className={cn(
-            "w-3 h-3 rounded-full",
-            opponent?.connected ? "bg-success" : "bg-danger"
-          )} />
-          <span className="font-display text-text uppercase tracking-wider">
+          <motion.div
+            animate={{ scale: opponent?.connected ? [1, 1.2, 1] : 1 }}
+            transition={{ duration: 1, repeat: Infinity, repeatDelay: 2 }}
+            className={cn(
+              "w-3 h-3 rounded-full",
+              opponent?.connected ? "bg-success" : "bg-danger"
+            )}
+          />
+          <span className="font-display text-lg text-text uppercase tracking-wider">
             {opponent?.name || "Opponent"}
           </span>
         </div>
-        <div className="flex items-center gap-6">
+        <div className="flex items-center gap-8">
           <div className="text-center">
-            <p className="text-xs text-text-dim uppercase">Score</p>
-            <p className="font-display text-2xl text-arcane">{opponent?.score || 0}</p>
+            <p className="text-xs text-text-dim uppercase tracking-wider">Score</p>
+            <p className="font-display text-2xl text-arcane transition-all duration-300">{opponent?.score || 0}</p>
           </div>
+          <div className="h-8 w-px bg-arcane/20" />
           <div className="text-center">
-            <p className="text-xs text-text-dim uppercase">Hand</p>
-            <p className="font-display text-xl text-text">{opponent?.handSize || 0}</p>
+            <p className="text-xs text-text-dim uppercase tracking-wider">Hand</p>
+            <p className="font-display text-xl text-text transition-all duration-300">{opponent?.handSize || 0}</p>
           </div>
+          <div className="h-8 w-px bg-arcane/20" />
           <div className="text-center">
-            <p className="text-xs text-text-dim uppercase">Deck</p>
-            <p className="font-display text-xl text-text">{opponent?.mainDeckSize || 0}</p>
+            <p className="text-xs text-text-dim uppercase tracking-wider">Deck</p>
+            <p className="font-display text-xl text-text transition-all duration-300">{opponent?.mainDeckSize || 0}</p>
           </div>
         </div>
       </div>
@@ -207,10 +214,15 @@ export function Game() {
         <AnimatePresence>
           {isMyTurn() && (
             <motion.div
-              initial={{ opacity: 0, y: -20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              className="absolute top-4 left-1/2 -translate-x-1/2 px-6 py-2 bg-arcane text-void font-display uppercase tracking-wider"
+              initial={{ opacity: 0, scale: 0.8, y: -20 }}
+              animate={{ 
+                opacity: 1, 
+                scale: 1, 
+                y: 0,
+              }}
+              exit={{ opacity: 0, scale: 0.8, y: -20 }}
+              transition={{ type: "spring", stiffness: 300, damping: 20 }}
+              className="absolute top-6 left-1/2 -translate-x-1/2 px-8 py-3 bg-arcane text-void font-display uppercase tracking-wider text-lg shadow-[0_0_30px_rgba(200,170,110,0.6)]"
             >
               Your Turn
             </motion.div>
@@ -227,12 +239,12 @@ export function Game() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="absolute inset-0 bg-void/80 backdrop-blur-sm flex items-center justify-center p-6 z-50"
+              className="absolute inset-0 bg-void/90 backdrop-blur-md flex items-center justify-center p-6 z-50"
             >
               <motion.div
                 initial={{ scale: 0.98, y: 10 }}
                 animate={{ scale: 1, y: 0 }}
-                className="w-full max-w-3xl bg-void-deep border-2 border-arcane/30 p-6"
+                className="w-full max-w-3xl bg-void-deep border-2 border-arcane/30 p-8 shadow-[0_0_60px_rgba(0,0,0,0.8)]"
               >
                 <h2 className="font-display text-xl uppercase tracking-wider text-arcane mb-2">
                   choose your battlefield
@@ -278,7 +290,7 @@ export function Game() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="absolute inset-0 bg-void/80 backdrop-blur-sm flex items-center justify-center p-6 z-50"
+              className="absolute inset-0 bg-void/90 backdrop-blur-md flex items-center justify-center p-6 z-50"
             >
               <motion.div
                 initial={{ scale: 0.98, y: 10 }}
@@ -351,36 +363,42 @@ export function Game() {
       </div>
 
       {/* runes display */}
-      <div className="h-12 px-4 flex items-center gap-2 border-t border-arcane/20 bg-void-deep/50">
-        <span className="text-xs text-text-dim uppercase mr-2">Runes:</span>
+      <div className="h-16 px-6 flex items-center gap-3 border-t border-arcane/20 bg-void-deep/50">
+        <span className="text-xs text-text-dim uppercase tracking-wider mr-2">Runes:</span>
         <RunesDisplay runes={myPlayer?.runesInPlay || []} />
       </div>
 
       {/* hand */}
-      <div className="h-36 border-t border-arcane/20 bg-void-deep">
+      <div className="h-40 border-t border-arcane/20 bg-void-deep">
         <PlayerHand cards={myPlayer?.hand || []} />
       </div>
 
       {/* player info bar */}
-      <div className="h-14 px-4 flex items-center justify-between border-t border-arcane/20 bg-void-deep">
+      <div className="h-16 px-6 flex items-center justify-between border-t border-arcane/20 bg-void-deep backdrop-blur-sm">
         <div className="flex items-center gap-4">
-          <div className="w-3 h-3 rounded-full bg-success" />
-          <span className="font-display text-arcane uppercase tracking-wider">
+          <motion.div
+            animate={{ scale: [1, 1.2, 1] }}
+            transition={{ duration: 1, repeat: Infinity, repeatDelay: 2 }}
+            className="w-3 h-3 rounded-full bg-success"
+          />
+          <span className="font-display text-lg text-arcane uppercase tracking-wider">
             {myPlayer?.name || "You"}
           </span>
         </div>
-        <div className="flex items-center gap-6">
+        <div className="flex items-center gap-8">
           <div className="text-center">
-            <p className="text-xs text-text-dim uppercase">Score</p>
-            <p className="font-display text-2xl text-arcane">{myPlayer?.score || 0}</p>
+            <p className="text-xs text-text-dim uppercase tracking-wider">Score</p>
+            <p className="font-display text-2xl text-arcane transition-all duration-300">{myPlayer?.score || 0}</p>
           </div>
+          <div className="h-8 w-px bg-arcane/20" />
           <div className="text-center">
-            <p className="text-xs text-text-dim uppercase">Hand</p>
-            <p className="font-display text-xl text-text">{myPlayer?.hand?.length || 0}</p>
+            <p className="text-xs text-text-dim uppercase tracking-wider">Hand</p>
+            <p className="font-display text-xl text-text transition-all duration-300">{myPlayer?.hand?.length || 0}</p>
           </div>
+          <div className="h-8 w-px bg-arcane/20" />
           <div className="text-center">
-            <p className="text-xs text-text-dim uppercase">Deck</p>
-            <p className="font-display text-xl text-text">{myPlayer?.mainDeckSize || 0}</p>
+            <p className="text-xs text-text-dim uppercase tracking-wider">Deck</p>
+            <p className="font-display text-xl text-text transition-all duration-300">{myPlayer?.mainDeckSize || 0}</p>
           </div>
         </div>
         <Button
