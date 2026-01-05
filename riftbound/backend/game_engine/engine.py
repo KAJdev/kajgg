@@ -18,6 +18,12 @@ from .state import (
     BattlefieldControl,
     Battlefield,
 )
+from .parser import CardTextParser
+from .chain import ChainManager, PriorityManager
+from .combat import CombatManager, ShowdownManager
+from .scoring import ControlManager
+from .effects.base import EffectContext
+from .triggers.base import TriggerEvent, TriggerType
 
 
 class GameEngine:
@@ -36,6 +42,19 @@ class GameEngine:
     def __init__(self, state: GameState):
         self.state = state
         self._event_handlers: list[Callable] = []
+        
+        self.parser = CardTextParser()
+        self.chain_manager = ChainManager(state)
+        self.chain_manager.set_emit_callback(self._emit)
+        self.priority_manager = PriorityManager(state)
+        self.combat_manager = CombatManager(state)
+        self.combat_manager.set_emit_callback(self._emit)
+        self.showdown_manager = ShowdownManager(state)
+        self.showdown_manager.set_emit_callback(self._emit)
+        self.control_manager = ControlManager(state)
+        self.control_manager.set_emit_callback(self._emit)
+        
+        self._trigger_registry: list[tuple[CardInstance, object]] = []
 
     def on_event(self, handler: Callable):
         """register event handler for broadcasting"""
@@ -50,12 +69,54 @@ class GameEngine:
                 print(f"event handler error: {e}")
 
     # === initialization ===
+    
+    def parse_card(self, card: CardInstance):
+        if card.text and not card.parsed_card:
+            parsed = self.parser.parse(card.text)
+            card.parsed_card = parsed
+            
+            if parsed.entry_state == "exhausted":
+                card.exhausted = True
+            
+            for keyword in parsed.keywords:
+                from .parser.keywords import KeywordHandler
+                KeywordHandler.apply_keyword_effect(keyword, card)
 
     def draw_initial_hands(self):
         """setup: each player draws 4 (rule 116)"""
         for _ in range(self.state.starting_hand_size):
             self.state.player1.draw_card()
             self.state.player2.draw_card()
+        
+        for card in self.state.player1.hand + self.state.player2.hand:
+            self.parse_card(card)
+        
+        for card in self.state.player1.deck + self.state.player2.deck:
+            self.parse_card(card)
+    
+    def register_triggers(self, card: CardInstance):
+        if not card.parsed_card:
+            return
+        
+        for trigger in card.parsed_card.triggers:
+            self._trigger_registry.append((card, trigger))
+    
+    def fire_triggers(self, event: TriggerEvent):
+        for card, trigger in self._trigger_registry:
+            if trigger.should_trigger(event, self.state):
+                context = EffectContext(
+                    state=self.state,
+                    source_card=card,
+                    controller=self.state.get_player(card.owner_id)
+                )
+                
+                result = trigger.effect.execute(context)
+                
+                self._emit("trigger_fired", {
+                    "card": card.title,
+                    "trigger": str(trigger),
+                    "result": result
+                })
 
     def _run_start_of_turn(self):
         """run start-of-turn phases automatically so you land in action phase"""
@@ -561,6 +622,9 @@ class GameEngine:
         if card.energy_cost > 0 and not player.spend_energy(card.energy_cost):
             return {"success": False, "error": "failed to spend energy"}
 
+        # parse card if not already parsed
+        self.parse_card(card)
+        
         # remove from hand
         player.hand.pop(card_idx)
 
@@ -585,83 +649,69 @@ class GameEngine:
             else:
                 player.base_units.append(card)
                 card.exhaust()
+            
+            # register triggers for unit
+            self.register_triggers(card)
+            
+            # fire play triggers
+            event = TriggerEvent(
+                trigger_type=TriggerType.PLAY,
+                source=card,
+                player_id=player.id
+            )
+            self.fire_triggers(event)
 
         elif card.is_spell:
-            # minimal spell resolution from text patterns
-            text = (card.text or "").strip()
-
-            # "Deal X to a unit at a battlefield."
-            import re
-
-            m = re.search(
-                r"Deal\\s+(\\d+)\\s+to\\s+a\\s+unit\\s+at\\s+a\\s+battlefield",
-                text,
-                flags=re.IGNORECASE,
-            )
-            if m:
-                if not target_id:
-                    player.graveyard.append(card)
-                    return {"success": False, "error": "spell requires a target unit"}
-                dmg = int(m.group(1))
-                # find target unit on any battlefield
-                target = None
-                for bf in self.state.battlefields:
-                    for u in bf.player1_units + bf.player2_units:
-                        if u.instance_id == target_id:
-                            target = u
-                            break
-                    if target:
-                        break
-                if not target:
-                    player.graveyard.append(card)
-                    return {"success": False, "error": "target not found"}
-                destroyed = target.take_damage(dmg)
-                self.state.add_action(
-                    ActionType.ACTIVATE_ABILITY,
-                    player.id,
-                    {"type": "spell_damage", "amount": dmg, "target": target.title},
+            # use parsed effects for spell resolution
+            if card.parsed_card and card.parsed_card.effects:
+                context = EffectContext(
+                    state=self.state,
+                    source_card=card,
+                    controller=player,
+                    target_id=target_id
                 )
-                if destroyed:
-                    # remove destroyed unit and put into owner's graveyard (simplified)
-                    for bf in self.state.battlefields:
-                        bf.remove_unit(target.instance_id)
-                    owner = self.state.get_player(target.owner_id)
-                    if owner:
-                        owner.graveyard.append(target)
-
-            # "Move a unit from a battlefield to its base."
-            m2 = re.search(
-                r"Move\\s+a\\s+unit\\s+from\\s+a\\s+battlefield\\s+to\\s+its\\s+base",
-                text,
-                flags=re.IGNORECASE,
-            )
-            if m2:
-                if not target_id:
-                    player.graveyard.append(card)
-                    return {"success": False, "error": "spell requires a target unit"}
-                target = None
-                source_bf = None
-                for bf in self.state.battlefields:
-                    for u in bf.player1_units + bf.player2_units:
-                        if u.instance_id == target_id:
-                            target = u
-                            source_bf = bf
-                            break
-                    if target:
-                        break
-                if not target or not source_bf:
-                    player.graveyard.append(card)
-                    return {"success": False, "error": "target not found"}
-                source_bf.remove_unit(target.instance_id)
-                owner = self.state.get_player(target.owner_id)
-                if owner:
-                    owner.base_units.append(target)
-                self.state.add_action(
-                    ActionType.ACTIVATE_ABILITY,
-                    player.id,
-                    {"type": "spell_move_to_base", "target": target.title},
-                )
-
+                
+                for effect_or_conditional in card.parsed_card.effects:
+                    # handle conditional effects
+                    if hasattr(effect_or_conditional, 'condition'):
+                        from .triggers.condition import ConditionalEffect
+                        conditional: ConditionalEffect = effect_or_conditional
+                        
+                        if conditional.check_condition(self.state, controller_id=player.id):
+                            result = conditional.effect.execute(context)
+                            self._emit("effect_resolved", {
+                                "card": card.title,
+                                "effect": str(conditional.effect),
+                                "result": result
+                            })
+                        elif conditional.else_effect:
+                            result = conditional.else_effect.execute(context)
+                            self._emit("effect_resolved", {
+                                "card": card.title,
+                                "effect": str(conditional.else_effect),
+                                "result": result
+                            })
+                    else:
+                        # regular effect
+                        effect = effect_or_conditional
+                        result = effect.execute(context)
+                        
+                        # check if this was a damage effect that killed
+                        if hasattr(effect, 'killed_target') and effect.killed_target:
+                            context.additional_data['killed'] = True
+                        
+                        self._emit("effect_resolved", {
+                            "card": card.title,
+                            "effect": str(effect),
+                            "result": result
+                        })
+                        
+                        self.state.add_action(
+                            ActionType.ACTIVATE_ABILITY,
+                            player.id,
+                            {"type": "spell_effect", "card": card.title, "result": result},
+                        )
+            
             # spells resolve and go to graveyard
             player.graveyard.append(card)
         elif card.card_type == "gear":

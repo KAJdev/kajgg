@@ -11,7 +11,7 @@ based on official riftbound core rules:
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import Optional
-from datetime import datetime, UTC
+from datetime import datetime, timezone
 from cuid2 import cuid_wrapper
 import random
 
@@ -95,6 +95,9 @@ class CardInstance:
     damage: int = 0
     exhausted: bool = False
     modifiers: list[dict] = field(default_factory=list)
+    
+    # parsed card data
+    parsed_card: Optional[object] = None
 
     def __post_init__(self):
         if self.current_health == 0:
@@ -460,7 +463,7 @@ class GameState:
             id=generate_id(),
             action_type=action_type,
             player_id=player_id,
-            timestamp=datetime.now(UTC),
+            timestamp=datetime.now(timezone.utc),
             data=data or {},
         )
         self.action_log.append(action)
