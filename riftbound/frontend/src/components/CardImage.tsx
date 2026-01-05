@@ -34,22 +34,26 @@ export function CardImage({
     <div
       onClick={onClick}
       className={cn(
-        "relative transition-all duration-200",
+        "relative transition-all duration-300",
         sizeClasses[size],
         orientation === "landscape" ? "aspect-[4/3]" : "aspect-[3/4]",
-        onClick && "cursor-pointer",
-        selected && "ring-2 ring-arcane shadow-[0_0_20px_rgba(200,170,110,0.5)]",
+        onClick && "cursor-pointer hover:scale-105",
+        selected && "ring-2 ring-arcane shadow-[0_0_30px_rgba(200,170,110,0.6)]",
         isExhausted && "rotate-90 opacity-60",
         className
       )}
+      style={{
+        filter: selected ? "brightness(1.1)" : undefined,
+      }}
     >
       <img
         src={imageUrl}
         alt={card.title}
         loading="lazy"
         className={cn(
-          "w-full h-full object-cover rounded-sm",
-          "border border-arcane/20"
+          "w-full h-full object-cover rounded-sm transition-all duration-300",
+          "border border-arcane/20",
+          onClick && "hover:border-arcane/60"
         )}
         onError={(e) => {
           // fallback on error

@@ -1,3 +1,4 @@
+import { motion } from "motion/react";
 import { cn } from "@lib/utils";
 import { useGameStore } from "@lib/store";
 import { CardImage } from "./CardImage";
@@ -52,9 +53,9 @@ export function GameBoard() {
   }
 
   return (
-    <div className="absolute inset-0 flex flex-col items-center justify-center p-4 gap-4">
+    <div className="absolute inset-0 flex flex-col items-center justify-center p-6 gap-8">
       {/* enemy base placeholder */}
-      <div className="w-full max-w-5xl border border-mist/20 bg-shadow/20 p-2">
+      <div className="w-full max-w-5xl border border-mist/20 bg-shadow/20 p-3">
         <div className="text-xs text-text-dim uppercase tracking-wider mb-2">
           enemy base
         </div>
@@ -64,22 +65,28 @@ export function GameBoard() {
       </div>
 
       {/* battlefields */}
-      <div className="flex gap-6">
-        {gameState.battlefields.map((bf) => (
-          <BattlefieldZone
+      <div className="flex gap-10">
+        {gameState.battlefields.map((bf, index) => (
+          <motion.div
             key={bf.id}
-            battlefield={bf}
-            myPosition={myPosition}
-            onClick={() => handleBattlefieldClick(bf.id)}
-            canDrop={!!selectedCard}
-          />
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: index * 0.1 }}
+          >
+            <BattlefieldZone
+              battlefield={bf}
+              myPosition={myPosition}
+              onClick={() => handleBattlefieldClick(bf.id)}
+              canDrop={!!selectedCard}
+            />
+          </motion.div>
         ))}
       </div>
 
       {/* your base */}
       <div
         className={cn(
-          "w-full max-w-5xl border bg-shadow/30 p-2",
+          "w-full max-w-5xl border bg-shadow/30 p-3 transition-all duration-300",
           "border-arcane/20",
           selectedCard &&
             "cursor-pointer hover:border-arcane/60 hover:bg-arcane/5"
@@ -89,7 +96,7 @@ export function GameBoard() {
         <div className="text-xs text-text-dim uppercase tracking-wider mb-2">
           your base
         </div>
-        <div className="flex gap-2 min-h-[56px] flex-wrap">
+        <div className="flex gap-3 min-h-[56px] flex-wrap">
           {myBaseGear.map((g) => (
             <CardImage key={g.instanceId} card={g} size="xs" />
           ))}
@@ -164,27 +171,36 @@ function BattlefieldZone({
     <div
       onClick={canDrop ? onClick : undefined}
       className={cn(
-        "w-56 min-h-[420px] p-3 flex flex-col",
+        "w-64 min-h-[480px] p-4 flex flex-col transition-all duration-300",
         "border-2 rounded-lg bg-shadow/30",
         controlColor,
+        battlefield.control === "contested" && "animate-pulse-contested",
         canDrop && "cursor-pointer hover:bg-arcane/10 hover:border-arcane/50"
       )}
     >
       {/* battlefield card (center anchor) */}
-      <div className="flex flex-col items-center mb-3">
+      <div className="flex flex-col items-center mb-4">
         {battlefield.card ? (
-          <CardImage card={battlefield.card} size="md" className="w-44" />
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="animate-float-gentle"
+          >
+            <CardImage card={battlefield.card} size="md" className="w-48" />
+          </motion.div>
         ) : (
-          <div className="w-44 aspect-4/3 border border-arcane/20 bg-void-deep/60 flex items-center justify-center">
+          <div className="w-48 aspect-4/3 border border-arcane/20 bg-void-deep/60 flex items-center justify-center">
             <span className="font-display text-xs uppercase tracking-wider text-arcane text-center px-2">
               {battlefield.name}
             </span>
           </div>
         )}
         {battlefield.control !== "none" && (
-          <div
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
             className={cn(
-              "text-xs mt-2",
+              "text-xs mt-2 font-display uppercase tracking-wider",
               battlefield.control === "contested"
                 ? "text-shurima"
                 : battlefield.control === myPosition
@@ -197,13 +213,13 @@ function BattlefieldZone({
               : battlefield.control === myPosition
               ? "you control"
               : "enemy controls"}
-          </div>
+          </motion.div>
         )}
       </div>
 
       {/* opponent's units (top) */}
-      <div className="flex-1 flex flex-col gap-1 items-center justify-end pb-2 border-b border-arcane/20">
-        <span className="text-xs text-text-dim mb-1">enemy</span>
+      <div className="flex-1 flex flex-col gap-2 items-center justify-end pb-3 border-b border-arcane/20">
+        <span className="text-xs text-text-dim mb-1 uppercase tracking-wider">enemy</span>
         {opponentUnits.length === 0 ? (
           <div className="text-text-dim/30 text-xs">empty</div>
         ) : (
@@ -232,8 +248,8 @@ function BattlefieldZone({
       </div>
 
       {/* my units (bottom) */}
-      <div className="flex-1 flex flex-col gap-1 items-center justify-start pt-2">
-        <span className="text-xs text-text-dim mb-1">you</span>
+      <div className="flex-1 flex flex-col gap-2 items-center justify-start pt-3">
+        <span className="text-xs text-text-dim mb-1 uppercase tracking-wider">you</span>
         {myUnits.length === 0 ? (
           <div className="text-text-dim/30 text-xs">empty</div>
         ) : (
