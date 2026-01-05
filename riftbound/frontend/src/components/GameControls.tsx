@@ -1,10 +1,9 @@
-import { motion } from "motion/react";
 import { useGameStore } from "@lib/store";
 import { Button } from "@theme/index";
 import { Flag } from "lucide-react";
 
 export function GameControls() {
-  const { gameState, isMyTurn, sendCommand, getMyPlayer } = useGameStore();
+  const { isMyTurn, sendCommand, getMyPlayer } = useGameStore();
   const myTurn = isMyTurn();
   const myPlayer = getMyPlayer();
 
@@ -19,66 +18,38 @@ export function GameControls() {
   }
 
   return (
-    <div className="flex items-center justify-between px-6 py-4">
-      {/* turn/phase info */}
-      <div className="flex items-center gap-6">
-        <div className="text-center">
-          <p className="text-xs text-text-dim uppercase tracking-wider">Turn</p>
-          <motion.p
-            key={gameState?.turnNumber}
-            initial={{ scale: 1.2, color: "var(--color-arcane-glow)" }}
-            animate={{ scale: 1, color: "var(--color-arcane)" }}
-            transition={{ duration: 0.3 }}
-            className="font-display text-2xl text-arcane"
-          >
-            {gameState?.turnNumber || 1}
-          </motion.p>
-        </div>
-        <div className="h-10 w-px bg-arcane/30" />
-        <div className="text-center">
-          <p className="text-xs text-text-dim uppercase tracking-wider">
-            Energy
-          </p>
-          <motion.p
-            key={myPlayer?.energy}
-            initial={{ scale: 1.2 }}
-            animate={{ scale: 1 }}
-            transition={{ duration: 0.3 }}
-            className="font-display text-2xl text-shurima"
-          >
-            {myPlayer?.energy || 0}
-          </motion.p>
-        </div>
+    <div className="flex items-center gap-4">
+      <div className="flex items-baseline gap-2">
+        <span className="hidden sm:inline text-[10px] text-text-dim/60 uppercase tracking-wider">
+          Score
+        </span>
+        <span className="font-display text-base sm:text-lg text-arcane tabular-nums">
+          {myPlayer?.score || 0}
+        </span>
       </div>
 
-      {/* action buttons */}
-      <div className="flex items-center gap-4">
-        <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-          <Button
-            variant="primary"
-            size="sm"
-            onClick={handleEndTurn}
-            disabled={!myTurn}
-            className="px-6 py-2"
-          >
-            End Turn
-          </Button>
-        </motion.div>
-
-        <motion.div
-          whileHover={{ scale: 1.1, rotate: 5 }}
-          whileTap={{ scale: 0.9 }}
-        >
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleConcede}
-            className="text-text-dim hover:text-danger transition-colors duration-300"
-          >
-            <Flag size={16} />
-          </Button>
-        </motion.div>
+      <div className="hidden md:block text-xs text-text-dim/60 whitespace-nowrap">
+        H {myPlayer?.hand?.length || 0} • D {myPlayer?.mainDeckSize || 0}
       </div>
+
+      <Button
+        variant="primary"
+        size="sm"
+        onClick={handleEndTurn}
+        disabled={!myTurn}
+      >
+        End Turn
+      </Button>
+
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={handleConcede}
+        className="px-2 text-text-dim hover:text-danger"
+        aria-label="Concede"
+      >
+        <Flag size={16} />
+      </Button>
     </div>
   );
 }

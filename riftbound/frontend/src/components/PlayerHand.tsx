@@ -23,33 +23,41 @@ export function PlayerHand({ cards }: PlayerHandProps) {
   }
 
   return (
-    <div className="h-full flex items-center justify-center px-8">
-      <div className="flex gap-3 overflow-x-auto py-6">
+    <div className="h-full flex items-center justify-center px-2">
+      <div className="flex gap-2 overflow-x-auto py-4">
         {cards.map((card, index) => {
           const totalCards = cards.length;
           const middleIndex = (totalCards - 1) / 2;
           const offset = index - middleIndex;
-          const rotation = offset * 2;
-          const yOffset = Math.abs(offset) * 3;
-          
+          const rotation = offset * 1.25;
+          const yOffset = Math.abs(offset) * 2;
+
           return (
             <motion.div
               key={card.instanceId || index}
-              initial={{ opacity: 0, y: 50 }}
-              animate={{ 
-                opacity: 1, 
+              initial={{ opacity: 0, y: 18 }}
+              animate={{
+                opacity: 1,
                 y: yOffset,
                 rotate: rotation,
               }}
-              transition={{ delay: index * 0.05 }}
-              whileHover={canPlay ? { 
-                y: -30, 
-                scale: 1.08,
-                rotate: 0,
-                transition: { type: "spring", stiffness: 300, damping: 20 }
-              } : undefined}
+              transition={{ delay: index * 0.03 }}
+              whileHover={
+                canPlay
+                  ? {
+                      y: -18,
+                      scale: 1.05,
+                      rotate: 0,
+                      transition: {
+                        type: "spring",
+                        stiffness: 300,
+                        damping: 24,
+                      },
+                    }
+                  : undefined
+              }
               className={cn(
-                "relative transition-all card-lift-shadow",
+                "relative hover-lift",
                 canPlay ? "cursor-pointer" : "cursor-not-allowed opacity-60"
               )}
               onClick={() => handleCardClick(card)}
