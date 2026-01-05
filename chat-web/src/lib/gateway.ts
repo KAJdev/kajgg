@@ -12,9 +12,12 @@ import {
   updateChannel,
   addAuthor,
   removeChannel,
+  addChannelMember,
+  removeChannelMember,
 } from "./cache";
 import type { Event } from "@schemas/events/event";
 import { EventType } from "@schemas/events/eventtype";
+import { MessageType } from "@schemas/index";
 
 const GATEWAY_URL = import.meta.env.VITE_GATEWAY_URL;
 
@@ -212,7 +215,17 @@ function handleEvent(event: Event) {
         stopTyping(event.d.message.channel_id, event.d.message.author_id),
         event.d.author &&
           !event.d.author.flags?.webhook &&
-          addAuthor(event.d.author)
+          addAuthor(event.d.author),
+        event.d.message.type === MessageType.JOIN &&
+          addChannelMember(
+            event.d.message.channel_id,
+            event.d.message.author_id
+          ),
+        event.d.message.type === MessageType.LEAVE &&
+          removeChannelMember(
+            event.d.message.channel_id,
+            event.d.message.author_id
+          )
       );
     case EventType.MESSAGE_UPDATED:
       return (

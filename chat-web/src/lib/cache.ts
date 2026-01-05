@@ -7,11 +7,12 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { useShallow } from "zustand/shallow";
 import { flipColor, getIsPageFocused } from "./utils";
-import type { Emoji, Webhook } from "@schemas/index";
+import type { ChannelInvite, Emoji, Webhook } from "@schemas/index";
+import { fetchChannelInvites, fetchChannelMembers } from "./api";
 
 type TimeoutId = ReturnType<typeof setTimeout>;
 
-const MAX_MESSAGES_PER_CHANNEL = 500;
+const MAX_MESSAGES_PER_CHANNEL = 200;
 const EVICT_NEAR_BOTTOM_THRESHOLD_PX = 2000;
 
 export type ClientUploadProgress = {
@@ -74,10 +75,12 @@ export type Cache = {
   /** current distance (px) from bottom for scroll container in that channel */
   channelDistFromBottom: Record<string, number>;
   authors: Record<string, Author>;
+  channelMembers: Record<string, string[]>; // channel id -> member ids
   typing: Record<string, Record<string, TimeoutId>>;
   last_event_ts?: number;
   emojis: Record<string, Emoji>;
   webhooks: Record<string, Webhook[]>;
+  channelInvites: Record<string, ChannelInvite[]>;
 };
 
 const _toMs = (d: Date | string | null | undefined) =>
@@ -241,10 +244,12 @@ export const cache = create<Cache>()(() => ({
   channelAtBottom: {},
   channelDistFromBottom: {},
   authors: {},
+  channelMembers: {},
   typing: {},
   last_event_ts: undefined,
   emojis: {},
   webhooks: {},
+  channelInvites: {},
 }));
 
 export const tokenCache = create<{ token: string | null }>()(
@@ -431,6 +436,53 @@ export function useToken() {
 
 export function setLastEventTs(last_event_ts: number) {
   cache.setState({ last_event_ts });
+}
+
+export function useChannelMembers(channelId: string) {
+  const memberIds = cache(
+    useShallow((state) => state.channelMembers[channelId])
+  );
+  const members = useAuthors();
+  const user = useUser();
+  const channel = useChannel(channelId);
+
+  useEffect(() => {
+    if (!memberIds && channel?.private) {
+      void fetchChannelMembers(channelId);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [channelId]);
+
+  if (channel?.private) {
+    const filteredMembers = Object.values(members).filter(
+      (member) => memberIds?.includes(member.id) ?? false
+    );
+    if (user) {
+      filteredMembers.push(user);
+    }
+    return filteredMembers;
+  }
+
+  return members;
+}
+
+export function addChannelMember(channelId: string, userId: string) {
+  cache.setState((state) => ({
+    channelMembers: {
+      ...state.channelMembers,
+      [channelId]: [...(state.channelMembers[channelId] ?? []), userId],
+    },
+  }));
+}
+
+export function removeChannelMember(channelId: string, userId: string) {
+  cache.setState((state) => ({
+    channelMembers: {
+      ...state.channelMembers,
+      [channelId]:
+        state.channelMembers[channelId]?.filter((id) => id !== userId) ?? [],
+    },
+  }));
 }
 
 export function startTyping(channelId: string, userId: string) {
@@ -704,6 +756,15 @@ export function addAuthor(author: Author) {
   }
 }
 
+export function addAuthors(authors: Author[]) {
+  cache.setState((state) => ({
+    authors: {
+      ...state.authors,
+      ...Object.fromEntries(authors.map((author) => [author.id, author])),
+    },
+  }));
+}
+
 export function removeChannel(channelId: string) {
   cache.setState((state) => ({
     channels: Object.fromEntries(
@@ -756,6 +817,46 @@ export function removeWebhook(channelId: string, webhookId: string) {
   }));
 }
 
+export function addChannelInvite(channelId: string, invite: ChannelInvite) {
+  cache.setState((state) => ({
+    channelInvites: {
+      ...state.channelInvites,
+      [channelId]: [...(state.channelInvites[channelId] ?? []), invite],
+    },
+  }));
+}
+
+export function removeChannelInvite(channelId: string, inviteId: string) {
+  cache.setState((state) => ({
+    channelInvites: {
+      ...state.channelInvites,
+      [channelId]: state.channelInvites[channelId].filter(
+        (i) => i.id !== inviteId
+      ),
+    },
+  }));
+}
+
+export function useChannelInvites(channelId: string) {
+  const invites = cache(useShallow((state) => state.channelInvites[channelId]));
+
+  useEffect(() => {
+    if (!invites) void fetchChannelInvites(channelId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [channelId]);
+
+  return invites;
+}
+
+export function setChannelInvites(channelId: string, invites: ChannelInvite[]) {
+  cache.setState((state) => ({
+    channelInvites: {
+      ...state.channelInvites,
+      [channelId]: invites,
+    },
+  }));
+}
+
 export function updateChannel(channel: Channel) {
   addChannel(channel);
 }
@@ -779,8 +880,7 @@ export function useChannels() {
 }
 
 export function useChannel(channelId: string) {
-  const channels = useChannels();
-  return channels[channelId];
+  return cache(useShallow((state) => state.channels[channelId]));
 }
 
 export function useMessages() {

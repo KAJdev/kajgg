@@ -14,6 +14,10 @@ import {
   setEmojis,
   addWebhook,
   removeWebhook,
+  addAuthors,
+  setChannelInvites,
+  addChannelInvite,
+  removeChannelInvite,
 } from "./cache";
 import type { Channel } from "@schemas/models/channel";
 import type { Message } from "@schemas/models/message";
@@ -22,7 +26,7 @@ import type { Author } from "@schemas/models/author";
 import type { FileUpload } from "@schemas/models/fileupload";
 import type { File as ApiFile } from "@schemas/models/file";
 import type { User as UserType } from "src/types/models/user";
-import type { Emoji, Webhook } from "@schemas/index";
+import type { ChannelInvite, Emoji, Webhook } from "@schemas/index";
 import { useShallow } from "zustand/react/shallow";
 
 async function compressImage(file: File): Promise<File> {
@@ -65,6 +69,33 @@ async function fileToDataUrl(file: File): Promise<string> {
       reader.readAsDataURL(file);
     }
   });
+}
+
+export async function updateAvatar(image: string | File | null) {
+  if (image === null) {
+    const [updatedUser, error] = await request<User>("users/@me/avatar", {
+      method: "DELETE",
+    });
+    if (error) throw error;
+    setUser(updatedUser);
+    updateAuthor(updatedUser);
+    return updatedUser;
+  }
+
+  const imageData = image instanceof File ? await fileToDataUrl(image) : image;
+
+  const [updatedUser, error] = await request<User>("users/@me/avatar", {
+    method: "POST",
+    body: { image: imageData },
+  });
+
+  if (error) {
+    throw error;
+  }
+
+  setUser(updatedUser);
+  updateAuthor(updatedUser);
+  return updatedUser;
 }
 
 export async function login(username: string, password: string) {
@@ -469,7 +500,7 @@ export async function createEmoji(name: string, image: string | File) {
     imageData = image;
   }
 
-  let sanitizedName = name.toLowerCase().replace(/[^a-z0-9_-]/g, "");
+  let sanitizedName = name.toLowerCase().replaceAll(/[^a-z0-9_-]/g, "");
   if (sanitizedName.length < 3 || sanitizedName.length > 32) {
     sanitizedName = "emoji";
   }
@@ -507,7 +538,7 @@ export async function deleteEmoji(emojiId: string) {
 }
 
 export async function updateEmoji(emojiId: string, name: string) {
-  let sanitizedName = name.toLowerCase().replace(/[^a-z0-9_-]/g, "");
+  let sanitizedName = name.toLowerCase().replaceAll(/[^a-z0-9_-]/g, "");
   if (sanitizedName.length < 3 || sanitizedName.length > 32) {
     sanitizedName = "emoji";
   }
@@ -595,4 +626,89 @@ export async function fetchWebhooks(channelId: string) {
     addWebhook(webhook);
   }
   return webhooks;
+}
+
+export async function fetchChannelMembers(channelId: string) {
+  const [members, error] = await request<Author[]>(
+    `channels/${channelId}/members`
+  );
+  if (error) {
+    throw error;
+  }
+  addAuthors(members);
+  cache.setState((state) => ({
+    channelMembers: {
+      ...state.channelMembers,
+      [channelId]: members.map((member) => member.id),
+    },
+  }));
+  return members;
+}
+
+export async function fetchChannelInvites(channelId: string) {
+  const [invites, error] = await request<ChannelInvite[]>(
+    `channels/${channelId}/invites`
+  );
+  if (error) {
+    throw error;
+  }
+  setChannelInvites(channelId, invites);
+  return invites;
+}
+
+export async function createChannelInvite(
+  channelId: string,
+  expiresAt?: Date,
+  usesLeft?: number
+) {
+  const [invite, error] = await request<ChannelInvite>(
+    `channels/${channelId}/invites`,
+    {
+      method: "POST",
+      body: { expires_at: expiresAt?.toISOString(), uses_left: usesLeft },
+    }
+  );
+  if (error) {
+    throw error;
+  }
+  addChannelInvite(channelId, invite);
+  return invite;
+}
+
+export async function deleteChannelInvite(channelId: string, inviteId: string) {
+  const [, error] = await request<ChannelInvite>(
+    `channels/${channelId}/invites/${inviteId}`,
+    {
+      method: "DELETE",
+    }
+  );
+  if (error) {
+    throw error;
+  }
+  removeChannelInvite(channelId, inviteId);
+}
+
+export async function fetchInvite(code: string) {
+  const [invite, error] = await request<{
+    invite: ChannelInvite;
+    channel: Channel;
+    author: Author;
+  }>(`invites/${code}`);
+  if (error) {
+    throw error;
+  }
+  return invite;
+}
+
+export async function joinInvite(code: string) {
+  const [response, error] = await request<{ success: boolean }>(
+    `invites/${code}/join`,
+    {
+      method: "POST",
+    }
+  );
+  if (error) {
+    throw error;
+  }
+  return response;
 }

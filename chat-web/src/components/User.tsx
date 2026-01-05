@@ -1,4 +1,9 @@
-import { useEmojis, useUser, useUserSettings } from "src/lib/cache";
+import {
+  defaultTheme,
+  useEmojis,
+  useUser,
+  useUserSettings,
+} from "src/lib/cache";
 import { ListAuthor } from "./ListAuthor";
 import { Loader2Icon, RefreshCcwIcon, SettingsIcon } from "lucide-react";
 import { Button } from "@theme/Button";
@@ -12,18 +17,38 @@ import { Label } from "@theme/Label";
 import { Status as StatusType } from "src/types/models/status";
 import type { User as UserType } from "src/types/models/user";
 import { ColorPicker } from "@theme/ColorPicker";
-import { createEmoji, deleteEmoji, updateEmoji, updateUser } from "src/lib/api";
+import {
+  createEmoji,
+  deleteEmoji,
+  updateAvatar,
+  updateEmoji,
+  updateUser,
+} from "src/lib/api";
 import type { ApiError } from "src/lib/request";
 import { getColor } from "src/lib/utils";
-import { defaultTheme } from "src/lib/cache";
 import { Emoji } from "./Emoji";
 import type { Emoji as EmojiType } from "src/types/models/emoji";
+import { Avatar } from "./Avatar";
 
 function UserSettings() {
   const user = useUser();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<ApiError | null>(null);
   const [form, setForm] = useState<Partial<UserType>>({});
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const [avatarBusy, setAvatarBusy] = useState(false);
+  const [avatarError, setAvatarError] = useState<string | null>(null);
+  const avatarInputRef = useRef<HTMLInputElement | null>(null);
+
+  const avatarPreviewUrl = useMemo(() => {
+    return avatarFile ? URL.createObjectURL(avatarFile) : null;
+  }, [avatarFile]);
+
+  useEffect(() => {
+    return () => {
+      if (avatarPreviewUrl) URL.revokeObjectURL(avatarPreviewUrl);
+    };
+  }, [avatarPreviewUrl]);
 
   async function handleSave() {
     setLoading(true);
@@ -43,6 +68,86 @@ function UserSettings() {
   return (
     <div className="grid grid-cols-2 gap-4">
       <div className="flex flex-col gap-6">
+        <div className="flex flex-col gap-2">
+          <Label>Avatar</Label>
+          <div className="flex items-center gap-3">
+            <Avatar
+              id={user.id}
+              username={user.username}
+              avatarUrl={avatarPreviewUrl ?? user.avatar_url}
+              color={user.color}
+              size={40}
+            />
+            <div className="flex flex-col gap-2 w-full">
+              <input
+                ref={avatarInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                disabled={avatarBusy}
+                onChange={async (e) => {
+                  setAvatarError(null);
+                  const f = e.target.files?.[0] ?? null;
+                  // reset value so picking the same file twice still triggers onchange
+                  e.currentTarget.value = "";
+                  if (!f) return;
+
+                  setAvatarFile(f);
+                  setAvatarBusy(true);
+                  try {
+                    await updateAvatar(f);
+                    setAvatarFile(null);
+                  } catch (err) {
+                    setAvatarError(
+                      err instanceof Error ? err.message : "failed to upload"
+                    );
+                  } finally {
+                    setAvatarBusy(false);
+                  }
+                }}
+              />
+
+              <div className="flex items-center gap-2">
+                <Button
+                  disabled={avatarBusy}
+                  loading={avatarBusy}
+                  onClick={async () => {
+                    setAvatarError(null);
+                    avatarInputRef.current?.click();
+                  }}
+                >
+                  change avatar
+                </Button>
+
+                <Button
+                  disabled={avatarBusy || !user.avatar_url}
+                  loading={avatarBusy}
+                  onClick={async () => {
+                    setAvatarBusy(true);
+                    setAvatarError(null);
+                    try {
+                      await updateAvatar(null);
+                      setAvatarFile(null);
+                    } catch (e) {
+                      setAvatarError(
+                        e instanceof Error ? e.message : "failed to remove"
+                      );
+                    } finally {
+                      setAvatarBusy(false);
+                    }
+                  }}
+                >
+                  remove
+                </Button>
+              </div>
+
+              {avatarError && (
+                <div className="text-red-500 text-sm">{avatarError}</div>
+              )}
+            </div>
+          </div>
+        </div>
+
         <div className="flex flex-col gap-2">
           <Label>Username</Label>
           <Input
@@ -189,7 +294,7 @@ function ThemeSettings() {
   );
 }
 
-function EmojiItem({ emoji }: { emoji: EmojiType }) {
+function EmojiItem({ emoji }: Readonly<{ emoji: EmojiType }>) {
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [updateLoading, setUpdateLoading] = useState(false);
   const [name, setName] = useState(emoji.name);

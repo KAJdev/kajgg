@@ -437,10 +437,38 @@ class ChannelMember(Document):
     id: str = Field(default_factory=generate_id)
     channel_id: str
     user_id: str
+    invite_id: Optional[str] = None
     created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
 
     class Settings:
         name = "channel_members"
+        use_state_management = True
+
+
+class ChannelInvite(Document):
+    id: str = Field(default_factory=generate_id)
+    channel_id: str
+    author_id: str
+    created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
+    expires_at: Optional[datetime] = None
+    uses: int = Field(default=0)
+    code: str = Field(default_factory=generate_id)
+    max_uses: Optional[int] = None
+
+    @classmethod
+    async def validate_dict(cls, data: dict) -> bool:
+        if data.get("expires_at"):
+            if not isinstance(data["expires_at"], datetime) or data[
+                "expires_at"
+            ] < datetime.now(UTC):
+                raise exceptions.BadRequest("Bad Request")
+        if data.get("max_uses"):
+            if not isinstance(data["max_uses"], int) or data["max_uses"] < 0:
+                raise exceptions.BadRequest("Bad Request")
+        return True
+
+    class Settings:
+        name = "channel_invites"
         use_state_management = True
 
 
@@ -457,6 +485,7 @@ async def init():
             ChannelMember,
             Emoji,
             Webhook,
+            ChannelInvite,
         ],
     )
     logging.info("Connected to MongoDB")

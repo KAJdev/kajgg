@@ -15,7 +15,8 @@ async def start_typing(request: Request, channel_id: str):
         raise exceptions.NotFound("Channel not found")
 
     if (
-        channel.private
+        channel.author_id != request.ctx.user.id
+        and channel.private
         and (
             await ChannelMember.find_one(
                 ChannelMember.channel_id == channel_id,

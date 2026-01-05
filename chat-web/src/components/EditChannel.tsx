@@ -1,4 +1,4 @@
-import { useChannel } from "src/lib/cache";
+import { useChannel, useChannelInvites } from "src/lib/cache";
 import { Button } from "@theme/Button";
 import { Modal } from "@theme/Modal";
 import { useParams, useSearchParams } from "react-router";
@@ -9,17 +9,21 @@ import type { Webhook as WebhookType } from "src/types/models/webhook";
 import { ColorPicker } from "@theme/ColorPicker";
 import { API_URL, type ApiError } from "src/lib/request";
 import type { Channel as ChannelType } from "src/types/models/channel";
+import type { ChannelInvite as ChannelInviteType } from "src/types/models/channelinvite";
 import {
+  createChannelInvite,
   createWebhook,
   deleteChannel,
+  deleteChannelInvite,
   deleteWebhook,
   editChannel,
   fetchWebhooks,
   updateWebhook,
   useWebhooks,
 } from "src/lib/api";
-import { Loader2Icon } from "lucide-react";
+import { CopyIcon, Loader2Icon, TrashIcon } from "lucide-react";
 import { router } from "src/routes";
+import { Switch } from "@theme/Switch";
 
 function ChannelSettings({ channel }: { channel: ChannelType }) {
   const [loading, setLoading] = useState(false);
@@ -64,6 +68,21 @@ function ChannelSettings({ channel }: { channel: ChannelType }) {
           onChange={(topic: string) => setForm({ ...form, topic })}
           placeholder="Tell us about the channel..."
           maxLength={1000}
+        />
+      </div>
+
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex flex-col gap-1 w-2/3">
+          <Label>Private Channel</Label>
+          <p className="text-secondary/60 text-sm">
+            Private channels are only visible to you and the people you invite.
+          </p>
+        </div>
+        <Switch
+          checked={form.private ?? channel.private ?? false}
+          onChange={(isPrivate: boolean) =>
+            setForm({ ...form, private: isPrivate })
+          }
         />
       </div>
 
@@ -191,10 +210,72 @@ function WebhooksSettings({ channelId }: { channelId: string }) {
   );
 }
 
-function MembersSettings() {
+function InviteItem({ invite }: { invite: ChannelInviteType }) {
+  const [deleteLoading, setDeleteLoading] = useState(false);
+  return (
+    <div className="items-center grid grid-cols-4 gap-2 border-b border-tertiary/30 pb-4 last:border-b-0 last:pb-0 pt-2 first:pt-0">
+      <p>{invite.code}</p>
+      <p>
+        {(invite.max_uses ?? 0) > 0
+          ? `${invite.uses} / ${invite.max_uses}`
+          : invite.uses}{" "}
+        uses
+      </p>
+      <p>
+        {invite.expires_at
+          ? new Date(invite.expires_at).toLocaleDateString()
+          : "Never expires"}
+      </p>
+      <div className="flex items-center gap-2 ml-auto">
+        <Button
+          variant="primary"
+          icon={CopyIcon}
+          onClick={() => {
+            navigator.clipboard.writeText(
+              `${window.location.origin}/invites/${invite.code}`
+            );
+          }}
+        />
+        <Button
+          variant="danger"
+          loading={deleteLoading}
+          icon={TrashIcon}
+          onClick={() => {
+            setDeleteLoading(true);
+            deleteChannelInvite(invite.channel_id, invite.id).then(() =>
+              setDeleteLoading(false)
+            );
+          }}
+        />
+      </div>
+    </div>
+  );
+}
+
+function InvitesSettings({ channelId }: { channelId: string }) {
+  const [createLoading, setCreateLoading] = useState(false);
+  const invites = useChannelInvites(channelId);
   return (
     <div className="flex flex-col gap-6">
-      <p className="text-secondary/50">members can join this channel</p>
+      <p className="text-secondary/50">
+        invites can be used to join this channel
+      </p>
+      <div>
+        <Button
+          loading={createLoading}
+          onClick={() => {
+            setCreateLoading(true);
+            createChannelInvite(channelId).then(() => setCreateLoading(false));
+          }}
+        >
+          Create Invite
+        </Button>
+      </div>
+      <div className="flex flex-col gap-2 border-t border-tertiary/30 pt-4">
+        {invites?.map((invite) => (
+          <InviteItem key={invite.id} invite={invite} />
+        ))}
+      </div>
     </div>
   );
 }
@@ -243,7 +324,7 @@ export function EditChannel() {
         >
           <Tab name="Channel" value="channel" />
           <Tab name="Webhooks" value="webhooks" />
-          <Tab name="Members" value="members" />
+          <Tab name="Invites" value="invites" />
           <Tab
             name="Danger Zone"
             value="danger-zone"
@@ -256,7 +337,9 @@ export function EditChannel() {
         {channelSettingsTab === "webhooks" && (
           <WebhooksSettings channelId={channelId} />
         )}
-        {channelSettingsTab === "members" && <MembersSettings />}
+        {channelSettingsTab === "invites" && (
+          <InvitesSettings channelId={channelId} />
+        )}
         {channelSettingsTab === "danger-zone" && (
           <DangerZoneSettings channelId={channelId} />
         )}

@@ -1,0 +1,31 @@
+[project]
+name = "kajgg-chatlib"
+version = "0.1.0"
+description = "python api + gateway client for kaj.gg"
+readme = "README.md"
+requires-python = ">=3.11"
+license = "MIT"
+authors = [{ name = "KAJdev" }]
+keywords = ["kaj.gg", "chat", "sse", "api", "bot"]
+urls = { Repository = "https://github.com/KAJdev/kajgg" }
+dependencies = [
+  "aiohttp>=3.9.0",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8.0.0",
+  "pytest-asyncio>=0.23.0",
+]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["."]
+exclude = ["tests*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"

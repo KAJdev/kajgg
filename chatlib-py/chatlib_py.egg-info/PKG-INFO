@@ -1,0 +1,36 @@
+Metadata-Version: 2.4
+Name: chatlib-py
+Version: 0.1.0
+Summary: python api + gateway client for kaj.gg
+Requires-Python: >=3.11
+Description-Content-Type: text/markdown
+Requires-Dist: aiohttp>=3.9.0
+Provides-Extra: dev
+Requires-Dist: pytest>=8.0.0; extra == "dev"
+Requires-Dist: pytest-asyncio>=0.23.0; extra == "dev"
+
+## kajgg python client
+
+### quickstart
+
+```py
+import asyncio
+
+from kajgg import listen, EventType, run
+from kajgg.events import MessageCreated
+
+
+@listen(EventType.MESSAGE_CREATED)
+async def on_message_created(ctx: MessageCreated):
+    await ctx.send("a response in the same channel")
+
+
+asyncio.run(run("username", "password", base_url="http://localhost:8080"))
+```
+
+### config
+
+- **base_url**: the origin you host behind (web uses `${base_url}/api/v1/...`)
+- **gateway_url**: defaults to `base_url` (gateway is `${gateway_url}/gateway`)
+
+

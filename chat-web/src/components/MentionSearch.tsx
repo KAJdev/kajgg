@@ -23,28 +23,46 @@ export function MentionSearch({
 
     const q = query.toLowerCase();
 
+    const results: Author[] = [];
+
     if (q.length === 0) {
-      // return past 10 message authors in the current channel that arent the current user, and then grab random people from the cache
       if (channelId) {
         const channelMessages = cache.getState().messages[channelId] ?? {};
-        return Object.values(channelMessages)
-          .filter((m) => m.author_id !== cache.getState().user?.id)
-          .sort(
-            (a, b) =>
-              new Date(b.created_at).getTime() -
-              new Date(a.created_at).getTime()
-          )
-          .slice(0, 10)
-          .map((m) => m.author ?? authors[m.author_id]);
+        const currentUserId = cache.getState().user?.id ?? null;
+        const messageList = Object.values(channelMessages).sort(
+          (a, b) =>
+            new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+        );
+
+        const addedIds = new Set<string>();
+        for (const m of messageList) {
+          if (
+            m.author_id &&
+            m.author_id !== currentUserId &&
+            !addedIds.has(m.author_id)
+          ) {
+            const authorObj: Author | undefined =
+              m.author ?? authors[m.author_id];
+            if (authorObj) {
+              results.push(authorObj);
+              addedIds.add(m.author_id);
+              if (results.length >= 10) break;
+            }
+          }
+        }
       }
 
-      return Object.values(authors ?? {}).slice(0, 10);
+      // Fill up with random authors if we didn't get 10
+      if (results.length < 10) {
+        for (const a of Object.values(authors ?? {})) {
+          if (results.some((r) => r.id === a.id)) continue;
+          results.push(a);
+          if (results.length >= 10) break;
+        }
+      }
     }
 
-    return Object.values(authors ?? {})
-      .filter((a) => a.username && a.username.toLowerCase().includes(q))
-      .sort((a, b) => (a.username ?? "").localeCompare(b.username ?? ""))
-      .slice(0, 10);
+    return results;
   }, [authors, channelId, query]);
 
   useEffect(() => {
