@@ -363,9 +363,13 @@ class Player:
         return self.spend_energy(amount)
 
     def ready_all(self):
-        """ready all exhausted runes and units"""
+        """ready all exhausted runes and base permanents"""
         for rune in self.runes_in_play:
             rune.ready()
+        for gear in self.base_gear:
+            gear.ready()
+        for unit in self.base_units:
+            unit.ready()
 
     def shuffle_deck(self):
         random.shuffle(self.main_deck)
@@ -434,6 +438,11 @@ class GameState:
 
     # winner
     winner: Optional[str] = None
+
+    # chain state
+    chain_items: list[dict] = field(default_factory=list)
+    priority_player: Optional[str] = None
+    waiting_for_response: bool = False
 
     # game constants
     # per rules: start with 4 cards, then draw 1 at start of your first turn (so you see 5 on turn 1)

@@ -39,6 +39,12 @@ export interface CardModifier {
   duration?: number;
 }
 
+export interface ChainItem {
+  cardTitle: string;
+  controllerId: string;
+  targetId?: string | null;
+}
+
 export interface Battlefield {
   id: string;
   name: string;
@@ -91,6 +97,11 @@ export interface GameState {
   turnNumber: number;
   phase: GamePhase;
 
+  // chain/priority
+  chainItems: ChainItem[];
+  priorityPlayer: string | null;
+  waitingForResponse: boolean;
+
   // setup state (mulligan etc)
   setup?: {
     step: "battlefields" | "mulligan" | "done";
@@ -139,6 +150,9 @@ export type GameEvent =
   | { type: "action"; action: GameAction }
   | { type: "phase_changed"; phase: GamePhase }
   | { type: "turn_changed"; player: PlayerPosition }
+  | { type: "chain_updated"; chain: ChainItem[]; priorityPlayer: string }
+  | { type: "priority_changed"; priorityPlayer: string }
+  | { type: "chain_resolved"; chain_size: number }
   | { type: "game_over"; winner: PlayerPosition }
   | { type: "error"; message: string };
 
@@ -147,6 +161,8 @@ export type GameCommand =
   | { type: "draw_card" }
   | { type: "channel_rune" }
   | { type: "play_card"; cardInstanceId: string; battlefieldId?: string; targetInstanceId?: string }
+  | { type: "move"; unitInstanceId: string; destination: string }
+  | { type: "pass_priority" }
   | { type: "attack"; attackerId: string; targetId: string; battlefieldId: string }
   | { type: "choose_battlefield"; cardId: string }
   | { type: "mulligan"; cardInstanceIds: string[] }
