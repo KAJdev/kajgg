@@ -67,11 +67,11 @@ export type Cache = {
   messages: Record<string, Record<string, CachedMessage>>;
   messageBounds: Record<string, ChannelMessageBounds>;
   /**
-   * UI hint: whether the user is currently "pinned" to bottom in a channel message list.
+   * whether the user is currently "pinned" to bottom in a channel message list.
    * Used to decide which side to evict from when we exceed the per-channel message cap.
    */
   channelAtBottom: Record<string, boolean>;
-  /** UI hint: current distance (px) from bottom for scroll container in that channel */
+  /** current distance (px) from bottom for scroll container in that channel */
   channelDistFromBottom: Record<string, number>;
   authors: Record<string, Author>;
   typing: Record<string, Record<string, TimeoutId>>;

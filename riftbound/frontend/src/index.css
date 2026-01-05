@@ -1,0 +1,126 @@
+@import "tailwindcss";
+
+:root {
+  --font-display: "Cinzel", serif;
+  --font-body: "Rajdhani", sans-serif;
+}
+
+@theme {
+  /* arcane-inspired color palette */
+  --color-void: #0a0a0f;
+  --color-void-deep: #050508;
+  --color-arcane: #c8aa6e;
+  --color-arcane-glow: #f0e6d2;
+  --color-hextech: #0ac8b9;
+  --color-hextech-dark: #005a82;
+  --color-piltover: #785a28;
+  --color-zaun: #0acf83;
+  --color-noxus: #8c1f28;
+  --color-demacia: #0c3b5d;
+  --color-ionia: #bf5e9c;
+  --color-freljord: #5bc0eb;
+  --color-shurima: #d4a636;
+  --color-shadow: #1a1a2e;
+  --color-mist: #463f52;
+  --color-text: #f0e6d2;
+  --color-text-dim: #a09b8c;
+  --color-danger: #e84057;
+  --color-success: #0acf83;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body, #root {
+  height: 100%;
+  width: 100%;
+}
+
+body {
+  background-color: var(--color-void);
+  color: var(--color-text);
+  font-family: var(--font-body);
+  font-size: 16px;
+  line-height: 1.5;
+  font-weight: 400;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* arcane scrollbar */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-piltover) transparent;
+}
+
+*::-webkit-scrollbar {
+  width: 6px;
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, var(--color-arcane) 0%, var(--color-piltover) 100%);
+  border-radius: 3px;
+}
+
+*::selection {
+  background: var(--color-arcane);
+  color: var(--color-void);
+}
+
+/* utility classes */
+.font-display {
+  font-family: var(--font-display);
+}
+
+.font-body {
+  font-family: var(--font-body);
+}
+
+/* card glow effect */
+.card-glow {
+  box-shadow: 
+    0 0 20px rgba(200, 170, 110, 0.3),
+    0 0 40px rgba(200, 170, 110, 0.1),
+    inset 0 0 20px rgba(200, 170, 110, 0.05);
+}
+
+.card-glow-hextech {
+  box-shadow: 
+    0 0 20px rgba(10, 200, 185, 0.4),
+    0 0 40px rgba(10, 200, 185, 0.2),
+    inset 0 0 20px rgba(10, 200, 185, 0.1);
+}
+
+/* background patterns */
+.bg-hex-pattern {
+  background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M30 0L60 15v30L30 60 0 45V15z' fill='none' stroke='%23785a28' stroke-width='0.5' opacity='0.1'/%3E%3C/svg%3E");
+  background-size: 30px 30px;
+}
+
+/* animations */
+@keyframes pulse-glow {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
+
