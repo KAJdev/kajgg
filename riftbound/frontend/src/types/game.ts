@@ -146,7 +146,7 @@ export type GameEvent =
 export type GameCommand =
   | { type: "draw_card" }
   | { type: "channel_rune" }
-  | { type: "play_card"; cardInstanceId: string; battlefieldId?: string }
+  | { type: "play_card"; cardInstanceId: string; battlefieldId?: string; targetInstanceId?: string }
   | { type: "attack"; attackerId: string; targetId: string; battlefieldId: string }
   | { type: "choose_battlefield"; cardId: string }
   | { type: "mulligan"; cardInstanceIds: string[] }

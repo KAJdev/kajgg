@@ -147,6 +147,19 @@ function BattlefieldZone({
     });
   }
 
+  function handleSpellTarget(targetId: string) {
+    const { selectedCard, setSelectedCard } = useGameStore.getState();
+    if (!selectedCard) return;
+    if ((selectedCard.type || "").toLowerCase() !== "spell") return;
+    sendCommand({
+      type: "play_card",
+      cardInstanceId: selectedCard.instanceId,
+      battlefieldId: battlefield.id,
+      targetInstanceId: targetId,
+    });
+    setSelectedCard(null);
+  }
+
   return (
     <div
       onClick={canDrop ? onClick : undefined}
@@ -200,13 +213,17 @@ function BattlefieldZone({
               unit={unit}
               isEnemy
               onClick={(targetId) => {
-                // if we have selected an attacker, attack this target
-                const { selectedCard } = useGameStore.getState();
+                // if we have a selected spell, cast at target; else attack if selected attacker
+                const { selectedCard: sel } = useGameStore.getState();
+                if (sel && (sel.type || "").toLowerCase() === "spell") {
+                  handleSpellTarget(targetId);
+                  return;
+                }
                 if (
-                  selectedCard &&
-                  myUnits.some((u) => u.instanceId === selectedCard.instanceId)
+                  sel &&
+                  myUnits.some((u) => u.instanceId === sel.instanceId)
                 ) {
-                  handleAttack(selectedCard.instanceId, targetId);
+                  handleAttack(sel.instanceId, targetId);
                 }
               }}
             />

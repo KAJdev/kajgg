@@ -534,6 +534,7 @@ class GameEngine:
 
         instance_id = command.get("cardInstanceId")
         battlefield_id = command.get("battlefieldId")
+        target_id = command.get("targetInstanceId")
 
         # find card in hand
         card = None
@@ -586,8 +587,82 @@ class GameEngine:
                 card.exhaust()
 
         elif card.is_spell:
+            # minimal spell resolution from text patterns
+            text = (card.text or "").strip()
+
+            # "Deal X to a unit at a battlefield."
+            import re
+
+            m = re.search(
+                r"Deal\\s+(\\d+)\\s+to\\s+a\\s+unit\\s+at\\s+a\\s+battlefield",
+                text,
+                flags=re.IGNORECASE,
+            )
+            if m:
+                if not target_id:
+                    player.graveyard.append(card)
+                    return {"success": False, "error": "spell requires a target unit"}
+                dmg = int(m.group(1))
+                # find target unit on any battlefield
+                target = None
+                for bf in self.state.battlefields:
+                    for u in bf.player1_units + bf.player2_units:
+                        if u.instance_id == target_id:
+                            target = u
+                            break
+                    if target:
+                        break
+                if not target:
+                    player.graveyard.append(card)
+                    return {"success": False, "error": "target not found"}
+                destroyed = target.take_damage(dmg)
+                self.state.add_action(
+                    ActionType.ACTIVATE_ABILITY,
+                    player.id,
+                    {"type": "spell_damage", "amount": dmg, "target": target.title},
+                )
+                if destroyed:
+                    # remove destroyed unit and put into owner's graveyard (simplified)
+                    for bf in self.state.battlefields:
+                        bf.remove_unit(target.instance_id)
+                    owner = self.state.get_player(target.owner_id)
+                    if owner:
+                        owner.graveyard.append(target)
+
+            # "Move a unit from a battlefield to its base."
+            m2 = re.search(
+                r"Move\\s+a\\s+unit\\s+from\\s+a\\s+battlefield\\s+to\\s+its\\s+base",
+                text,
+                flags=re.IGNORECASE,
+            )
+            if m2:
+                if not target_id:
+                    player.graveyard.append(card)
+                    return {"success": False, "error": "spell requires a target unit"}
+                target = None
+                source_bf = None
+                for bf in self.state.battlefields:
+                    for u in bf.player1_units + bf.player2_units:
+                        if u.instance_id == target_id:
+                            target = u
+                            source_bf = bf
+                            break
+                    if target:
+                        break
+                if not target or not source_bf:
+                    player.graveyard.append(card)
+                    return {"success": False, "error": "target not found"}
+                source_bf.remove_unit(target.instance_id)
+                owner = self.state.get_player(target.owner_id)
+                if owner:
+                    owner.base_units.append(target)
+                self.state.add_action(
+                    ActionType.ACTIVATE_ABILITY,
+                    player.id,
+                    {"type": "spell_move_to_base", "target": target.title},
+                )
+
             # spells resolve and go to graveyard
-            # todo: implement spell effects lol
             player.graveyard.append(card)
         elif card.card_type == "gear":
             # rule 147: gear can only be played to your base and enters ready
