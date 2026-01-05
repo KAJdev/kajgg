@@ -59,6 +59,16 @@ async def game_socket(request, ws: WebsocketImplProtocol, game_id: str):
             "connected": True,
         },
     }, exclude=player_id)
+
+    if session.status == "active" and session.state:
+        for pid, conn in list(session.connections.items()):
+            try:
+                await conn.send(json.dumps({
+                    "type": "game_state",
+                    "state": session.to_dict(for_player=pid),
+                }))
+            except Exception as e:
+                logger.error(f"failed to send state to {pid}: {e}")
     
     # register engine event handler
     if session.engine:

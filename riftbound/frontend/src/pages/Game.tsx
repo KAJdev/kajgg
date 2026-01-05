@@ -247,7 +247,7 @@ export function Game() {
               <motion.div
                 initial={{ scale: 0.98, y: 10 }}
                 animate={{ scale: 1, y: 0 }}
-                className="w-full max-w-3xl bg-void-deep/95 border border-mist/20 rounded-lg p-6 shadow-[0_0_60px_rgba(0,0,0,0.8)]"
+                className="w-full max-w-4xl bg-void-deep/95 border border-mist/20 rounded-lg p-6 shadow-[0_0_60px_rgba(0,0,0,0.8)]"
               >
                 <h2 className="font-display text-xl uppercase tracking-wider text-arcane mb-2">
                   choose your battlefield
@@ -267,16 +267,20 @@ export function Game() {
                     <span className="text-sm">waiting for opponent...</span>
                   </div>
                 ) : (
-                  <div className="grid grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     {myBattlefieldOptions.map((c) => (
                       <button
                         key={c.id}
                         onClick={() => chooseBattlefield(c.id)}
                         disabled={bfSubmitting}
-                        className="rounded-md overflow-hidden border border-mist/30 hover:border-arcane/50 transition-colors"
+                        className="rounded-md overflow-hidden border border-mist/30 hover:border-arcane/50 transition-colors aspect-[4/3]"
                         title={c.title}
                       >
-                        <CardImage card={c} size="md" className="w-full" />
+                        <CardImage
+                          card={c}
+                          size="lg"
+                          className="w-full h-full object-contain"
+                        />
                       </button>
                     ))}
                   </div>
