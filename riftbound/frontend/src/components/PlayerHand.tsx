@@ -9,8 +9,13 @@ interface PlayerHandProps {
 }
 
 export function PlayerHand({ cards }: PlayerHandProps) {
-  const { selectedCard, setSelectedCard, isMyTurn, gameState } = useGameStore();
-  const canPlay = isMyTurn() && gameState?.phase === "main";
+  const { selectedCard, setSelectedCard, isMyTurn, gameState, myPlayerId } = useGameStore();
+  const canPlay =
+    gameState?.phase === "main" &&
+    (isMyTurn() ||
+      (gameState.waitingForResponse &&
+        !!myPlayerId &&
+        gameState.priorityPlayer === myPlayerId));
 
   function handleCardClick(card: CardInstance) {
     if (!canPlay) return;

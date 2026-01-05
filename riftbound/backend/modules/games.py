@@ -98,6 +98,9 @@ class GameSession:
             "currentTurn": self.state.current_turn if self.state else None,
             "turnNumber": self.state.turn_number if self.state else 0,
             "phase": self.state.phase.value if self.state else None,
+            "chainItems": self.state.chain_items if self.state else [],
+            "priorityPlayer": self.state.priority_player if self.state else None,
+            "waitingForResponse": self.state.waiting_for_response if self.state else False,
             "setup": {
                 "step": self.state.setup_step,
                 "mulliganPlayer": self.state.mulligan_player,

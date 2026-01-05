@@ -303,6 +303,15 @@ class GameEngine:
         if cmd_type == "concede":
             return self._cmd_concede(player)
 
+        if self.state.waiting_for_response:
+            if cmd_type == "pass_priority":
+                return self._cmd_pass_priority(player)
+            if cmd_type == "play_card":
+                if not self.priority_manager.has_priority(player):
+                    return {"success": False, "error": "you don't have priority"}
+                return self._cmd_play_card(player, command)
+            return {"success": False, "error": "waiting for responses"}
+
         # check turn
         if player.id != current.id:
             return {"success": False, "error": "not your turn"}
@@ -320,6 +329,10 @@ class GameEngine:
             return self._cmd_activate_ability(player, command)
         elif cmd_type == "play_card":
             return self._cmd_play_card(player, command)
+        elif cmd_type == "move":
+            return self._cmd_move(player, command)
+        elif cmd_type == "pass_priority":
+            return self._cmd_pass_priority(player)
         elif cmd_type == "attack":
             return self._cmd_attack(player, command)
         else:
@@ -597,7 +610,6 @@ class GameEngine:
         battlefield_id = command.get("battlefieldId")
         target_id = command.get("targetInstanceId")
 
-        # find card in hand
         card = None
         card_idx = None
         for i, c in enumerate(player.hand):
@@ -609,28 +621,30 @@ class GameEngine:
         if not card:
             return {"success": False, "error": "card not in hand"}
 
-        # auto-pay power first (recycling can use already-tapped runes)
+        self.parse_card(card)
+
+        if self.state.waiting_for_response:
+            if not card.is_spell:
+                return {"success": False, "error": "can only respond with Reaction spells"}
+            from .parser.keywords import Keyword
+            keywords = (card.parsed_card.keywords if card.parsed_card else []) or []
+            if not any(k.keyword == Keyword.REACTION for k in keywords):
+                return {"success": False, "error": "can only respond with Reaction spells"}
+
         if not self._auto_pay_power(player, card.power_cost):
             return {
                 "success": False,
                 "error": "not enough matching-color runes in play to pay power",
             }
 
-        # auto-tap for energy then spend from rune pool
         if not self._auto_pay_energy(player, card.energy_cost):
             return {"success": False, "error": "not enough runes to tap for energy"}
         if card.energy_cost > 0 and not player.spend_energy(card.energy_cost):
             return {"success": False, "error": "failed to spend energy"}
 
-        # parse card if not already parsed
-        self.parse_card(card)
-        
-        # remove from hand
         player.hand.pop(card_idx)
 
-        # handle card based on type
         if card.is_unit:
-            # rule 352.2: by default, units can be played to your base or a battlefield you control
             if battlefield_id:
                 bf = next(
                     (b for b in self.state.battlefields if b.id == battlefield_id), None
@@ -645,81 +659,44 @@ class GameEngine:
                         "error": "can only play units to your base or a battlefield you control",
                     }
                 bf.add_unit(card, player.position)
-                card.exhaust()  # units enter exhausted
+                card.exhaust()
             else:
                 player.base_units.append(card)
                 card.exhaust()
-            
-            # register triggers for unit
+
             self.register_triggers(card)
-            
-            # fire play triggers
+
             event = TriggerEvent(
                 trigger_type=TriggerType.PLAY,
                 source=card,
-                player_id=player.id
+                player_id=player.id,
             )
             self.fire_triggers(event)
 
         elif card.is_spell:
-            # use parsed effects for spell resolution
-            if card.parsed_card and card.parsed_card.effects:
-                context = EffectContext(
-                    state=self.state,
-                    source_card=card,
-                    controller=player,
-                    target_id=target_id
-                )
-                
-                for effect_or_conditional in card.parsed_card.effects:
-                    # handle conditional effects
-                    if hasattr(effect_or_conditional, 'condition'):
-                        from .triggers.condition import ConditionalEffect
-                        conditional: ConditionalEffect = effect_or_conditional
-                        
-                        if conditional.check_condition(self.state, controller_id=player.id):
-                            result = conditional.effect.execute(context)
-                            self._emit("effect_resolved", {
-                                "card": card.title,
-                                "effect": str(conditional.effect),
-                                "result": result
-                            })
-                        elif conditional.else_effect:
-                            result = conditional.else_effect.execute(context)
-                            self._emit("effect_resolved", {
-                                "card": card.title,
-                                "effect": str(conditional.else_effect),
-                                "result": result
-                            })
-                    else:
-                        # regular effect
-                        effect = effect_or_conditional
-                        result = effect.execute(context)
-                        
-                        # check if this was a damage effect that killed
-                        if hasattr(effect, 'killed_target') and effect.killed_target:
-                            context.additional_data['killed'] = True
-                        
-                        self._emit("effect_resolved", {
-                            "card": card.title,
-                            "effect": str(effect),
-                            "result": result
-                        })
-                        
-                        self.state.add_action(
-                            ActionType.ACTIVATE_ABILITY,
-                            player.id,
-                            {"type": "spell_effect", "card": card.title, "result": result},
-                        )
-            
-            # spells resolve and go to graveyard
-            player.graveyard.append(card)
+            self.chain_manager.add_to_chain(card, player, target_id=target_id)
+
+            opponent = self.state.get_opponent(player.id)
+            self.priority_manager.give_priority_to(opponent)
+            self.state.waiting_for_response = True
+
+            self.state.add_action(
+                ActionType.PLAY_CARD,
+                player.id,
+                {"cardName": card.title, "battlefield": battlefield_id},
+            )
+
+            self._emit(
+                "chain_updated",
+                {"chain": self.state.chain_items, "priorityPlayer": opponent.id},
+            )
+
+            return {"success": True, "waitingForResponse": True}
+
         elif card.card_type == "gear":
-            # rule 147: gear can only be played to your base and enters ready
             player.base_gear.append(card)
             card.ready()
         else:
-            # other cards
             player.graveyard.append(card)
 
         self.state.add_action(
@@ -727,6 +704,107 @@ class GameEngine:
             player.id,
             {"cardName": card.title, "battlefield": battlefield_id},
         )
+        return {"success": True}
+
+    def _cmd_pass_priority(self, player: Player) -> dict:
+        if not self.state.waiting_for_response:
+            return {"success": False, "error": "not waiting for response"}
+
+        if not self.priority_manager.has_priority(player):
+            return {"success": False, "error": "you don't have priority"}
+
+        all_passed = self.priority_manager.pass_priority(player)
+
+        if all_passed:
+            self.chain_manager.resolve_chain()
+            self.state.waiting_for_response = False
+            self.priority_manager.reset()
+            self.state.priority_player = None
+        else:
+            self.state.priority_player = self.priority_manager.priority_player_id
+            self._emit(
+                "priority_changed", {"priorityPlayer": self.priority_manager.priority_player_id}
+            )
+
+        return {"success": True}
+
+    def _cmd_move(self, player: Player, command: dict) -> dict:
+        if self.state.phase != GamePhase.MAIN:
+            return {"success": False, "error": "can only move during main phase"}
+
+        unit_id = command.get("unitInstanceId")
+        destination = command.get("destination")
+
+        if not isinstance(unit_id, str) or not unit_id:
+            return {"success": False, "error": "unitInstanceId required"}
+        if not isinstance(destination, str) or not destination:
+            return {"success": False, "error": "destination required"}
+
+        unit = None
+        source_bf = None
+
+        for u in player.base_units:
+            if u.instance_id == unit_id:
+                unit = u
+                break
+
+        if not unit:
+            for bf in self.state.battlefields:
+                units = bf.player1_units if player.position == "player1" else bf.player2_units
+                for u in units:
+                    if u.instance_id == unit_id:
+                        unit = u
+                        source_bf = bf
+                        break
+                if unit:
+                    break
+
+        if not unit:
+            return {"success": False, "error": "unit not found"}
+
+        if unit.exhausted:
+            return {"success": False, "error": "unit is exhausted"}
+
+        if source_bf is None:
+            if destination == "base":
+                return {"success": False, "error": "unit is already at base"}
+            bf = next((b for b in self.state.battlefields if b.id == destination), None)
+            if not bf:
+                return {"success": False, "error": "invalid destination"}
+            try:
+                player.base_units.remove(unit)
+            except ValueError:
+                return {"success": False, "error": "unit not found"}
+            bf.add_unit(unit, player.position)
+        else:
+            if destination == "base":
+                removed = source_bf.remove_unit(unit_id)
+                if not removed:
+                    return {"success": False, "error": "unit not found"}
+                player.base_units.append(removed)
+            else:
+                return {
+                    "success": False,
+                    "error": "cannot move between battlefields without Ganking",
+                }
+
+        unit.exhaust()
+
+        self.state.add_action(
+            ActionType.MOVE_UNIT,
+            player.id,
+            {"unitName": unit.title, "destination": destination},
+        )
+
+        self._emit(
+            "unit_moved",
+            {
+                "unitInstanceId": unit.instance_id,
+                "player": player.position,
+                "destination": destination,
+            },
+        )
+
         return {"success": True}
 
     def _cmd_attack(self, player: Player, command: dict) -> dict:

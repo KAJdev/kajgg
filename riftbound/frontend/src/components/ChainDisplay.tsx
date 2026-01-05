@@ -1,28 +1,14 @@
 import { Button } from "@theme/index";
 import { useGameStore } from "@lib/store";
 
-type ChainItem = {
-  cardTitle: string;
-};
-
-type ChainGameState = {
-  waitingForResponse?: boolean;
-  chainItems?: ChainItem[];
-  priorityPlayer?: string | null;
-};
-
 export function ChainDisplay() {
   const { gameState, sendCommand, myPlayerId } = useGameStore();
-  const chainState = gameState as unknown as ChainGameState | null;
 
-  const chainItems = chainState?.chainItems ?? [];
-  const waitingForResponse = !!chainState?.waitingForResponse;
-
-  if (!waitingForResponse || chainItems.length === 0) {
+  if (!gameState?.waitingForResponse || gameState.chainItems.length === 0) {
     return null;
   }
 
-  const hasPriority = chainState?.priorityPlayer === myPlayerId;
+  const hasPriority = !!myPlayerId && gameState.priorityPlayer === myPlayerId;
 
   return (
     <div className="absolute inset-x-0 top-16 flex justify-center pointer-events-none z-40">
@@ -32,9 +18,9 @@ export function ChainDisplay() {
         </div>
 
         <div className="flex flex-wrap gap-2">
-          {chainItems.map((item, idx) => (
+          {gameState.chainItems.map((item, idx) => (
             <div
-              key={idx}
+              key={`${item.controllerId}-${idx}`}
               className="text-xs text-text bg-shadow/30 rounded px-2 py-1"
             >
               {item.cardTitle}

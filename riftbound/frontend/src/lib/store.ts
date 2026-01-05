@@ -181,6 +181,46 @@ export const useGameStore = create<GameStore>((set, get) => ({
         });
         break;
 
+      case "chain_updated":
+        set((state) => {
+          if (!state.gameState) return state;
+          return {
+            gameState: {
+              ...state.gameState,
+              chainItems: event.chain,
+              priorityPlayer: event.priorityPlayer,
+              waitingForResponse: true,
+            },
+          };
+        });
+        break;
+
+      case "priority_changed":
+        set((state) => {
+          if (!state.gameState) return state;
+          return {
+            gameState: {
+              ...state.gameState,
+              priorityPlayer: event.priorityPlayer,
+            },
+          };
+        });
+        break;
+
+      case "chain_resolved":
+        set((state) => {
+          if (!state.gameState) return state;
+          return {
+            gameState: {
+              ...state.gameState,
+              chainItems: [],
+              priorityPlayer: null,
+              waitingForResponse: false,
+            },
+          };
+        });
+        break;
+
       case "game_over":
         set((state) => {
           if (!state.gameState) return state;

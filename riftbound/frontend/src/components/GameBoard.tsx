@@ -8,6 +8,7 @@ export function GameBoard() {
   const {
     gameState,
     getMyPlayer,
+    isMyTurn,
     sendCommand,
     selectedCard,
     setSelectedCard,
@@ -29,24 +30,58 @@ export function GameBoard() {
 
   function handleBattlefieldClick(bfId: string) {
     if (selectedCard) {
-      sendCommand({
-        type: "play_card",
-        cardInstanceId: selectedCard.instanceId,
-        battlefieldId: bfId,
-      });
-      setSelectedCard(null);
-    } else {
-      setSelectedBattlefield(bfId);
+      const inHand =
+        !!myPlayer?.hand?.some((c) => c.instanceId === selectedCard.instanceId);
+
+      if (inHand) {
+        sendCommand({
+          type: "play_card",
+          cardInstanceId: selectedCard.instanceId,
+          battlefieldId: bfId,
+        });
+        setSelectedCard(null);
+        return;
+      }
+
+      if ((selectedCard.type || "").toLowerCase() === "unit") {
+        sendCommand({
+          type: "move",
+          unitInstanceId: selectedCard.instanceId,
+          destination: bfId,
+        });
+        setSelectedCard(null);
+        return;
+      }
+
+      return;
     }
+
+    setSelectedBattlefield(bfId);
   }
 
   function handleBaseClick() {
-    if (selectedCard) {
+    if (!selectedCard) return;
+
+    const inHand =
+      !!myPlayer?.hand?.some((c) => c.instanceId === selectedCard.instanceId);
+
+    if (inHand) {
       sendCommand({
         type: "play_card",
         cardInstanceId: selectedCard.instanceId,
       });
       setSelectedCard(null);
+      return;
+    }
+
+    if ((selectedCard.type || "").toLowerCase() === "unit") {
+      sendCommand({
+        type: "move",
+        unitInstanceId: selectedCard.instanceId,
+        destination: "base",
+      });
+      setSelectedCard(null);
+      return;
     }
   }
 
@@ -93,9 +128,39 @@ export function GameBoard() {
           {myBaseGear.map((g) => (
             <CardImage key={g.instanceId} card={g} size="xs" />
           ))}
-          {myBaseUnits.map((u) => (
-            <CardImage key={u.instanceId} card={u} size="xs" />
-          ))}
+
+          {myBaseUnits.map((u) => {
+            const isSelected = selectedCard?.instanceId === u.instanceId;
+
+            return (
+              <div
+                key={u.instanceId}
+                onClick={(e) => {
+                  const currentSelected = useGameStore.getState().selectedCard;
+                  const currentInHand =
+                    !!myPlayer?.hand?.some(
+                      (c) => c.instanceId === currentSelected?.instanceId
+                    );
+
+                  if (currentInHand) return;
+
+                  e.stopPropagation();
+                  if (!isMyTurn() || u.exhausted) return;
+                  setSelectedCard(isSelected ? null : u);
+                }}
+                className={cn(
+                  "transition-transform",
+                  isMyTurn() && !u.exhausted ? "cursor-pointer" : "cursor-default",
+                  isSelected &&
+                    "-translate-y-1 shadow-[0_0_0_2px_rgba(200,170,110,0.50)]",
+                  u.exhausted && "opacity-60"
+                )}
+              >
+                <CardImage card={u} size="xs" />
+              </div>
+            );
+          })}
+
           {myBaseUnits.length === 0 && myBaseGear.length === 0 && (
             <span className="text-text-dim/40 text-xs">empty</span>
           )}
@@ -121,9 +186,13 @@ function BattlefieldZone({
   const { sendCommand } = useGameStore();
 
   const opponentUnits =
-    myPosition === "player1" ? battlefield.player2Units : battlefield.player1Units;
+    myPosition === "player1"
+      ? battlefield.player2Units
+      : battlefield.player1Units;
   const myUnits =
-    myPosition === "player1" ? battlefield.player1Units : battlefield.player2Units;
+    myPosition === "player1"
+      ? battlefield.player1Units
+      : battlefield.player2Units;
 
   const controlBg = {
     none: "bg-shadow/20",
@@ -211,10 +280,12 @@ function BattlefieldZone({
                 isEnemy
                 onClick={(targetId) => {
                   const { selectedCard: sel } = useGameStore.getState();
+
                   if (sel && (sel.type || "").toLowerCase() === "spell") {
                     handleSpellTarget(targetId);
                     return;
                   }
+
                   if (sel && myUnits.some((u) => u.instanceId === sel.instanceId)) {
                     handleAttack(sel.instanceId, targetId);
                   }
@@ -256,6 +327,7 @@ function UnitCard({ unit, isEnemy, onClick }: UnitCardProps) {
       onClick(unit.instanceId);
       return;
     }
+
     if (!isEnemy && isMyTurn() && !unit.exhausted) {
       if (isSelected) {
         setSelectedCard(null);
