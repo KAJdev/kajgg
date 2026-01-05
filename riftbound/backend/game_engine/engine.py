@@ -91,8 +91,16 @@ class GameEngine:
         for card in self.state.player1.hand + self.state.player2.hand:
             self.parse_card(card)
         
-        for card in self.state.player1.deck + self.state.player2.deck:
+        for card in self.state.player1.main_deck + self.state.player2.main_deck:
             self.parse_card(card)
+
+        for card in self.state.player1.rune_deck + self.state.player2.rune_deck:
+            self.parse_card(card)
+
+        if self.state.player1.champion:
+            self.parse_card(self.state.player1.champion)
+        if self.state.player2.champion:
+            self.parse_card(self.state.player2.champion)
     
     def register_triggers(self, card: CardInstance):
         if not card.parsed_card:

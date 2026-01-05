@@ -139,7 +139,7 @@ class RecallEffect(Effect):
         if self.destination == "hand":
             owner.hand.append(target_card)
         elif self.destination == "deck":
-            owner.deck.append(target_card)
+            owner.main_deck.append(target_card)
         elif self.destination == "trash":
             owner.graveyard.append(target_card)
         
