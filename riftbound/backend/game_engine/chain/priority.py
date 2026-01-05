@@ -13,6 +13,7 @@ class PriorityManager:
     
     def give_priority_to(self, player: "Player"):
         self.priority_player_id = player.id
+        self.state.priority_player = player.id
         self.passed_players.clear()
     
     def has_priority(self, player: "Player") -> bool:
@@ -30,6 +31,7 @@ class PriorityManager:
             return True
         
         self.priority_player_id = opponent_id
+        self.state.priority_player = opponent_id
         return False
     
     def all_passed(self) -> bool:
@@ -37,6 +39,7 @@ class PriorityManager:
     
     def reset(self):
         self.priority_player_id = None
+        self.state.priority_player = None
         self.passed_players.clear()
     
     def __repr__(self):

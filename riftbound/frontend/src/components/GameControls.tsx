@@ -2,6 +2,7 @@ import { motion } from "motion/react";
 import { useGameStore } from "@lib/store";
 import { Button } from "@theme/index";
 import { Flag } from "lucide-react";
+import { ChainDisplay } from "./ChainDisplay";
 
 export function GameControls() {
   const { gameState, isMyTurn, sendCommand, getMyPlayer } = useGameStore();
@@ -19,8 +20,7 @@ export function GameControls() {
   }
 
   return (
-    <div className="flex items-center justify-between px-6 py-4">
-      {/* turn/phase info */}
+    <div className="flex items-center gap-6 px-6 py-4">
       <div className="flex items-center gap-6">
         <div className="text-center">
           <p className="text-xs text-text-dim uppercase tracking-wider">Turn</p>
@@ -51,7 +51,10 @@ export function GameControls() {
         </div>
       </div>
 
-      {/* action buttons */}
+      <div className="flex-1 flex justify-center">
+        <ChainDisplay />
+      </div>
+
       <div className="flex items-center gap-4">
         <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
           <Button

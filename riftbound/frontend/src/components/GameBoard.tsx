@@ -8,6 +8,7 @@ export function GameBoard() {
   const {
     gameState,
     getMyPlayer,
+    isMyTurn,
     sendCommand,
     selectedCard,
     setSelectedCard,
@@ -29,26 +30,58 @@ export function GameBoard() {
 
   function handleBattlefieldClick(bfId: string) {
     if (selectedCard) {
-      // play card to battlefield
-      sendCommand({
-        type: "play_card",
-        cardInstanceId: selectedCard.instanceId,
-        battlefieldId: bfId,
-      });
-      setSelectedCard(null);
-    } else {
-      setSelectedBattlefield(bfId);
+      const inHand =
+        !!myPlayer?.hand?.some((c) => c.instanceId === selectedCard.instanceId);
+
+      if (inHand) {
+        sendCommand({
+          type: "play_card",
+          cardInstanceId: selectedCard.instanceId,
+          battlefieldId: bfId,
+        });
+        setSelectedCard(null);
+        return;
+      }
+
+      if ((selectedCard.type || "").toLowerCase() === "unit") {
+        sendCommand({
+          type: "move",
+          unitInstanceId: selectedCard.instanceId,
+          destination: bfId,
+        });
+        setSelectedCard(null);
+        return;
+      }
+
+      return;
     }
+
+    setSelectedBattlefield(bfId);
   }
 
   function handleBaseClick() {
-    if (selectedCard) {
-      // play card to base (no battlefieldId)
+    if (!selectedCard) return;
+
+    const inHand =
+      !!myPlayer?.hand?.some((c) => c.instanceId === selectedCard.instanceId);
+
+    if (inHand) {
       sendCommand({
         type: "play_card",
         cardInstanceId: selectedCard.instanceId,
       });
       setSelectedCard(null);
+      return;
+    }
+
+    if ((selectedCard.type || "").toLowerCase() === "unit") {
+      sendCommand({
+        type: "move",
+        unitInstanceId: selectedCard.instanceId,
+        destination: "base",
+      });
+      setSelectedCard(null);
+      return;
     }
   }
 
@@ -100,9 +133,26 @@ export function GameBoard() {
           {myBaseGear.map((g) => (
             <CardImage key={g.instanceId} card={g} size="xs" />
           ))}
-          {myBaseUnits.map((u) => (
-            <CardImage key={u.instanceId} card={u} size="xs" />
-          ))}
+          {myBaseUnits.map((u) => {
+            const isSelected = selectedCard?.instanceId === u.instanceId;
+            return (
+              <div
+                key={u.instanceId}
+                onClick={() => {
+                  if (!isMyTurn() || u.exhausted) return;
+                  setSelectedCard(isSelected ? null : u);
+                }}
+                className={cn(
+                  "transition-all",
+                  isMyTurn() && !u.exhausted && "cursor-pointer",
+                  isSelected && "ring-2 ring-arcane scale-105",
+                  u.exhausted && "opacity-60 rotate-6"
+                )}
+              >
+                <CardImage card={u} size="xs" />
+              </div>
+            );
+          })}
           {myBaseUnits.length === 0 && myBaseGear.length === 0 && (
             <span className="text-text-dim/40 text-xs">empty</span>
           )}
