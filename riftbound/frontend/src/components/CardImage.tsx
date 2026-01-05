@@ -35,7 +35,7 @@ export function CardImage({
       onClick={onClick}
       className={cn(
         "relative transition-all duration-300",
-        sizeClasses[size],
+        !className?.includes("w-") && sizeClasses[size],
         orientation === "landscape" ? "aspect-[4/3]" : "aspect-[3/4]",
         onClick && "cursor-pointer hover:scale-105",
         selected && "ring-2 ring-arcane shadow-[0_0_30px_rgba(200,170,110,0.6)]",
@@ -51,7 +51,7 @@ export function CardImage({
         alt={card.title}
         loading="lazy"
         className={cn(
-          "w-full h-full object-cover rounded-sm transition-all duration-300",
+          "w-full h-full object-contain rounded-sm transition-all duration-300",
           "border border-arcane/20",
           onClick && "hover:border-arcane/60"
         )}
