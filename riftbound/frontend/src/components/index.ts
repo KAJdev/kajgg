@@ -4,3 +4,4 @@ export { PlayerHand } from "./PlayerHand";
 export { GameControls } from "./GameControls";
 export { GameLog } from "./GameLog";
 export { RunesDisplay } from "./RunesDisplay";
+export { ChainDisplay } from "./ChainDisplay";

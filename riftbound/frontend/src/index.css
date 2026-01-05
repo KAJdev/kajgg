@@ -149,7 +149,7 @@ body {
 }
 
 .animate-pulse-contested {
-  animation: pulse-contested 2s ease-in-out infinite;
+  animation: none;
 }
 
 /* card lift shadow */
@@ -165,13 +165,16 @@ body {
 
 /* shimmer effect for runes */
 .rune-shimmer {
-  background: linear-gradient(
-    90deg,
-    transparent 0%,
-    rgba(212, 166, 54, 0.2) 50%,
-    transparent 100%
-  );
-  background-size: 200% 100%;
-  animation: shimmer 3s ease-in-out infinite;
+  background: none;
+  animation: none;
+}
+
+.hover-lift {
+  transition: transform 0.2s ease;
+  will-change: transform;
+}
+
+.hover-lift:hover {
+  transform: translateY(-2px);
 }
 

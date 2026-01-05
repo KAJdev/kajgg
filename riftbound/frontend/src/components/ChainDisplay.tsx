@@ -1,60 +1,45 @@
-import { useGameStore } from "@lib/store";
-import { cn } from "@lib/utils";
 import { Button } from "@theme/index";
+import { useGameStore } from "@lib/store";
 
 export function ChainDisplay() {
-  const { gameState, myPlayerId, sendCommand } = useGameStore();
+  const { gameState, sendCommand, myPlayerId } = useGameStore();
 
-  if (!gameState) return null;
+  if (!gameState?.waitingForResponse || gameState.chainItems.length === 0) {
+    return null;
+  }
 
-  const chain = gameState.chainItems || [];
-  const visible = gameState.waitingForResponse || chain.length > 0;
-  if (!visible) return null;
-
-  const hasPriority =
-    !!gameState.priorityPlayer &&
-    !!myPlayerId &&
-    gameState.priorityPlayer === myPlayerId;
+  const hasPriority = !!myPlayerId && gameState.priorityPlayer === myPlayerId;
 
   return (
-    <div
-      className={cn(
-        "flex items-center gap-4 px-4 py-2 rounded-lg border",
-        "border-arcane/25 bg-shadow/30"
-      )}
-    >
-      <div className="text-xs text-text-dim uppercase tracking-wider">chain</div>
+    <div className="absolute inset-x-0 top-16 flex justify-center pointer-events-none z-40">
+      <div className="bg-void-deep/85 backdrop-blur-sm rounded-lg px-4 py-3 shadow-[0_0_34px_rgba(0,0,0,0.55)] pointer-events-auto">
+        <div className="text-[10px] uppercase tracking-wider text-text-dim mb-2">
+          Chain
+        </div>
 
-      <div className="flex items-center gap-2 flex-wrap">
-        {chain.length === 0 ? (
-          <span className="text-xs text-text-dim/40">empty</span>
-        ) : (
-          chain.map((item, idx) => (
-            <span
+        <div className="flex flex-wrap gap-2">
+          {gameState.chainItems.map((item, idx) => (
+            <div
               key={`${item.controllerId}-${idx}`}
-              className={cn(
-                "text-xs font-display px-2 py-1 rounded-md border",
-                "border-mist/20 bg-void-deep/40"
-              )}
+              className="text-xs text-text bg-shadow/30 rounded px-2 py-1"
             >
               {item.cardTitle}
-            </span>
-          ))
-        )}
-      </div>
-
-      <div className="flex items-center gap-3 ml-auto">
-        <div className="text-xs text-text-dim">
-          priority: {hasPriority ? "you" : "opponent"}
+            </div>
+          ))}
         </div>
-        <Button
-          variant="primary"
-          size="sm"
-          onClick={() => sendCommand({ type: "pass_priority" })}
-          disabled={!gameState.waitingForResponse || !hasPriority}
-        >
-          Pass
-        </Button>
+
+        {hasPriority && (
+          <div className="mt-3 flex items-center gap-3">
+            <Button
+              size="sm"
+              variant="primary"
+              onClick={() => sendCommand({ type: "pass_priority" })}
+            >
+              Pass
+            </Button>
+            <span className="text-xs text-text-dim">or play a Reaction</span>
+          </div>
+        )}
       </div>
     </div>
   );
